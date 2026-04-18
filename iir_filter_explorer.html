@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IIR Filter Explorer</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f0f0e;
+    --surface: #181817;
+    --surface2: #1f1f1d;
+    --border: rgba(255,255,255,0.08);
+    --text: #e8e6e0;
+    --muted: #7a7870;
+    --accent: #c8b97a;
+    --accent2: #7ab8c8;
+    --green: #6db87a;
+    --danger: #d85a30;
+    --purple: #9b7ac8;
+    --pink: #c87a9b;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 300;
+    min-height: 100vh;
+    padding: 2.5rem 2rem;
+    max-width: 960px;
+    margin: 0 auto;
+  }
+
+  header {
+    margin-bottom: 2rem;
+    border-bottom: 0.5px solid var(--border);
+    padding-bottom: 1.5rem;
+  }
+
+  header h1 {
+    font-size: 1.05rem;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-family: 'DM Mono', monospace;
+    margin-bottom: 0.4rem;
+  }
+
+  header p { font-size: 0.88rem; color: var(--muted); line-height: 1.6; max-width: 600px; }
+
+  .card {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: 10px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .card-label {
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    margin-bottom: 0.75rem;
+  }
+
+  .pole-tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.25rem;
+    flex-wrap: wrap;
+  }
+
+  .pole-tab {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    background: transparent;
+    border: 0.5px solid var(--border);
+    color: var(--muted);
+    border-radius: 5px;
+    padding: 6px 16px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .pole-tab.active { border-color: var(--accent); color: var(--accent); background: rgba(200,185,122,0.08); }
+
+  .pole-section { display: none; }
+  .pole-section.visible { display: block; }
+
+  .pole-pair-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .pole-pair {
+    background: var(--surface2);
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    border-left: 2px solid var(--accent);
+  }
+
+  .pole-pair.pair2 { border-left-color: var(--purple); }
+
+  .pair-title {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 0.75rem;
+    font-weight: 500;
+  }
+
+  .ctrl-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 0.6rem;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--muted);
+  }
+
+  .ctrl-row input[type="range"] {
+    -webkit-appearance: none;
+    flex: 1;
+    height: 3px;
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+    background: rgba(200,185,122,0.2);
+  }
+
+  .ctrl-row input[type="range"].p2 { background: rgba(155,122,200,0.2); }
+
+  .ctrl-row input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 14px; height: 14px;
+    border-radius: 50%; background: var(--accent); cursor: pointer;
+  }
+
+  .ctrl-row input[type="range"].p2::-webkit-slider-thumb { background: var(--purple); }
+
+  .ctrl-val { min-width: 52px; text-align: right; font-weight: 500; color: var(--accent); }
+  .ctrl-val.p2 { color: var(--purple); }
+
+  .eq-box {
+    background: var(--surface2);
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--muted);
+    line-height: 1.8;
+    margin-bottom: 1rem;
+    word-break: break-word;
+  }
+
+  .eq-box .p1 { color: var(--accent); }
+  .eq-box .p2c { color: var(--purple); }
+  .eq-box .g { color: var(--accent2); }
+
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.6rem;
+    margin-bottom: 1rem;
+  }
+
+  .stat {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+  }
+
+  .stat-label { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-family: 'DM Mono', monospace; margin-bottom: 4px; }
+  .stat-val { font-size: 12px; font-weight: 500; font-family: 'DM Mono', monospace; color: var(--text); }
+
+  .chart-wrap { position: relative; height: 260px; margin-bottom: 8px; }
+  .axis-note { font-size: 10px; color: var(--muted); font-family: 'DM Mono', monospace; margin-bottom: 1rem; }
+
+  .polar-wrap { display: flex; justify-content: center; margin-bottom: 8px; }
+
+  .audio-card { background: var(--surface); border: 0.5px solid var(--border); border-radius: 10px; padding: 1.25rem 1.5rem; margin-bottom: 1rem; }
+
+  .audio-row { display: flex; align-items: center; gap: 10px; margin-bottom: 0.75rem; flex-wrap: wrap; }
+
+  .btn {
+    font-family: 'DM Mono', monospace; font-size: 0.72rem; letter-spacing: 0.08em;
+    text-transform: uppercase; background: transparent; border: 0.5px solid var(--border);
+    color: var(--muted); border-radius: 5px; padding: 6px 14px; cursor: pointer; transition: all 0.15s;
+  }
+
+  .btn.play { border-color: var(--green); color: var(--green); }
+  .btn.play:hover { background: rgba(109,184,122,0.08); }
+  .btn.stop { border-color: var(--danger); color: var(--danger); }
+
+  .src-sel {
+    font-family: 'DM Mono', monospace; font-size: 0.72rem;
+    background: var(--surface2); border: 0.5px solid var(--border);
+    color: var(--muted); border-radius: 4px; padding: 5px 10px; cursor: pointer; outline: none;
+  }
+
+  .spec-wrap { background: var(--surface2); border-radius: 6px; overflow: hidden; height: 80px; }
+  canvas.spec { width: 100%; height: 80px; display: block; }
+
+  .insight {
+    background: var(--surface2);
+    border-left: 2px solid var(--green);
+    border-radius: 0 6px 6px 0;
+    padding: 10px 14px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--muted);
+    line-height: 1.7;
+    margin-top: 0.75rem;
+  }
+
+  .insight .a { color: var(--accent); }
+  .insight .b { color: var(--purple); }
+  .insight .c { color: var(--green); }
+
+  footer { border-top: 0.5px solid var(--border); padding-top: 1.25rem; font-size: 0.75rem; color: var(--muted); line-height: 1.7; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>IIR Filter Explorer</h1>
+  <p>Explore one-pole, two-pole, and four-pole IIR filters. Each pole pair adds independent frequency and resonance control. All poles are complex conjugate pairs — except the one-pole, which sits on the real axis.</p>
+</header>
+
+<!-- POLE MODE SELECTOR -->
+<div class="card">
+  <div class="card-label">Number of poles</div>
+  <div class="pole-tabs">
+    <button class="pole-tab active" data-poles="1">1 pole — real axis</button>
+    <button class="pole-tab" data-poles="2">2 poles — one pair</button>
+    <button class="pole-tab" data-poles="4">4 poles — two pairs cascaded</button>
+  </div>
+
+  <!-- 1 POLE -->
+  <div class="pole-section visible" id="section-1">
+    <div class="card-label" style="margin-bottom:0.5rem; color:var(--accent);">one-pole IIR — y(n) = g·x(n) + r·y(n−1)</div>
+    <div class="ctrl-row">
+      <span style="min-width:80px;">g (input)</span>
+      <input type="range" id="g1" min="0.01" max="1" step="0.01" value="0.2">
+      <span class="ctrl-val" id="g1v">0.20</span>
+    </div>
+    <div class="ctrl-row">
+      <span style="min-width:80px;">r (feedback)</span>
+      <input type="range" id="r1" min="-0.99" max="0.99" step="0.01" value="0.8">
+      <span class="ctrl-val" id="r1v">0.80</span>
+    </div>
+    <div style="font-size:0.72rem; color:var(--muted); font-family:'DM Mono',monospace; margin-top:0.5rem;">
+      Pole constrained to real axis. r &gt; 0 → low-pass. r &lt; 0 → high-pass character.
+    </div>
+  </div>
+
+  <!-- 2 POLES -->
+  <div class="pole-section" id="section-2">
+    <div class="card-label" style="margin-bottom:0.5rem; color:var(--accent);">two-pole IIR — one complex conjugate pair</div>
+    <div class="ctrl-row">
+      <span style="min-width:80px;">g (input)</span>
+      <input type="range" id="g2" min="0.01" max="1" step="0.01" value="0.1">
+      <span class="ctrl-val" id="g2v">0.10</span>
+    </div>
+    <div class="ctrl-row">
+      <span style="min-width:80px;">radius (r)</span>
+      <input type="range" id="r2" min="0.01" max="0.99" step="0.01" value="0.9">
+      <span class="ctrl-val" id="r2v">0.90</span>
+    </div>
+    <div class="ctrl-row">
+      <span style="min-width:80px;">frequency</span>
+      <input type="range" id="f2" min="0" max="24000" step="10" value="1000">
+      <span class="ctrl-val" id="f2v">1000 Hz</span>
+    </div>
+    <div style="font-size:0.72rem; color:var(--muted); font-family:'DM Mono',monospace; margin-top:0.5rem;">
+      a₁ = 2r·cos(ω₀) &nbsp;·&nbsp; a₂ = −r² &nbsp;·&nbsp; ω₀ = 2π·freq/SR
+    </div>
+  </div>
+
+  <!-- 4 POLES -->
+  <div class="pole-section" id="section-4">
+    <div class="card-label" style="margin-bottom:0.75rem; color:var(--accent);">four-pole IIR — two complex pairs cascaded</div>
+    <div class="ctrl-row" style="margin-bottom:0.75rem;">
+      <span style="min-width:80px;">g (input)</span>
+      <input type="range" id="g4" min="0.01" max="1" step="0.01" value="0.05">
+      <span class="ctrl-val" id="g4v">0.05</span>
+    </div>
+    <div class="pole-pair-grid">
+      <div class="pole-pair">
+        <div class="pair-title" style="color:var(--accent);">Pair 1</div>
+        <div class="ctrl-row">
+          <span style="min-width:60px;">radius</span>
+          <input type="range" id="r4a" min="0.01" max="0.99" step="0.01" value="0.9">
+          <span class="ctrl-val" id="r4av">0.90</span>
+        </div>
+        <div class="ctrl-row">
+          <span style="min-width:60px;">freq</span>
+          <input type="range" id="f4a" min="0" max="24000" step="10" value="800">
+          <span class="ctrl-val" id="f4av">800 Hz</span>
+        </div>
+      </div>
+      <div class="pole-pair pair2">
+        <div class="pair-title" style="color:var(--purple);">Pair 2</div>
+        <div class="ctrl-row">
+          <span style="min-width:60px;">radius</span>
+          <input type="range" id="r4b" min="0.01" max="0.99" step="0.01" value="0.85" class="p2">
+          <span class="ctrl-val p2" id="r4bv">0.85</span>
+        </div>
+        <div class="ctrl-row">
+          <span style="min-width:60px;">freq</span>
+          <input type="range" id="f4b" min="0" max="24000" step="10" value="2400" class="p2">
+          <span class="ctrl-val p2" id="f4bv">2400 Hz</span>
+        </div>
+      </div>
+    </div>
+    <div style="font-size:0.72rem; color:var(--muted); font-family:'DM Mono',monospace;">
+      Output of pair 1 feeds into pair 2. Combined response = product of both.
+    </div>
+  </div>
+</div>
+
+<!-- EQUATION -->
+<div class="eq-box" id="eqBox"></div>
+
+<!-- STATS -->
+<div class="stats-row">
+  <div class="stat"><div class="stat-label">poles</div><div class="stat-val" id="statPoles">1</div></div>
+  <div class="stat"><div class="stat-label">peak freq</div><div class="stat-val" id="statFreq">DC</div></div>
+  <div class="stat"><div class="stat-label">stability</div><div class="stat-val" id="statStab" style="color:var(--green);">stable</div></div>
+  <div class="stat"><div class="stat-label">rolloff</div><div class="stat-val" id="statRolloff">20 dB/oct</div></div>
+</div>
+
+<!-- FREQUENCY RESPONSE -->
+<div class="card">
+  <div class="card-label">Frequency response — gain (dB)</div>
+  <div class="chart-wrap">
+    <canvas id="freqChart" role="img" aria-label="IIR filter frequency response">IIR filter frequency response.</canvas>
+  </div>
+  <div class="axis-note">0 = DC (0 Hz) · 1 = Nyquist (24 kHz at 48kHz SR) · dashed = −3 dB</div>
+  <div class="insight" id="freqInsight"></div>
+</div>
+
+<!-- IMPULSE RESPONSE -->
+<div class="card">
+  <div class="card-label">Impulse response — exponential decay</div>
+  <div class="chart-wrap" style="height:180px;">
+    <canvas id="impulseChart" role="img" aria-label="IIR impulse response">IIR filter impulse response.</canvas>
+  </div>
+  <div class="axis-note">x = sample n · y = amplitude · more poles = richer decay shape</div>
+</div>
+
+<!-- POLAR PLOT -->
+<div class="card">
+  <div class="card-label">Polar plot — poles on the z-plane unit circle</div>
+  <div class="polar-wrap">
+    <canvas id="polarCanvas" width="360" height="360" role="img" aria-label="Pole positions on z-plane unit circle">Pole positions on unit circle.</canvas>
+  </div>
+  <div class="axis-note">Angle = frequency from DC (top) to Nyquist 24kHz (bottom) · distance from center = radius · frequency markers shown at 1k, 2k, 4k, 8k, 12k, 16k, 20kHz</div>
+  <div class="insight">
+    <span class="a">Pair 1 poles</span> shown as circles · <span class="b">Pair 2 poles</span> shown as diamonds (4-pole only) · poles outside the unit circle = unstable · closer to circle = more resonant
+  </div>
+</div>
+
+<!-- AUDIO -->
+<div class="audio-card">
+  <div class="card-label">Live audio</div>
+  <div class="audio-row">
+    <button class="btn play" id="playBtn">▶ Play</button>
+    <select class="src-sel" id="srcSel">
+      <option value="white">White noise</option>
+      <option value="pink">Pink noise</option>
+      <option value="buzz">Buzz (sawtooth)</option>
+    </select>
+    <div style="display:flex; align-items:center; gap:8px; flex:1; font-family:'DM Mono',monospace; font-size:0.72rem; color:var(--muted);">
+      <span>Vol</span>
+      <input type="range" id="volSlider" min="0" max="0.8" step="0.01" value="0.35" style="-webkit-appearance:none; flex:1; height:3px; background:rgba(200,185,122,0.2); border-radius:2px; outline:none; cursor:pointer;">
+    </div>
+  </div>
+  <div class="spec-wrap">
+    <canvas class="spec" id="specCanvas"></canvas>
+  </div>
+</div>
+
+<footer>
+  <strong style="color:var(--text); font-weight:500;">Key relationships:</strong><br>
+  1 pole → 20 dB/octave rolloff · 2 poles → 40 dB/octave · 4 poles → 80 dB/octave (Moog-like)<br>
+  radius → resonance intensity (closer to 1 = sharper peak) · frequency → where the peak sits in Hz<br><br>
+  Cook, P. (2002). <em>Real Sound Synthesis for Interactive Applications.</em> Ch. 3: Digital Filters.
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const SR = 48000;
+const NF = 300;
+let currentPoles = 1;
+
+// =============================================
+// MATH
+// =============================================
+function onePoleFreq(g, r) {
+  return Array.from({length: NF}, (_, i) => {
+    const omega = Math.PI * i / (NF - 1);
+    const mag = g / Math.sqrt(1 - 2*r*Math.cos(omega) + r*r);
+    return Math.max(20 * Math.log10(Math.max(mag, 0.00001)), -60);
+  });
+}
+
+function twoPoleFreq(g, r, freqHz) {
+  const omega0 = 2 * Math.PI * freqHz / SR;
+  return Array.from({length: NF}, (_, i) => {
+    const omega = Math.PI * i / (NF - 1);
+    const a1 = 2 * r * Math.cos(omega0);
+    const a2 = -r * r;
+    const re = 1 - a1 * Math.cos(omega) - a2 * Math.cos(2*omega);
+    const im = a1 * Math.sin(omega) + a2 * Math.sin(2*omega);
+    const mag = g / Math.sqrt(re*re + im*im);
+    return Math.max(20 * Math.log10(Math.max(mag, 0.00001)), -60);
+  });
+}
+
+function fourPoleFreq(g, r1, f1, r2, f2) {
+  const d1 = twoPoleFreq(1, r1, f1);
+  const d2 = twoPoleFreq(1, r2, f2);
+  return d1.map((v, i) => Math.max(v + d2[i] + 20*Math.log10(Math.max(g, 0.00001)), -60));
+}
+
+function onePoleImpulse(g, r, n) {
+  const out = []; let yp = 0;
+  for (let i = 0; i < n; i++) {
+    const x = i === 0 ? 1 : 0;
+    const y = g * x + r * yp;
+    out.push(y); yp = y;
+  }
+  return out;
+}
+
+function twoPoleImpulse(g, r, freqHz, n) {
+  const omega0 = 2 * Math.PI * freqHz / SR;
+  const a1 = 2 * r * Math.cos(omega0);
+  const a2 = -r * r;
+  const out = []; let y1 = 0, y2 = 0;
+  for (let i = 0; i < n; i++) {
+    const x = i === 0 ? 1 : 0;
+    const y = g * x + a1 * y1 + a2 * y2;
+    out.push(y); y2 = y1; y1 = y;
+  }
+  return out;
+}
+
+function fourPoleImpulse(g, r1, f1, r2, f2, n) {
+  const omega1 = 2 * Math.PI * f1 / SR;
+  const a1_1 = 2 * r1 * Math.cos(omega1), a1_2 = -r1 * r1;
+  const omega2 = 2 * Math.PI * f2 / SR;
+  const a2_1 = 2 * r2 * Math.cos(omega2), a2_2 = -r2 * r2;
+  const out = [];
+  let s1y1=0, s1y2=0, s2y1=0, s2y2=0;
+  for (let i = 0; i < n; i++) {
+    const x = i === 0 ? 1 : 0;
+    const s1 = g * x + a1_1 * s1y1 + a1_2 * s1y2;
+    s1y2 = s1y1; s1y1 = s1;
+    const s2 = s1 + a2_1 * s2y1 + a2_2 * s2y2;
+    s2y2 = s2y1; s2y1 = s2;
+    out.push(s2);
+  }
+  return out;
+}
+
+// =============================================
+// CHARTS
+// =============================================
+const freqLabels = Array.from({length: NF}, (_, i) => (i/(NF-1)).toFixed(2));
+const impLabels = Array.from({length: 80}, (_, i) => i);
+
+const freqChart = new Chart(document.getElementById('freqChart').getContext('2d'), {
+  type: 'line',
+  data: {
+    labels: freqLabels,
+    datasets: [
+      { label: 'response', data: onePoleFreq(0.2, 0.8), borderColor: '#c8b97a', borderWidth: 2.5, pointRadius: 0, tension: 0.3 },
+      { label: '-3dB', data: new Array(NF).fill(-3), borderColor: 'rgba(109,184,122,0.3)', borderWidth: 1, borderDash: [5,4], pointRadius: 0 }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false, animation: { duration: 80 },
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { ticks: { maxTicksLimit: 11, autoSkip: true, color: '#7a7870', font: { size: 10 }, callback: (v,i) => (i/(NF-1)).toFixed(1) }, grid: { color: 'rgba(255,255,255,0.04)' }, title: { display: true, text: 'normalized frequency', color: '#7a7870', font: { size: 10 } } },
+      y: { min: -60, max: 20, ticks: { color: '#7a7870', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.04)' }, title: { display: true, text: 'gain (dB)', color: '#7a7870', font: { size: 10 } } }
+    }
+  }
+});
+
+const impulseChart = new Chart(document.getElementById('impulseChart').getContext('2d'), {
+  type: 'bar',
+  data: {
+    labels: impLabels,
+    datasets: [
+      { label: 'impulse', data: onePoleImpulse(0.2, 0.8, 80), backgroundColor: 'rgba(200,185,122,0.6)', borderColor: '#c8b97a', borderWidth: 1, borderRadius: 2, barThickness: 5 }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false, animation: { duration: 80 },
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { ticks: { maxTicksLimit: 16, color: '#7a7870', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.04)' }, title: { display: true, text: 'sample n', color: '#7a7870', font: { size: 10 } } },
+      y: { ticks: { color: '#7a7870', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.04)' }, title: { display: true, text: 'amplitude', color: '#7a7870', font: { size: 10 } } }
+    }
+  }
+});
+
+// =============================================
+// POLAR PLOT
+// =============================================
+function drawPolar(poles) {
+  const canvas = document.getElementById('polarCanvas');
+  const W = canvas.width, H = canvas.height;
+  const ctx = canvas.getContext('2d');
+  const cx = W/2, cy = H/2, R = W * 0.4;
+
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#181817';
+  ctx.fillRect(0, 0, W, H);
+
+  // grid
+  [0.25, 0.5, 0.75, 1.0].forEach(f => {
+    ctx.beginPath(); ctx.arc(cx, cy, R*f, 0, Math.PI*2);
+    ctx.strokeStyle = f===1 ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.05)';
+    ctx.lineWidth = f===1 ? 1.5 : 0.5; ctx.stroke();
+    if (f < 1) {
+      ctx.fillStyle = 'rgba(122,120,112,0.5)'; ctx.font = '9px DM Mono,monospace';
+      ctx.textAlign = 'left'; ctx.fillText(f.toFixed(2), cx + R*f + 3, cy - 3);
+    }
+  });
+
+  // axes
+  ctx.strokeStyle = 'rgba(255,255,255,0.07)'; ctx.lineWidth = 0.5;
+  ctx.beginPath(); ctx.moveTo(cx, cy-R-14); ctx.lineTo(cx, cy+R+14); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx-R-14, cy); ctx.lineTo(cx+R+14, cy); ctx.stroke();
+
+  // axis labels
+  ctx.fillStyle = 'rgba(122,120,112,0.6)'; ctx.font = '9px DM Mono,monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('DC (0 Hz)', cx, cy-R-18);
+  ctx.fillText('Nyquist (24kHz)', cx, cy+R+22);
+  ctx.textAlign = 'right'; ctx.fillText('Re', cx-R-16, cy+4);
+  ctx.textAlign = 'left'; ctx.fillText('+1', cx+R+4, cy+4);
+
+  // frequency markers around the circle
+  const freqMarks = [1000, 2000, 4000, 8000, 12000, 16000, 20000];
+  freqMarks.forEach(f => {
+    const omega = 2 * Math.PI * f / SR;
+    const mx = cx + (R+8) * Math.sin(omega);
+    const my = cy - (R+8) * Math.cos(omega);
+    ctx.fillStyle = 'rgba(122,120,112,0.35)';
+    ctx.font = '8px DM Mono,monospace';
+    ctx.textAlign = mx > cx ? 'left' : 'right';
+    ctx.fillText(f >= 1000 ? (f/1000)+'k' : f, mx, my);
+    ctx.beginPath(); ctx.arc(cx + R*Math.sin(omega), cy - R*Math.cos(omega), 2, 0, Math.PI*2);
+    ctx.fillStyle = 'rgba(122,120,112,0.3)'; ctx.fill();
+  });
+
+  function drawPolePair(r, freqHz, color, shape) {
+    const omega0 = 2 * Math.PI * freqHz / SR;
+    // pole at r * e^(+j*omega0) and r * e^(-j*omega0)
+    // map to canvas: angle from top (DC), clockwise
+    [[omega0], [-omega0]].forEach(([angle]) => {
+      const px = cx + R * r * Math.sin(angle);
+      const py = cy - R * r * Math.cos(angle);
+
+      // glow
+      ctx.fillStyle = color.replace(')', ', 0.15)').replace('rgb', 'rgba');
+      ctx.beginPath(); ctx.arc(px, py, 10, 0, Math.PI*2); ctx.fill();
+
+      ctx.strokeStyle = color; ctx.lineWidth = 1.5;
+      if (shape === 'circle') {
+        ctx.beginPath(); ctx.arc(px, py, 5, 0, Math.PI*2); ctx.stroke();
+        ctx.fillStyle = color + '44';
+        ctx.beginPath(); ctx.arc(px, py, 5, 0, Math.PI*2); ctx.fill();
+      } else {
+        ctx.beginPath();
+        ctx.moveTo(px, py-6); ctx.lineTo(px+6, py); ctx.lineTo(px, py+6); ctx.lineTo(px-6, py); ctx.closePath();
+        ctx.stroke();
+      }
+    });
+
+    // frequency label
+    ctx.fillStyle = color; ctx.font = '9px DM Mono,monospace'; ctx.textAlign = 'left';
+    const lx = cx + R * r * Math.sin(omega0) + 8;
+    const ly = cy - R * r * Math.cos(omega0);
+    ctx.fillText(Math.round(freqHz) + 'Hz', lx, ly);
+  }
+
+  if (poles === 1) {
+    const r = parseFloat(document.getElementById('r1').value);
+    // real pole: sits on real axis
+    const px = cx + R * r;
+    const py = cy;
+    ctx.strokeStyle = '#c8b97a'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(px, py, 5, 0, Math.PI*2); ctx.stroke();
+    ctx.fillStyle = 'rgba(200,185,122,0.2)';
+    ctx.beginPath(); ctx.arc(px, py, 5, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#c8b97a'; ctx.font = '9px DM Mono,monospace'; ctx.textAlign = 'left';
+    ctx.fillText('r='+r.toFixed(2), px+8, py+4);
+
+    if (r < 0) {
+      const px2 = cx + R * r;
+      ctx.fillStyle = '#c8b97a'; ctx.font = '9px DM Mono,monospace';
+      ctx.fillText('(negative r)', px2+8, py+14);
+    }
+  } else if (poles === 2) {
+    const r = parseFloat(document.getElementById('r2').value);
+    const f = parseFloat(document.getElementById('f2').value);
+    drawPolePair(r, f, '#c8b97a', 'circle');
+  } else {
+    const r1 = parseFloat(document.getElementById('r4a').value);
+    const f1 = parseFloat(document.getElementById('f4a').value);
+    const r2 = parseFloat(document.getElementById('r4b').value);
+    const f2 = parseFloat(document.getElementById('f4b').value);
+    drawPolePair(r1, f1, '#c8b97a', 'circle');
+    drawPolePair(r2, f2, '#9b7ac8', 'diamond');
+  }
+
+  // legend
+  ctx.font = '9px DM Mono,monospace'; ctx.textAlign = 'left';
+  ctx.fillStyle = '#c8b97a'; ctx.fillText('Pair 1', 10, 16);
+  if (poles === 4) { ctx.fillStyle = '#9b7ac8'; ctx.fillText('Pair 2', 10, 28); }
+  ctx.fillStyle = 'rgba(255,255,255,0.25)'; ctx.fillText('unit circle = stability boundary', 10, poles===4 ? 40 : 28);
+}
+
+// =============================================
+// UPDATE
+// =============================================
+function getParams() {
+  return {
+    g1: parseFloat(document.getElementById('g1').value),
+    r1: parseFloat(document.getElementById('r1').value),
+    g2: parseFloat(document.getElementById('g2').value),
+    r2: parseFloat(document.getElementById('r2').value),
+    f2: parseFloat(document.getElementById('f2').value),
+    g4: parseFloat(document.getElementById('g4').value),
+    r4a: parseFloat(document.getElementById('r4a').value),
+    f4a: parseFloat(document.getElementById('f4a').value),
+    r4b: parseFloat(document.getElementById('r4b').value),
+    f4b: parseFloat(document.getElementById('f4b').value),
+  };
+}
+
+function update() {
+  const p = getParams();
+
+  document.getElementById('g1v').textContent = p.g1.toFixed(2);
+  document.getElementById('r1v').textContent = p.r1.toFixed(2);
+  document.getElementById('g2v').textContent = p.g2.toFixed(2);
+  document.getElementById('r2v').textContent = p.r2.toFixed(2);
+  document.getElementById('f2v').textContent = Math.round(p.f2) + ' Hz';
+  document.getElementById('g4v').textContent = p.g4.toFixed(2);
+  document.getElementById('r4av').textContent = p.r4a.toFixed(2);
+  document.getElementById('f4av').textContent = Math.round(p.f4a) + ' Hz';
+  document.getElementById('r4bv').textContent = p.r4b.toFixed(2);
+  document.getElementById('f4bv').textContent = Math.round(p.f4b) + ' Hz';
+
+  let freqData, impulseData, eqHtml, insightHtml, rolloff, peakFreq;
+
+  if (currentPoles === 1) {
+    freqData = onePoleFreq(p.g1, p.r1);
+    impulseData = onePoleImpulse(p.g1, p.r1, 80);
+    const fc = Math.round((1 - Math.abs(p.r1)) * SR / (2 * Math.PI));
+    peakFreq = p.r1 >= 0 ? fc + ' Hz' : (SR/2 - fc) + ' Hz';
+    rolloff = '20 dB/oct';
+    eqHtml = `y(n) = <span class="g">${p.g1.toFixed(2)}</span>·x(n) + <span class="p1">${p.r1.toFixed(2)}</span>·y(n−1)` +
+      (p.r1 < 0 ? ' <span style="color:var(--danger); font-size:10px;">[negative r → HPF]</span>' : '');
+    insightHtml = `One pole on the real axis. Cutoff ≈ <span class="a">${fc.toLocaleString()} Hz</span>. Decay per sample: ×${Math.abs(p.r1).toFixed(3)}.`;
+    document.getElementById('statStab').textContent = Math.abs(p.r1) < 0.99 ? 'stable' : 'near limit';
+    document.getElementById('statStab').style.color = Math.abs(p.r1) < 0.99 ? 'var(--green)' : 'var(--danger)';
+
+  } else if (currentPoles === 2) {
+    freqData = twoPoleFreq(p.g2, p.r2, p.f2);
+    impulseData = twoPoleImpulse(p.g2, p.r2, p.f2, 80);
+    const a1 = (2 * p.r2 * Math.cos(2*Math.PI*p.f2/SR)).toFixed(4);
+    const a2 = (-p.r2*p.r2).toFixed(4);
+    peakFreq = Math.round(p.f2) + ' Hz';
+    rolloff = '40 dB/oct';
+    eqHtml = `y(n) = <span class="g">${p.g2.toFixed(2)}</span>·x(n) + <span class="p1">${a1}</span>·y(n−1) + <span class="p1">${a2}</span>·y(n−2)<br>` +
+      `<span style="font-size:10px; color:var(--muted);">a₁ = 2r·cos(ω₀) = ${a1} · a₂ = −r² = ${a2}</span>`;
+    insightHtml = `Complex conjugate pair at <span class="a">${Math.round(p.f2).toLocaleString()} Hz</span>, radius <span class="a">${p.r2.toFixed(2)}</span>. Pole can now sit at any frequency.`;
+    document.getElementById('statStab').textContent = p.r2 < 0.99 ? 'stable' : 'near limit';
+    document.getElementById('statStab').style.color = p.r2 < 0.99 ? 'var(--green)' : 'var(--danger)';
+
+  } else {
+    freqData = fourPoleFreq(p.g4, p.r4a, p.f4a, p.r4b, p.f4b);
+    impulseData = fourPoleImpulse(p.g4, p.r4a, p.f4a, p.r4b, p.f4b, 80);
+    peakFreq = Math.round(p.f4a) + ' / ' + Math.round(p.f4b) + ' Hz';
+    rolloff = '80 dB/oct';
+    eqHtml = `<span style="color:var(--accent);">Stage 1:</span> y₁(n) = ${p.g4.toFixed(2)}·x(n) + ${(2*p.r4a*Math.cos(2*Math.PI*p.f4a/SR)).toFixed(3)}·y₁(n−1) + ${(-p.r4a*p.r4a).toFixed(3)}·y₁(n−2)<br>` +
+      `<span style="color:var(--purple);">Stage 2:</span> y(n) = y₁(n) + ${(2*p.r4b*Math.cos(2*Math.PI*p.f4b/SR)).toFixed(3)}·y(n−1) + ${(-p.r4b*p.r4b).toFixed(3)}·y(n−2)`;
+    insightHtml = `Two cascaded pairs. <span class="a">Pair 1</span> at ${Math.round(p.f4a).toLocaleString()} Hz (r=${p.r4a.toFixed(2)}). <span class="b">Pair 2</span> at ${Math.round(p.f4b).toLocaleString()} Hz (r=${p.r4b.toFixed(2)}). Combined rolloff: 80 dB/oct.`;
+    const maxR = Math.max(p.r4a, p.r4b);
+    document.getElementById('statStab').textContent = maxR < 0.99 ? 'stable' : 'near limit';
+    document.getElementById('statStab').style.color = maxR < 0.99 ? 'var(--green)' : 'var(--danger)';
+  }
+
+  document.getElementById('statPoles').textContent = currentPoles;
+  document.getElementById('statFreq').textContent = peakFreq;
+  document.getElementById('statRolloff').textContent = rolloff;
+  document.getElementById('eqBox').innerHTML = eqHtml;
+  document.getElementById('freqInsight').innerHTML = insightHtml;
+
+  freqChart.data.datasets[0].data = freqData;
+  freqChart.update('none');
+
+  impulseChart.data.datasets[0].data = impulseData;
+  impulseChart.update('none');
+
+  drawPolar(currentPoles);
+  if (isPlaying) rebuildAudio();
+}
+
+// pole tab switching
+document.querySelectorAll('.pole-tab').forEach(btn => {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('.pole-tab').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.pole-section').forEach(s => s.classList.remove('visible'));
+    this.classList.add('active');
+    currentPoles = parseInt(this.dataset.poles);
+    document.getElementById('section-' + currentPoles).classList.add('visible');
+    update();
+  });
+});
+
+// all slider listeners
+['g1','r1','g2','r2','f2','g4','r4a','f4a','r4b','f4b'].forEach(id =>
+  document.getElementById(id).addEventListener('input', update)
+);
+
+// =============================================
+// WEB AUDIO
+// =============================================
+let audioCtx = null, isPlaying = false;
+let srcNode = null, filterNodes = [], analyserNode = null, gainNode = null;
+
+function buildSource(ctx) {
+  const type = document.getElementById('srcSel').value;
+  if (type === 'white') {
+    const buf = ctx.createBuffer(1, ctx.sampleRate*2, ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random()*2-1;
+    const s = ctx.createBufferSource(); s.buffer = buf; s.loop = true; s.start(); return s;
+  } else if (type === 'pink') {
+    const buf = ctx.createBuffer(1, ctx.sampleRate*2, ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    let b0=0,b1=0,b2=0,b3=0,b4=0,b5=0,b6=0;
+    for (let i = 0; i < d.length; i++) {
+      const w = Math.random()*2-1;
+      b0=0.99886*b0+w*0.0555179; b1=0.99332*b1+w*0.0750759;
+      b2=0.96900*b2+w*0.1538520; b3=0.86650*b3+w*0.3104856;
+      b4=0.55000*b4+w*0.5329522; b5=-0.7616*b5-w*0.0168980;
+      d[i]=(b0+b1+b2+b3+b4+b5+b6+w*0.5362)*0.11; b6=w*0.115926;
+    }
+    const s = ctx.createBufferSource(); s.buffer = buf; s.loop = true; s.start(); return s;
+  } else {
+    const osc = ctx.createOscillator(); osc.type = 'sawtooth'; osc.frequency.value = 110; osc.start(); return osc;
+  }
+}
+
+// Use IIRFilterNode for exact difference equation implementation.
+// Coefficients: b = feedforward (numerator), a = feedback (denominator).
+// Web Audio convention: a[0] is always 1 (normalized).
+// y(n) = b[0]*x(n) - a[1]*y(n-1) - a[2]*y(n-2) ...
+// So for one-pole y(n) = g*x(n) + r*y(n-1): b=[g], a=[1,-r]
+// For two-pole: b=[g], a=[1,-a1,-a2] where a1=2r*cos(w0), a2=-r^2
+
+function makeIIR(ctx, feedforward, feedback) {
+  return ctx.createIIRFilter(feedforward, feedback);
+}
+
+function rebuildAudio() {
+  if (!audioCtx) return;
+  filterNodes.forEach(n => { try { n.disconnect(); } catch(e) {} });
+  if (srcNode) { try { srcNode.disconnect(); } catch(e) {} }
+  filterNodes = [];
+  const p = getParams();
+  srcNode = buildSource(audioCtx);
+
+  if (currentPoles === 1) {
+    const f = makeIIR(audioCtx, [p.g1], [1, -p.r1]);
+    srcNode.connect(f); f.connect(analyserNode);
+    filterNodes = [f];
+
+  } else if (currentPoles === 2) {
+    const omega0 = 2*Math.PI*p.f2/audioCtx.sampleRate;
+    const a1 = 2*p.r2*Math.cos(omega0);
+    const a2 = -p.r2*p.r2;
+    const f = makeIIR(audioCtx, [p.g2], [1, -a1, -a2]);
+    srcNode.connect(f); f.connect(analyserNode);
+    filterNodes = [f];
+
+  } else {
+    const omega1 = 2*Math.PI*p.f4a/audioCtx.sampleRate;
+    const a1_1 = 2*p.r4a*Math.cos(omega1), a1_2 = -p.r4a*p.r4a;
+    const omega2 = 2*Math.PI*p.f4b/audioCtx.sampleRate;
+    const a2_1 = 2*p.r4b*Math.cos(omega2), a2_2 = -p.r4b*p.r4b;
+    const f1 = makeIIR(audioCtx, [p.g4], [1, -a1_1, -a1_2]);
+    const f2 = makeIIR(audioCtx, [1],    [1, -a2_1, -a2_2]);
+    srcNode.connect(f1); f1.connect(f2); f2.connect(analyserNode);
+    filterNodes = [f1, f2];
+  }
+}
+
+function startAudio() {
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  gainNode = audioCtx.createGain(); gainNode.gain.value = parseFloat(document.getElementById('volSlider').value);
+  analyserNode = audioCtx.createAnalyser(); analyserNode.fftSize = 2048; analyserNode.smoothingTimeConstant = 0.8;
+  analyserNode.connect(gainNode); gainNode.connect(audioCtx.destination);
+  rebuildAudio();
+  isPlaying = true;
+  drawSpectrum();
+}
+
+function stopAudio() {
+  if (srcNode) { try { srcNode.stop(); } catch(e) {} srcNode = null; }
+  filterNodes.forEach(n => { try { n.disconnect(); } catch(e) {} }); filterNodes = [];
+  if (audioCtx) { audioCtx.close(); audioCtx = null; }
+  isPlaying = false;
+  const c = document.getElementById('specCanvas');
+  c.getContext('2d').fillRect(0, 0, c.width, c.height);
+}
+
+document.getElementById('playBtn').addEventListener('click', function() {
+  if (isPlaying) { stopAudio(); this.textContent = '▶ Play'; this.classList.remove('stop'); this.classList.add('play'); }
+  else { startAudio(); this.textContent = '■ Stop'; this.classList.remove('play'); this.classList.add('stop'); }
+});
+
+document.getElementById('volSlider').addEventListener('input', function() {
+  if (gainNode) gainNode.gain.value = parseFloat(this.value);
+});
+
+document.getElementById('srcSel').addEventListener('change', () => { if (isPlaying) rebuildAudio(); });
+
+function drawSpectrum() {
+  if (!isPlaying) return;
+  requestAnimationFrame(drawSpectrum);
+  const canvas = document.getElementById('specCanvas');
+  const W = canvas.offsetWidth, H = canvas.offsetHeight;
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#0f0f0e'; ctx.fillRect(0, 0, W, H);
+  if (!analyserNode) return;
+  const buf = new Uint8Array(analyserNode.frequencyBinCount);
+  analyserNode.getByteFrequencyData(buf);
+  const bw = W / buf.length * 2.5;
+  let x = 0;
+  for (let i = 0; i < buf.length; i++) {
+    const h = (buf[i]/255) * H;
+    const ratio = i / buf.length;
+    const r = Math.round(200 - ratio*80), g2 = Math.round(185 + ratio*(-185+184)), b = Math.round(122 + ratio*78);
+    ctx.fillStyle = `rgb(${r},${g2},${b})`;
+    ctx.fillRect(x, H-h, bw, h); x += bw + 0.5;
+  }
+}
+
+update();
+</script>
+</body>
+</html>

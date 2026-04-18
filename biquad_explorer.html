@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BiQuad Filter Explorer</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f0f0e;
+    --surface: #181817;
+    --surface2: #1f1f1d;
+    --border: rgba(255,255,255,0.07);
+    --text: #e8e6e0;
+    --muted: #7a7870;
+    --fwd: #c8b97a;   /* feedforward -- gold */
+    --fwd2: #d4a84b;
+    --fwd3: #b89540;
+    --fb1: #7ab8c8;   /* feedback -- teal */
+    --fb2: #5a9eb0;
+    --g: #6db87a;     /* gain -- green */
+    --green: #6db87a;
+    --danger: #d85a30;
+    --response: #c8b97a;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 300;
+    min-height: 100vh;
+    padding: 2.5rem 2rem;
+    max-width: 960px;
+    margin: 0 auto;
+  }
+
+  header {
+    margin-bottom: 2rem;
+    border-bottom: 0.5px solid var(--border);
+    padding-bottom: 1.5rem;
+  }
+
+  header h1 {
+    font-size: 1.05rem;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--fwd);
+    font-family: 'DM Mono', monospace;
+    margin-bottom: 0.4rem;
+  }
+
+  header p { font-size: 0.88rem; color: var(--muted); line-height: 1.6; max-width: 640px; }
+
+  .eq-display {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: 10px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1rem;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.82rem;
+    color: var(--muted);
+    line-height: 2;
+  }
+
+  .eq-display .g   { color: var(--g); font-weight: 500; }
+  .eq-display .b1  { color: var(--fwd); font-weight: 500; }
+  .eq-display .b2  { color: var(--fwd2); font-weight: 500; }
+  .eq-display .a1  { color: var(--fb1); font-weight: 500; }
+  .eq-display .a2  { color: var(--fb2); font-weight: 500; }
+
+  .controls-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+  }
+
+  .coef-section {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: 10px;
+    padding: 1.25rem 1.5rem;
+  }
+
+  .coef-section.feedforward { border-top: 2px solid var(--fwd); }
+  .coef-section.feedback    { border-top: 2px solid var(--fb1); }
+
+  .section-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 0.75rem;
+    font-weight: 500;
+  }
+
+  .cr {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 0.7rem;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--muted);
+  }
+
+  .cr:last-child { margin-bottom: 0; }
+
+  .cr-label { min-width: 28px; font-weight: 500; }
+
+  .cr input[type="range"] {
+    -webkit-appearance: none;
+    flex: 1;
+    height: 3px;
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+  }
+
+  .cr input.g-range  { background: rgba(109,184,122,0.25); }
+  .cr input.g-range::-webkit-slider-thumb  { -webkit-appearance:none; width:14px; height:14px; border-radius:50%; background:var(--g); cursor:pointer; }
+
+  .cr input.b1-range { background: rgba(200,185,122,0.25); }
+  .cr input.b1-range::-webkit-slider-thumb { -webkit-appearance:none; width:14px; height:14px; border-radius:50%; background:var(--fwd); cursor:pointer; }
+
+  .cr input.b2-range { background: rgba(212,168,75,0.25); }
+  .cr input.b2-range::-webkit-slider-thumb { -webkit-appearance:none; width:14px; height:14px; border-radius:50%; background:var(--fwd2); cursor:pointer; }
+
+  .cr input.a1-range { background: rgba(122,184,200,0.25); }
+  .cr input.a1-range::-webkit-slider-thumb { -webkit-appearance:none; width:14px; height:14px; border-radius:50%; background:var(--fb1); cursor:pointer; }
+
+  .cr input.a2-range { background: rgba(90,158,176,0.25); }
+  .cr input.a2-range::-webkit-slider-thumb { -webkit-appearance:none; width:14px; height:14px; border-radius:50%; background:var(--fb2); cursor:pointer; }
+
+  .cv { min-width: 56px; text-align: right; font-weight: 500; font-size: 0.78rem; }
+  .cv.g  { color: var(--g); }
+  .cv.b1 { color: var(--fwd); }
+  .cv.b2 { color: var(--fwd2); }
+  .cv.a1 { color: var(--fb1); }
+  .cv.a2 { color: var(--fb2); }
+
+  .reset-btn {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    background: transparent;
+    border: 0.5px solid var(--border);
+    color: var(--muted);
+    border-radius: 4px;
+    padding: 4px 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-top: 0.5rem;
+  }
+
+  .reset-btn:hover { background: rgba(255,255,255,0.04); color: var(--text); }
+
+  .chart-section {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: 10px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .section-title {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 0.75rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .stability-badge {
+    font-size: 0.68rem;
+    font-family: 'DM Mono', monospace;
+    padding: 3px 8px;
+    border-radius: 4px;
+    border: 0.5px solid;
+  }
+
+  .stability-badge.stable   { background: rgba(109,184,122,0.12); color: var(--green); border-color: rgba(109,184,122,0.3); }
+  .stability-badge.unstable { background: rgba(216,90,48,0.12); color: var(--danger); border-color: rgba(216,90,48,0.3); }
+
+  .chart-wrap { position: relative; height: 260px; }
+  .axis-note { font-size: 10px; color: var(--muted); font-family: 'DM Mono', monospace; margin-top: 6px; }
+
+  .insight {
+    background: var(--surface2);
+    border-left: 2px solid var(--green);
+    border-radius: 0 6px 6px 0;
+    padding: 8px 12px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--muted);
+    line-height: 1.7;
+    margin-top: 0.75rem;
+  }
+
+  .audio-section {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: 10px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .audio-row { display: flex; align-items: center; gap: 10px; margin-bottom: 0.75rem; flex-wrap: wrap; }
+
+  .btn {
+    font-family: 'DM Mono', monospace; font-size: 0.72rem; letter-spacing: 0.08em;
+    text-transform: uppercase; background: transparent; border: 0.5px solid var(--border);
+    color: var(--muted); border-radius: 5px; padding: 6px 14px; cursor: pointer; transition: all 0.15s;
+  }
+
+  .btn.play  { border-color: var(--green); color: var(--green); }
+  .btn.play:hover { background: rgba(109,184,122,0.08); }
+  .btn.stop  { border-color: var(--danger); color: var(--danger); }
+
+  .src-sel {
+    font-family: 'DM Mono', monospace; font-size: 0.72rem;
+    background: var(--surface2); border: 0.5px solid var(--border);
+    color: var(--muted); border-radius: 4px; padding: 5px 10px; cursor: pointer; outline: none;
+  }
+
+  .spec-wrap { background: var(--surface2); border-radius: 6px; overflow: hidden; height: 80px; }
+  canvas.spec { width: 100%; height: 80px; display: block; }
+
+  footer { border-top: 0.5px solid var(--border); padding-top: 1.25rem; font-size: 0.75rem; color: var(--muted); line-height: 1.7; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>BiQuad Filter Explorer</h1>
+  <p>The general second-order digital filter — combines feedforward (FIR) and feedback (IIR) in a single structure. Five coefficients give simultaneous control over poles and zeros. Adjust freely and observe the frequency response take shape.</p>
+</header>
+
+<!-- DIFFERENCE EQUATION DISPLAY -->
+<div class="eq-display" id="eqDisplay">
+  y(n) = <span class="g" id="eq-g">1.00</span>·x(n)
+       + <span class="b1" id="eq-b1">0.00</span>·x(n−1)
+       + <span class="b2" id="eq-b2">0.00</span>·x(n−2)
+       − <span class="a1" id="eq-a1">0.00</span>·y(n−1)
+       − <span class="a2" id="eq-a2">0.00</span>·y(n−2)
+</div>
+
+<!-- COEFFICIENT CONTROLS -->
+<div class="controls-grid">
+
+  <div class="coef-section feedforward">
+    <div class="section-label" style="color:var(--fwd);">Feedforward — zeros (FIR side)</div>
+
+    <div class="cr">
+      <span class="cr-label" style="color:var(--g);">g</span>
+      <input type="range" class="g-range" id="g" min="0" max="2" step="0.01" value="1.0">
+      <span class="cv g" id="gv">1.00</span>
+    </div>
+    <div class="cr">
+      <span class="cr-label" style="color:var(--fwd);">b1</span>
+      <input type="range" class="b1-range" id="b1" min="-2" max="2" step="0.01" value="0.0">
+      <span class="cv b1" id="b1v">0.00</span>
+    </div>
+    <div class="cr">
+      <span class="cr-label" style="color:var(--fwd2);">b2</span>
+      <input type="range" class="b2-range" id="b2" min="-2" max="2" step="0.01" value="0.0">
+      <span class="cv b2" id="b2v">0.00</span>
+    </div>
+    <button class="reset-btn" id="resetFwd">reset feedforward</button>
+  </div>
+
+  <div class="coef-section feedback">
+    <div class="section-label" style="color:var(--fb1);">Feedback — poles (IIR side)</div>
+
+    <div class="cr">
+      <span class="cr-label" style="color:var(--fb1);">a1</span>
+      <input type="range" class="a1-range" id="a1" min="-2" max="2" step="0.01" value="0.0">
+      <span class="cv a1" id="a1v">0.00</span>
+    </div>
+    <div class="cr">
+      <span class="cr-label" style="color:var(--fb2);">a2</span>
+      <input type="range" class="a2-range" id="a2" min="-1" max="1" step="0.01" value="0.0">
+      <span class="cv a2" id="a2v">0.00</span>
+    </div>
+    <div style="font-size:10px; color:var(--muted); font-family:'DM Mono',monospace; margin-top:0.6rem; line-height:1.6;">
+      stability requires |a2| &lt; 1<br>and |a1| &lt; 1 + a2
+    </div>
+    <button class="reset-btn" id="resetFb">reset feedback</button>
+  </div>
+
+</div>
+
+<!-- FREQUENCY RESPONSE -->
+<div class="chart-section">
+  <div class="section-title">
+    <span>Frequency response — gain (dB)</span>
+    <span class="stability-badge stable" id="stabilityBadge">stable</span>
+  </div>
+  <div class="chart-wrap">
+    <canvas id="freqChart" role="img" aria-label="BiQuad filter frequency response">BiQuad frequency response.</canvas>
+  </div>
+  <div class="axis-note">0 = DC · 1 = Nyquist (24 kHz at 48kHz SR) · dashed = −3 dB &nbsp;·&nbsp; 0 dB = flat (no filtering)</div>
+  <div class="insight" id="insight">
+    All coefficients at zero except g=1 — flat response, signal passes through unchanged. Try adjusting the feedback coefficients a1 and a2 to introduce poles, then shape the response with b1 and b2 to add zeros.
+  </div>
+</div>
+
+<!-- AUDIO -->
+<div class="audio-section">
+  <div class="section-title">Live audio</div>
+  <div class="audio-row">
+    <button class="btn play" id="playBtn">▶ Play</button>
+    <select class="src-sel" id="srcSel">
+      <option value="white">White noise</option>
+      <option value="pink">Pink noise</option>
+      <option value="buzz">Buzz (sawtooth)</option>
+    </select>
+    <div style="display:flex;align-items:center;gap:8px;flex:1;font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--muted);">
+      <span>Vol</span>
+      <input type="range" class="g-range" id="volSlider" min="0" max="0.8" step="0.01" value="0.4" style="flex:1;">
+    </div>
+  </div>
+  <div class="spec-wrap">
+    <canvas class="spec" id="specCanvas"></canvas>
+  </div>
+</div>
+
+<footer>
+  <strong style="color:var(--text);font-weight:500;">The BiQuad difference equation:</strong><br>
+  y(n) = g·x(n) + b1·x(n−1) + b2·x(n−2) − a1·y(n−1) − a2·y(n−2)<br>
+  Feedforward (b) coefficients place <strong style="color:var(--fwd);font-weight:500;">zeros</strong> — frequencies where gain = 0.
+  Feedback (a) coefficients place <strong style="color:var(--fb1);font-weight:500;">poles</strong> — frequencies where gain peaks.
+  Every filter type (LPF, HPF, BPF, notch, shelving, peaking) is a specific configuration of these five values.<br><br>
+  Cook, P. (2002). <em>Real Sound Synthesis for Interactive Applications.</em> Ch. 3.10: The Second Order Pole/Zero (BiQuad) Filter.
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const SR = 48000, NF = 300;
+
+// =============================================
+// FREQUENCY RESPONSE MATH
+// =============================================
+function biquadFreq(g, b1, b2, a1, a2) {
+  return Array.from({length: NF}, (_, i) => {
+    const omega = Math.PI * i / (NF - 1);
+    const cos1 = Math.cos(omega), cos2 = Math.cos(2*omega);
+    const sin1 = Math.sin(omega), sin2 = Math.sin(2*omega);
+    // numerator: g + b1*z^-1 + b2*z^-2
+    const numRe = g + b1*cos1 + b2*cos2;
+    const numIm = -(b1*sin1 + b2*sin2);
+    // denominator: 1 + a1*z^-1 + a2*z^-2
+    const denRe = 1 + a1*cos1 + a2*cos2;
+    const denIm = -(a1*sin1 + a2*sin2);
+    const numMag = Math.sqrt(numRe*numRe + numIm*numIm);
+    const denMag = Math.sqrt(denRe*denRe + denIm*denIm);
+    if (denMag < 0.00001) return 20;
+    const mag = numMag / denMag;
+    return Math.max(20 * Math.log10(Math.max(mag, 0.00001)), -60);
+  });
+}
+
+function isStable(a1, a2) {
+  // stability triangle: |a2| < 1 and |a1| < 1 + a2
+  return Math.abs(a2) < 1.0 && Math.abs(a1) < (1 + a2);
+}
+
+// =============================================
+// CHART
+// =============================================
+const freqLabels = Array.from({length: NF}, (_, i) => (i/(NF-1)).toFixed(2));
+
+const freqChart = new Chart(document.getElementById('freqChart').getContext('2d'), {
+  type: 'line',
+  data: {
+    labels: freqLabels,
+    datasets: [
+      {
+        label: 'response',
+        data: biquadFreq(1, 0, 0, 0, 0),
+        borderColor: '#c8b97a',
+        borderWidth: 2.5,
+        pointRadius: 0,
+        tension: 0.2,
+        fill: false
+      },
+      {
+        label: '0dB',
+        data: new Array(NF).fill(0),
+        borderColor: 'rgba(255,255,255,0.1)',
+        borderWidth: 0.8,
+        borderDash: [3,3],
+        pointRadius: 0
+      },
+      {
+        label: '-3dB',
+        data: new Array(NF).fill(-3),
+        borderColor: 'rgba(109,184,122,0.3)',
+        borderWidth: 1,
+        borderDash: [5,4],
+        pointRadius: 0
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    animation: { duration: 60 },
+    plugins: { legend: { display: false } },
+    scales: {
+      x: {
+        ticks: { maxTicksLimit: 11, autoSkip: true, color: '#7a7870', font: { size: 10 }, callback: (v,i) => (i/(NF-1)).toFixed(1) },
+        grid: { color: 'rgba(255,255,255,0.04)' },
+        title: { display: true, text: 'normalized frequency', color: '#7a7870', font: { size: 10 } }
+      },
+      y: {
+        min: -60,
+        max: 30,
+        ticks: { color: '#7a7870', font: { size: 10 } },
+        grid: { color: 'rgba(255,255,255,0.04)' },
+        title: { display: true, text: 'gain (dB)', color: '#7a7870', font: { size: 10 } }
+      }
+    }
+  }
+});
+
+// =============================================
+// UI
+// =============================================
+function getCoefs() {
+  return {
+    g:  parseFloat(document.getElementById('g').value),
+    b1: parseFloat(document.getElementById('b1').value),
+    b2: parseFloat(document.getElementById('b2').value),
+    a1: parseFloat(document.getElementById('a1').value),
+    a2: parseFloat(document.getElementById('a2').value),
+  };
+}
+
+function describeResponse(c) {
+  const { g, b1, b2, a1, a2 } = c;
+  const hasPoles = Math.abs(a1) > 0.01 || Math.abs(a2) > 0.01;
+  const hasZeros = Math.abs(b1) > 0.01 || Math.abs(b2) > 0.01;
+  if (!hasPoles && !hasZeros) return 'Flat response — signal passes through unchanged. Feedforward and feedback both inactive.';
+  if (hasPoles && !hasZeros) return `Poles only (IIR side active) — resonant peak shape. a1=${a1.toFixed(2)}, a2=${a2.toFixed(2)}. Adding zeros with b1/b2 will carve nulls into this response.`;
+  if (!hasPoles && hasZeros) return `Zeros only (FIR side active) — notch or comb shape. b1=${b1.toFixed(2)}, b2=${b2.toFixed(2)}. Adding poles with a1/a2 will introduce resonant peaks.`;
+  return `Both poles and zeros active — full BiQuad shape. The interplay of feedforward (zeros) and feedback (poles) defines the complete filter character.`;
+}
+
+function update() {
+  const c = getCoefs();
+
+  document.getElementById('gv').textContent  = c.g.toFixed(2);
+  document.getElementById('b1v').textContent = c.b1.toFixed(2);
+  document.getElementById('b2v').textContent = c.b2.toFixed(2);
+  document.getElementById('a1v').textContent = c.a1.toFixed(2);
+  document.getElementById('a2v').textContent = c.a2.toFixed(2);
+
+  document.getElementById('eq-g').textContent  = c.g.toFixed(2);
+  document.getElementById('eq-b1').textContent = c.b1.toFixed(2);
+  document.getElementById('eq-b2').textContent = c.b2.toFixed(2);
+  document.getElementById('eq-a1').textContent = c.a1.toFixed(2);
+  document.getElementById('eq-a2').textContent = c.a2.toFixed(2);
+
+  const stable = isStable(c.a1, c.a2);
+  const badge = document.getElementById('stabilityBadge');
+  badge.textContent = stable ? 'stable' : 'unstable!';
+  badge.className = 'stability-badge ' + (stable ? 'stable' : 'unstable');
+
+  freqChart.data.datasets[0].data = biquadFreq(c.g, c.b1, c.b2, c.a1, c.a2);
+  freqChart.data.datasets[0].borderColor = stable ? '#c8b97a' : '#d85a30';
+  freqChart.update('none');
+
+  document.getElementById('insight').textContent = describeResponse(c);
+
+  if (isPlaying) rebuildAudio();
+}
+
+['g','b1','b2','a1','a2'].forEach(id =>
+  document.getElementById(id).addEventListener('input', update)
+);
+
+document.getElementById('resetFwd').addEventListener('click', () => {
+  document.getElementById('g').value  = 1.0;
+  document.getElementById('b1').value = 0.0;
+  document.getElementById('b2').value = 0.0;
+  update();
+});
+
+document.getElementById('resetFb').addEventListener('click', () => {
+  document.getElementById('a1').value = 0.0;
+  document.getElementById('a2').value = 0.0;
+  update();
+});
+
+// =============================================
+// WEB AUDIO
+// =============================================
+let audioCtx = null, isPlaying = false;
+let srcNode = null, filterNode = null, gainNode = null, analyserNode = null;
+
+function buildSrc(ctx) {
+  const type = document.getElementById('srcSel').value;
+  if (type === 'white') {
+    const buf = ctx.createBuffer(1, ctx.sampleRate*2, ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random()*2-1;
+    const s = ctx.createBufferSource(); s.buffer = buf; s.loop = true; s.start(); return s;
+  } else if (type === 'pink') {
+    const buf = ctx.createBuffer(1, ctx.sampleRate*2, ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    let b0=0,b1=0,b2=0,b3=0,b4=0,b5=0,b6=0;
+    for (let i = 0; i < d.length; i++) {
+      const w = Math.random()*2-1;
+      b0=0.99886*b0+w*0.0555179; b1=0.99332*b1+w*0.0750759;
+      b2=0.96900*b2+w*0.1538520; b3=0.86650*b3+w*0.3104856;
+      b4=0.55000*b4+w*0.5329522; b5=-0.7616*b5-w*0.0168980;
+      d[i]=(b0+b1+b2+b3+b4+b5+b6+w*0.5362)*0.11; b6=w*0.115926;
+    }
+    const s = ctx.createBufferSource(); s.buffer = buf; s.loop = true; s.start(); return s;
+  } else {
+    const osc = ctx.createOscillator(); osc.type = 'sawtooth'; osc.frequency.value = 110; osc.start(); return osc;
+  }
+}
+
+function rebuildAudio() {
+  if (!audioCtx) return;
+  if (filterNode) { try { filterNode.disconnect(); } catch(e) {} }
+  if (srcNode)    { try { srcNode.disconnect(); } catch(e) {} }
+  const c = getCoefs();
+  // Use IIRFilterNode for exact coefficient implementation
+  // BiQuad: y(n) = g*x(n) + b1*x(n-1) + b2*x(n-2) - a1*y(n-1) - a2*y(n-2)
+  // Web Audio convention: feedforward = [b0, b1, b2], feedback = [1, a1, a2]
+  filterNode = audioCtx.createIIRFilter([c.g, c.b1, c.b2], [1, c.a1, c.a2]);
+  srcNode = buildSrc(audioCtx);
+  srcNode.connect(filterNode);
+  filterNode.connect(analyserNode);
+}
+
+function startAudio() {
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  gainNode = audioCtx.createGain();
+  gainNode.gain.value = parseFloat(document.getElementById('volSlider').value);
+  analyserNode = audioCtx.createAnalyser();
+  analyserNode.fftSize = 2048;
+  analyserNode.smoothingTimeConstant = 0.8;
+  analyserNode.connect(gainNode);
+  gainNode.connect(audioCtx.destination);
+  rebuildAudio();
+  isPlaying = true;
+  drawSpectrum();
+}
+
+function stopAudio() {
+  if (srcNode)    { try { srcNode.stop(); } catch(e) {} srcNode = null; }
+  if (filterNode) { try { filterNode.disconnect(); } catch(e) {} filterNode = null; }
+  if (audioCtx)   { audioCtx.close(); audioCtx = null; }
+  isPlaying = false;
+  const c = document.getElementById('specCanvas');
+  c.getContext('2d').fillRect(0, 0, c.width, c.height);
+}
+
+document.getElementById('playBtn').addEventListener('click', function() {
+  if (isPlaying) {
+    stopAudio();
+    this.textContent = '▶ Play';
+    this.classList.remove('stop'); this.classList.add('play');
+  } else {
+    startAudio();
+    this.textContent = '■ Stop';
+    this.classList.remove('play'); this.classList.add('stop');
+  }
+});
+
+document.getElementById('volSlider').addEventListener('input', function() {
+  if (gainNode) gainNode.gain.value = parseFloat(this.value);
+});
+
+document.getElementById('srcSel').addEventListener('change', () => {
+  if (isPlaying) rebuildAudio();
+});
+
+function drawSpectrum() {
+  if (!isPlaying) return;
+  requestAnimationFrame(drawSpectrum);
+  const canvas = document.getElementById('specCanvas');
+  const W = canvas.offsetWidth, H = canvas.offsetHeight;
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#0f0f0e'; ctx.fillRect(0, 0, W, H);
+  if (!analyserNode) return;
+  const buf = new Uint8Array(analyserNode.frequencyBinCount);
+  analyserNode.getByteFrequencyData(buf);
+  const bw = W / buf.length * 2.5; let x = 0;
+  for (let i = 0; i < buf.length; i++) {
+    const h = (buf[i]/255) * H;
+    const ratio = i / buf.length;
+    const r = Math.round(200 - ratio*80);
+    const g = Math.round(185 + ratio*(-1));
+    const b = Math.round(122 + ratio*78);
+    ctx.fillStyle = `rgb(${r},${g},${b})`;
+    ctx.fillRect(x, H-h, bw, h); x += bw + 0.5;
+  }
+}
+
+// =============================================
+// INIT
+// =============================================
+update();
+</script>
+</body>
+</html>
