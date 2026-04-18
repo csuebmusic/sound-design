@@ -12,7 +12,7 @@ These materials are developed alongside the textbooks and topics covered in the 
 
 The library is **under active development** and will expand as the course progresses. Expect new modules on synthesis techniques, sound design topics, physical modeling, and further DSP concepts to appear over time.
 
-Every tool is a self-contained HTML file — no build step, no server, no dependencies. Open in any modern browser (Chrome, Firefox, Safari) and the audio and visualizations run locally via the Web Audio API and Canvas.
+Every tool is a self-contained HTML file. Open in any modern browser (Chrome, Firefox, Safari) and the audio and visualizations run locally via the Web Audio API and Canvas.
 
 ---
 
