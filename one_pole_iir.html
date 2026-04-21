@@ -1,0 +1,1600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>One-Pole IIR Filter</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #fafaf7;
+    --panel: #ffffff;
+    --panel-2: #f4f2ec;
+    --border: #e2dfd6;
+    --border-strong: #c9c5b8;
+    --text: #1a1a17;
+    --muted: #6a6862;
+    --dim: #a8a59f;
+    --accent: #b8693a;
+    --accent-soft: #b8693a22;
+    --pole: #c73862;
+    --pole-soft: #c7386218;
+    --curve: #2c7d6f;
+    --warn: #c92e1f;
+    --warn-soft: #c92e1f15;
+    --ok: #2c7d6f;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', system-ui, sans-serif;
+    font-size: 15px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 40px 28px 80px;
+  }
+  header {
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 28px;
+    margin-bottom: 32px;
+  }
+  h1 {
+    font-family: 'DM Mono', monospace;
+    font-weight: 500;
+    font-size: 26px;
+    margin: 0 0 6px;
+    letter-spacing: -0.01em;
+    color: var(--text);
+  }
+  .subtitle {
+    color: var(--muted);
+    font-size: 14px;
+    margin: 0 0 22px;
+  }
+  .equation {
+    font-family: 'DM Mono', monospace;
+    font-size: 22px;
+    color: var(--accent);
+    background: var(--panel);
+    padding: 16px 22px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    display: inline-block;
+    margin-top: 4px;
+  }
+  .equation .var { color: var(--text); }
+  .equation .op { color: var(--muted); }
+  .block-diagram {
+    margin-top: 18px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 18px 22px 14px;
+    max-width: 720px;
+  }
+  .block-diagram svg {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+  .block-diagram-legend {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+    text-align: center;
+    letter-spacing: 0.02em;
+  }
+  h2 {
+    font-family: 'DM Mono', monospace;
+    font-weight: 500;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin: 0 0 14px;
+  }
+  h3 {
+    font-family: 'DM Mono', monospace;
+    font-weight: 500;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    margin: 0 0 10px;
+  }
+  section { margin-bottom: 32px; }
+
+  /* TERMINOLOGY */
+  .terminology {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 22px 26px;
+  }
+  .terminology .lead {
+    font-size: 14px;
+    color: var(--muted);
+    margin: 0 0 18px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .term { margin-bottom: 18px; }
+  .term:last-child { margin-bottom: 0; }
+  .term-name {
+    font-family: 'DM Mono', monospace;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--accent);
+    margin-bottom: 4px;
+  }
+  .term-name .symbol {
+    color: var(--text);
+    background: var(--panel-2);
+    padding: 1px 7px;
+    border-radius: 3px;
+    margin-right: 6px;
+    font-size: 13px;
+  }
+  .term-def {
+    font-size: 14px;
+    color: var(--text);
+    margin: 0;
+  }
+  /* Indented sub-terms — used when one term has multiple closely-related
+     children (e.g. g and r are both coefficients, but each has its own role). */
+  .term-sub {
+    margin-top: 10px;
+    margin-left: 20px;
+    padding-left: 14px;
+    border-left: 2px solid var(--border);
+  }
+  .term-sub + .term-sub {
+    margin-top: 8px;
+  }
+  .term-sub-name {
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--accent);
+    margin-bottom: 2px;
+  }
+  .term-sub-name .symbol {
+    color: var(--text);
+    background: var(--panel-2);
+    padding: 1px 6px;
+    border-radius: 3px;
+    margin-right: 5px;
+    font-size: 12px;
+  }
+  .term-sub-def {
+    font-size: 13.5px;
+    color: var(--text);
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  /* CONTROLS */
+  .controls {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 22px 24px;
+  }
+  .slider-row {
+    display: grid;
+    grid-template-columns: 80px 1fr 80px;
+    gap: 16px;
+    align-items: center;
+    margin-bottom: 14px;
+  }
+  .slider-row:last-child { margin-bottom: 0; }
+  .slider-row label {
+    font-family: 'DM Mono', monospace;
+    font-size: 14px;
+    color: var(--text);
+  }
+  .slider-row .desc {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+  input[type="range"] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 4px;
+    background: var(--border-strong);
+    border-radius: 2px;
+    outline: none;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    transition: transform 0.1s;
+    border: none;
+  }
+  input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
+  input[type="range"]::-moz-range-thumb {
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    border: none;
+  }
+  .value {
+    font-family: 'DM Mono', monospace;
+    font-size: 14px;
+    color: var(--accent);
+    text-align: right;
+    font-weight: 500;
+  }
+  .live-equation {
+    margin-top: 18px;
+    padding-top: 18px;
+    border-top: 1px solid var(--border);
+  }
+  .live-equation-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+  .live-equation-body {
+    font-family: 'DM Mono', monospace;
+    font-size: 20px;
+    color: var(--text);
+    padding: 14px 18px;
+    background: var(--panel-2);
+    border-radius: 4px;
+    border-left: 2px solid var(--accent);
+    letter-spacing: 0.01em;
+  }
+  .live-equation-body .var { color: var(--text); }
+  .live-equation-body .op { color: var(--muted); margin: 0 2px; }
+  .live-equation-body .num {
+    color: var(--accent);
+    font-weight: 500;
+    transition: color 0.1s;
+  }
+  .live-equation-body.unstable .num { color: var(--warn); }
+
+  /* STATUS */
+  .status {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 4px;
+    padding: 16px 20px;
+  }
+  .status.warn {
+    border-left-color: var(--warn);
+    background: var(--warn-soft);
+  }
+  .status-text { font-size: 14px; color: var(--text); margin: 0 0 12px; }
+  .status.warn .status-text { color: var(--warn); }
+  .metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+  }
+  .metric { font-family: 'DM Mono', monospace; }
+  .metric-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+  .metric-value {
+    font-size: 14px;
+    color: var(--text);
+    font-weight: 500;
+  }
+  .metric-value.ok { color: var(--ok); }
+  .metric-value.warn { color: var(--warn); }
+
+  /* CALC BLOCK */
+  .calc-block {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+    font-family: 'DM Mono', monospace;
+  }
+  .calc-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+  .calc-symbolic, .calc-sub {
+    font-size: 12.5px;
+    line-height: 1.8;
+  }
+  .calc-symbolic {
+    color: var(--text);
+    padding: 8px 12px;
+    background: var(--panel-2);
+    border-radius: 3px;
+    margin-bottom: 10px;
+  }
+  .calc-sub {
+    color: var(--text);
+    padding: 8px 12px;
+    border-left: 2px solid var(--accent);
+    background: #fff;
+  }
+  .calc-sub .op { color: var(--muted); }
+  .calc-sub .num { color: var(--accent); }
+  .eq-line { display: block; white-space: pre; }
+  /* LEGEND · plain-English decoder for the symbols above */
+  .calc-legend {
+    margin: 10px 0 12px;
+    padding: 10px 12px;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+  }
+  .legend-row {
+    display: grid;
+    grid-template-columns: 58px 1fr;
+    gap: 12px;
+    align-items: baseline;
+    padding: 3px 0;
+    font-size: 12.5px;
+    line-height: 1.5;
+  }
+  .legend-row + .legend-row {
+    border-top: 1px dashed var(--border);
+  }
+  .legend-sym {
+    font-family: 'DM Mono', monospace;
+    color: var(--accent);
+    font-weight: 500;
+    text-align: center;
+  }
+  .legend-def {
+    color: var(--text);
+    font-family: 'DM Sans', system-ui, sans-serif;
+  }
+  .legend-def em {
+    color: var(--muted);
+    font-style: italic;
+  }
+
+  /* VIZ CARDS */
+  .viz-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 18px 22px;
+  }
+  .viz-twoCol {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .viz-explainer {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.55;
+    background: var(--panel-2);
+    padding: 12px 14px;
+    border-radius: 4px;
+    margin-bottom: 14px;
+    border-left: 2px solid var(--border-strong);
+  }
+  .viz-explainer strong {
+    color: var(--text);
+    font-weight: 500;
+  }
+  /* Paragraphs inside viz-explainer: zero default margin, then a comfortable
+     gap between siblings. Mirrors the visual rhythm the previous <br><br>
+     produced, but with proper semantic markup. */
+  .viz-explainer p {
+    margin: 0;
+  }
+  .viz-explainer p + p {
+    margin-top: 12px;
+  }
+  .viz-caption {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 8px;
+    line-height: 1.4;
+  }
+  .viz-legend {
+    font-family: 'DM Mono', monospace;
+    font-size: 10.5px;
+    color: var(--muted);
+    margin-top: 10px;
+    padding: 6px 10px;
+    background: var(--panel-2);
+    border-radius: 3px;
+    letter-spacing: 0.01em;
+    line-height: 1.55;
+  }
+  canvas {
+    width: 100%;
+    height: auto;
+    display: block;
+    background: #fff;
+    border-radius: 3px;
+  }
+
+  /* AUDIO */
+  .audio {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 18px 22px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+    align-items: center;
+  }
+  .play-btn {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    padding: 10px 22px;
+    font-family: 'DM Mono', monospace;
+    font-size: 14px;
+    font-weight: 500;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  .play-btn:hover { opacity: 0.85; }
+  .play-btn.playing { background: var(--warn); }
+  .source-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    background: var(--panel-2);
+    padding: 6px 12px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    letter-spacing: 0.02em;
+  }
+  .vol-control {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-left: auto;
+    min-width: 200px;
+  }
+  .vol-control label {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  /* NOTES */
+  .notes {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 22px 26px;
+  }
+  .notes h2 { margin-bottom: 12px; }
+  .notes h2:not(:first-child) { margin-top: 24px; }
+  .notes ul, .notes ol { margin: 0; padding-left: 20px; }
+  .notes li {
+    margin-bottom: 8px;
+    font-size: 14px;
+    color: var(--text);
+  }
+  .notes li code, .notes p code {
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    color: var(--accent);
+    background: var(--panel-2);
+    padding: 1px 6px;
+    border-radius: 3px;
+  }
+
+  footer {
+    margin-top: 48px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 12px;
+    font-family: 'DM Mono', monospace;
+  }
+  .footer-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--dim);
+    margin-bottom: 8px;
+  }
+  .footer-item {
+    margin-bottom: 4px;
+    line-height: 1.5;
+  }
+  .footer-affiliation {
+    margin-top: 18px;
+    color: var(--text);
+  }
+  .footer-version {
+    margin-top: 4px;
+    color: var(--dim);
+    font-size: 11px;
+  }
+
+  @media (max-width: 720px) {
+    .viz-twoCol { grid-template-columns: 1fr; }
+    .slider-row { grid-template-columns: 60px 1fr 60px; }
+    h1 { font-size: 22px; }
+    .equation { font-size: 18px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>one-pole IIR filter</h1>
+    <p class="subtitle">The simplest recursive digital filter, a single feedback path with one pole on the real axis of the z-plane.</p>
+    <div class="equation">
+      <span class="var">y</span>[n] <span class="op">=</span> <span class="var">g</span> · <span class="var">x</span>[n] <span class="op">+</span> <span class="var">r</span> · <span class="var">y</span>[n−1]
+    </div>
+
+    <div class="block-diagram">
+      <svg viewBox="0 0 700 240" xmlns="http://www.w3.org/2000/svg" font-family="DM Mono, monospace">
+        <defs>
+          <marker id="arrow-1p" viewBox="0 0 10 10" refX="8" refY="5"
+                  markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#6a6862"/>
+          </marker>
+        </defs>
+
+        <!-- ===== TOP ROW: x[n] → [g] → ⊕ → y[n] ===== -->
+
+        <!-- x[n] label -->
+        <text x="35" y="76" text-anchor="middle" font-size="14" fill="#1a1a17">x[n]</text>
+
+        <!-- input → g -->
+        <line x1="60" y1="70" x2="128" y2="70"
+              stroke="#6a6862" stroke-width="1.5"
+              marker-end="url(#arrow-1p)"/>
+
+        <!-- g multiplier (triangle pointing right) -->
+        <path d="M 130 55 L 130 85 L 165 70 z"
+              fill="white" stroke="#1a1a17" stroke-width="1.5"
+              stroke-linejoin="round"/>
+        <text x="147" y="103" text-anchor="middle" font-size="14"
+              fill="#b8693a" font-weight="500">g</text>
+
+        <!-- g → summer -->
+        <line x1="167" y1="70" x2="315" y2="70"
+              stroke="#6a6862" stroke-width="1.5"
+              marker-end="url(#arrow-1p)"/>
+
+        <!-- summer (circle with +) -->
+        <circle cx="335" cy="70" r="18"
+                fill="white" stroke="#1a1a17" stroke-width="1.5"/>
+        <text x="335" y="77" text-anchor="middle" font-size="22"
+              fill="#1a1a17" font-weight="400">+</text>
+
+        <!-- summer → y[n] -->
+        <line x1="353" y1="70" x2="600" y2="70"
+              stroke="#6a6862" stroke-width="1.5"
+              marker-end="url(#arrow-1p)"/>
+
+        <!-- y[n] label -->
+        <text x="625" y="76" text-anchor="middle" font-size="14" fill="#1a1a17">y[n]</text>
+
+        <!-- ===== FEEDBACK PATH ===== -->
+
+        <!-- tap point on output -->
+        <circle cx="545" cy="70" r="3.5" fill="#6a6862"/>
+
+        <!-- vertical drop down -->
+        <line x1="545" y1="70" x2="545" y2="195"
+              stroke="#6a6862" stroke-width="1.5"/>
+
+        <!-- horizontal feedback going left into delay -->
+        <line x1="545" y1="195" x2="437" y2="195"
+              stroke="#6a6862" stroke-width="1.5"
+              marker-end="url(#arrow-1p)"/>
+
+        <!-- delay box (z⁻¹) -->
+        <rect x="375" y="180" width="60" height="30"
+              fill="white" stroke="#1a1a17" stroke-width="1.5"/>
+        <text x="405" y="200" text-anchor="middle" font-size="14"
+              fill="#1a1a17">z⁻¹</text>
+
+        <!-- delay output, going left then up to r -->
+        <line x1="375" y1="195" x2="335" y2="195"
+              stroke="#6a6862" stroke-width="1.5"/>
+        <line x1="335" y1="195" x2="335" y2="172"
+              stroke="#6a6862" stroke-width="1.5"
+              marker-end="url(#arrow-1p)"/>
+
+        <!-- r multiplier (triangle pointing up) -->
+        <path d="M 320 170 L 350 170 L 335 135 z"
+              fill="white" stroke="#1a1a17" stroke-width="1.5"
+              stroke-linejoin="round"/>
+        <text x="312" y="156" text-anchor="end" font-size="14"
+              fill="#b8693a" font-weight="500">r</text>
+
+        <!-- r → summer (going up) -->
+        <line x1="335" y1="135" x2="335" y2="91"
+              stroke="#6a6862" stroke-width="1.5"
+              marker-end="url(#arrow-1p)"/>
+
+      </svg>
+      <div class="block-diagram-legend">
+        ▷ multiplier (gain) · ⊕ summer · z⁻¹ one-sample delay · ● tap / junction
+      </div>
+    </div>
+  </header>
+
+  <!-- TERMINOLOGY -->
+  <section>
+    <h2>terminology</h2>
+    <div class="terminology">
+      <p class="lead">Before touching the sliders, here's what the symbols in the equation actually mean. The whole filter behavior comes from these few ideas.</p>
+
+      <div class="term">
+        <div class="term-name"><span class="symbol">x[n]</span> input · <span class="symbol">y[n]</span> output</div>
+        <p class="term-def">The notation <em>[n]</em> means "the n-th sample." So <em>x[n]</em> is the current input sample, and <em>y[n−1]</em> is the previous output sample. The filter computes one output sample at a time, from left to right.</p>
+      </div>
+
+      <div class="term">
+        <div class="term-name"><span class="symbol">z⁻¹</span> one-sample delay</div>
+        <p class="term-def">In the block diagram you'll see a box labeled <em>z⁻¹</em>. It's the <strong>unit delay</strong>: feed it <em>y[n]</em> and what comes out is <em>y[n−1]</em>, the previous sample, held for one tick. The <em>z</em> notation comes from the z-transform (a math tool for analyzing digital filters); the −1 exponent means "delay by one sample." So <em>y[n−1]</em> in the equation and the <em>z⁻¹</em> box in the diagram are the same idea in two notations.</p>
+      </div>
+
+      <div class="term">
+        <div class="term-name"><span class="symbol">g</span> and <span class="symbol">r</span> are coefficients</div>
+        <p class="term-def">Coefficients are just numbers, the recipe that defines the filter. Change these two numbers and you change everything the filter does. Each one plays a different role:</p>
+        <div class="term-sub">
+          <div class="term-sub-name"><span class="symbol">g</span> input gain</div>
+          <p class="term-sub-def">Scales the incoming sample <em>x[n]</em> before it enters the summer. With <em>g</em> = 1, the input passes through full-strength; with <em>g</em> = 0.2, the input is attenuated to 20% of its level. <em>g</em> is what controls how loud the input arrives at the filter; on its own it doesn't shape the spectrum, but combined with feedback (<em>r</em>) it determines the filter's overall output level.</p>
+        </div>
+        <div class="term-sub">
+          <div class="term-sub-name"><span class="symbol">r</span> feedback amount</div>
+          <p class="term-sub-def">Scales how much of the previous output sample <em>y[n−1]</em> is fed back and added to the current input. <em>r</em> is the heart of the filter: it sets the cutoff frequency, controls the decay time, and determines stability. <em>r</em> wears three hats — it's worth seeing all of them:</p>
+          <p class="term-sub-def" style="margin-top: 8px;"><strong>r is feedback.</strong> Because the equation uses the previous output (<em>y[n−1]</em>), the filter loops back on itself. This is what makes it <strong>recursive</strong>, and what puts the "infinite" in IIR (Infinite Impulse Response). Without feedback the filter would forget; with it, the filter remembers.</p>
+          <p class="term-sub-def" style="margin-top: 8px;"><strong>r is also a pole.</strong> A <strong>pole</strong> is a location on the z-plane where the filter "stores energy", a point the filter wants to dwell on. Musically: poles near the edge of the unit circle make the filter <em>ring</em> and shape sound strongly; poles near zero make the filter pass sound through almost untouched. In the one-pole filter, the value of <em>r</em> <em>is</em> the pole's location. Same number, two views: a feedback amount in the equation, and a point on a 2D map.</p>
+          <p class="term-sub-def" style="margin-top: 8px;"><strong>r determines stability · |r| &lt; 1.</strong> If the size of <em>r</em> stays under 1, the feedback loop eventually decays to silence after each input; the filter is stable. If <em>|r|</em> hits 1 or higher, the loop amplifies itself forever and the output grows without bound. The filter explodes.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CONTROLS -->
+  <section>
+    <h2>parameters</h2>
+    <div class="controls">
+      <div class="slider-row">
+        <label>r</label>
+        <div>
+          <input type="range" id="r-slider" min="-1.05" max="1.05" step="0.001" value="0.8">
+          <div class="desc">pole position on the real axis · stability requires |r| &lt; 1</div>
+        </div>
+        <div class="value" id="r-value">0.800</div>
+      </div>
+      <div class="slider-row">
+        <label>g</label>
+        <div>
+          <input type="range" id="g-slider" min="0" max="1" step="0.01" value="0.20">
+          <div class="desc">input gain · combines with r to set the peak gain g / (1 − |r|)</div>
+        </div>
+        <div class="value" id="g-value">0.20</div>
+      </div>
+
+      <!-- LIVE EQUATION · shows coefficients substituted into the recurrence.
+           Students can see the numbers move as they drag the sliders, and this
+           is literally the expression they will translate into ChucK. -->
+      <div class="live-equation">
+        <div class="live-equation-label">live equation · current coefficients</div>
+        <div class="live-equation-body" id="live-equation-body">
+          <span class="var">y</span>[n] <span class="op">=</span>
+          <span class="num" id="live-g">0.20</span> <span class="op">·</span> <span class="var">x</span>[n]
+          <span class="op" id="live-sign">+</span>
+          <span class="num" id="live-r">0.800</span> <span class="op">·</span> <span class="var">y</span>[n−1]
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- LISTEN (placed under controls so students hear what they tweak) -->
+  <section>
+    <h2>listen</h2>
+    <div class="audio">
+      <button class="play-btn" id="play-btn">▶ play</button>
+      <div class="source-label">source · white noise</div>
+      <div class="vol-control">
+        <label>vol</label>
+        <input type="range" id="vol-slider" min="0" max="1" step="0.01" value="0.3">
+      </div>
+    </div>
+    <div class="viz-caption">
+      Output level is auto-scaled to minimize clipping at high-gain settings (r close to ±1). The frequency response plot below still shows the filter's true transfer function; only audible loudness is bounded.
+    </div>
+    <div class="viz-caption" id="audio-rate">audio · not yet started · visualizations use SR = 48000 Hz</div>
+  </section>
+
+  <!-- FREQUENCY RESPONSE -->
+  <section>
+    <h2>frequency response</h2>
+    <div class="viz-card">
+      <canvas id="freq" width="1000" height="400"></canvas>
+      <div class="viz-caption">sample rate · 48 kHz · Nyquist = 24 kHz</div>
+    </div>
+  </section>
+
+  <!-- STATUS -->
+  <section>
+    <h2>what's happening</h2>
+    <div class="status" id="status-box">
+      <p class="status-text" id="status-text">…</p>
+      <div class="metrics">
+        <div class="metric">
+          <div class="metric-label">character</div>
+          <div class="metric-value" id="m-character">…</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">cutoff</div>
+          <div class="metric-value" id="m-cutoff">…</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">impulse decay to 1%</div>
+          <div class="metric-value" id="m-decay">…</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">stability</div>
+          <div class="metric-value" id="m-stable">…</div>
+        </div>
+      </div>
+      <div class="calc-block">
+        <div class="calc-label">how the cutoff is computed</div>
+        <div class="calc-symbolic">
+          <span class="eq-line">ω<sub>c</sub> = acos(1 − (1 − |r|)² / (2|r|))</span>
+          <span class="eq-line">f<sub>c</sub> = ω<sub>c</sub> · SR / (2π)      [for r &gt; 0]</span>
+          <span class="eq-line">f<sub>c</sub> = SR/2 − ω<sub>c</sub> · SR / (2π)  [for r &lt; 0]</span>
+        </div>
+        <div class="calc-legend">
+          <div class="legend-row"><span class="legend-sym">ω<sub>c</sub></span><span class="legend-def">cutoff angular frequency, in radians per sample (subscript <em>c</em> = cutoff). In general, ω = 2π · f / SR.</span></div>
+          <div class="legend-row"><span class="legend-sym">f<sub>c</sub></span><span class="legend-def">cutoff frequency, in Hz — the human-readable version</span></div>
+          <div class="legend-row"><span class="legend-sym">r</span><span class="legend-def">feedback coefficient / pole location (from the slider above)</span></div>
+          <div class="legend-row"><span class="legend-sym">|r|</span><span class="legend-def">absolute value of r — how close the pole is to the unit circle, regardless of sign</span></div>
+          <div class="legend-row"><span class="legend-sym">SR</span><span class="legend-def">sample rate (48000 Hz here)</span></div>
+          <div class="legend-row"><span class="legend-sym">acos</span><span class="legend-def">inverse cosine — converts a cosine value back into an angle</span></div>
+        </div>
+        <div class="calc-sub" id="calc-sub">…</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Z-PLANE + IMPULSE -->
+  <section>
+    <h2>under the hood</h2>
+    <div class="viz-twoCol">
+
+      <div class="viz-card">
+        <h3>z-plane · pole position</h3>
+        <div class="viz-explainer">
+          <p><strong>What is the z-plane?</strong> A 2D map of complex numbers used to visualize what a filter does. The horizontal axis (Re) is the real part of z; the vertical axis (Im) is the imaginary part. The dashed circle is the unit circle, where |z| = 1, and it represents every frequency from DC (at z = +1) around through Nyquist (at z = −1) and back, with frequency tracked by angle. Filters are characterized by poles (where the transfer function blows up) and zeros (where it drops to zero); their positions on this plane encode the filter's entire behavior.</p>
+          <p><strong>For the one-pole filter:</strong> there is exactly one pole, and it's locked to the horizontal axis between −1 (Nyquist) and +1 (DC). When you move <em>r</em>, you're sliding that pole along this line. Positive <em>r</em> places the pole near +1 and emphasizes DC (lowpass); negative <em>r</em> places it near −1 and emphasizes Nyquist (highpass). How close the pole sits to the unit circle determines how sharp the filter is.</p>
+        </div>
+        <canvas id="zplane" width="500" height="500"></canvas>
+        <div class="viz-legend">
+          Re = real axis · Im = imaginary axis · dashed circle = unit circle (|z| = 1) · pink X = pole · amber line = real-axis slice where one-pole poles live · DC = 0 Hz · Nyq = Nyquist (SR/2)
+        </div>
+      </div>
+
+      <div class="viz-card">
+        <h3>impulse response · the filter's fingerprint</h3>
+        <div class="viz-explainer">
+          <p><strong>What is an impulse response?</strong> The output of the filter when the input is a single sample of value 1 (a click) followed by silence. Time runs left to right along the horizontal axis (n is the sample number); the vertical axis shows the output value at each sample. The impulse response is a complete fingerprint of the filter: knowing it tells you everything the filter can do to any other signal.</p>
+          <p><strong>For the one-pole filter:</strong> the feedback loop multiplies the initial impulse by <em>r</em>, then by <em>r</em> again, then again, sample after sample. Each stem is <em>g · rⁿ</em>, a pure exponential decay. Positive <em>r</em> gives a monotonic decay; negative <em>r</em> gives a sign-alternating decay at the Nyquist rate.</p>
+        </div>
+        <canvas id="impulse" width="500" height="500"></canvas>
+        <div class="viz-legend">
+          n = sample number (discrete time axis) · teal stems = output sample values (g · rⁿ) · amber envelope = exponential decay shape · window auto-scales with r to show the full decay
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- IN MORE DEPTH + TRY THIS -->
+  <section>
+    <div class="notes">
+      <h2>in more depth</h2>
+      <ul>
+        <li>The transfer function in the z-domain is <code>H(z) = g / (1 − r·z⁻¹)</code>. This is the recurrence <code>y[n] = g·x[n] + r·y[n−1]</code> rewritten in the language of the z-transform. <code>X(z)</code> and <code>Y(z)</code> are the z-transforms of the input and output signals (a way of representing entire signals as a single function instead of one sample at a time); the sample-domain feedback term <code>r·y[n−1]</code> becomes <code>r·z⁻¹·Y(z)</code> on the right side, then we solve for <code>H(z) = Y(z)/X(z)</code>. Same filter, two views — one tells you how to compute samples one at a time, the other tells you how the filter behaves across all frequencies at once. The denominator equals zero when <code>z = r</code>; that's why <em>r</em> is called the pole.</li>
+        <li>The frequency response formula is <code>|H(e^jω)| = g / √(1 − 2r·cos(ω) + r²)</code>. The notation <code>e^jω</code> means "evaluate the transfer function on the unit circle of the z-plane" — that's how you get from poles in the abstract to the curve you see on screen. The pole sits at angle 0 (the +1 side of the unit circle) for positive <em>r</em>, so DC gets the maximum boost; for negative <em>r</em> the pole sits at angle π (the −1 side, Nyquist), so highs get boosted instead.</li>
+        <li>The impulse response is exactly <code>h[n] = g · rⁿ</code> for n ≥ 0. This is why IIR filters have "infinite" impulse responses: r<sup>n</sup> only reaches zero in the limit, never exactly.</li>
+        <li>Two ways to measure the filter's memory: the <strong>time constant</strong> <code>τ = −1 / (SR · ln|r|)</code> seconds is when the impulse decays to 1/e (≈ 37%); the "impulse decay to 1%" metric in the status card above measures the same thing further out, at 1% (≈ −40 dB). Same exponential decay, different cutoff thresholds — pick whichever is more useful for the situation.</li>
+        <li>Rolloff: exactly <code>−6 dB/octave</code> beyond the cutoff (equivalently, <code>−20 dB/decade</code>). This is the defining slope of any first-order filter. Cascading two one-poles doubles the rolloff to −12 dB/oct (second-order); cascading four gives −24 dB/oct, the classic Moog ladder slope.</li>
+        <li>The peak gain is <code>g / (1 − |r|)</code>. For positive <em>r</em> this peak sits at DC; for negative <em>r</em> it sits at Nyquist. As <em>|r|</em> approaches 1, the denominator approaches 0 and the peak shoots up — which is exactly the towering peak you see in the frequency response graph at extreme settings (easily +40 dB at <em>|r|</em> ≈ 0.998 with <em>g</em> = 0.2, and higher still as <em>|r|</em> gets closer to 1). Audio filter designs often <em>auto-normalize</em> by setting <code>g = 1 − |r|</code> so the peak stays at 1 (0 dB) regardless of <em>r</em>.</li>
+      </ul>
+
+      <h2>try this</h2>
+      <ol>
+        <li>Set <code>r = 0.99</code> and start playback. The filter is so narrow that it picks out a tiny slice of the noise spectrum near DC, transforming the hiss into a low rumble. Now lower r toward 0 — hear the full broadband noise return as the filter widens. The narrower the filter, the more pitched and tonal the noise sounds.</li>
+        <li>Compare <code>r = 0.9</code> vs <code>r = −0.9</code>. Same filter <em>strength</em>, opposite spectral character: bass-heavy vs. treble-heavy. Note how the response curve mirrors itself across the spectrum.</li>
+        <li>Drag the r slider past ±1 in either direction (into the unstable regions at the far ends). Watch the impulse response (it grows without bound) and the metrics (UNSTABLE). Audio is muted automatically; this is what "outside the unit circle" sounds like in theory.</li>
+        <li>Set <code>r = 0.95</code> and read the cutoff in the metrics. Now try <code>r = 0.5</code>. Same filter topology, vastly different cutoff, controlled by a single number.</li>
+        <li>Set <code>g = 0.2</code> and slowly push <code>r</code> from 0.9 → 0.99 → 0.998. Watch the peak of the curve climb above 0 dB toward +40 dB. Push further to 0.9998 and the peak climbs another 20 dB toward +60 — with the new chart headroom, you can see the peak explode smoothly as <em>r</em> approaches 1. Now manually set <code>g = 1 − |r|</code> at each step (≈ 0.1, 0.01, 0.002, 0.0002) and watch the peak snap back to 0 dB. This is auto-normalization, by hand.</li>
+      </ol>
+    </div>
+  </section>
+
+  <footer>
+    <div class="footer-label">sources</div>
+    <div class="footer-item">Cook, P. (2002). <em>Real Sound Synthesis for Interactive Applications.</em> Ch. 3</div>
+    <div class="footer-item">Roads, C. (2023). <em>The Computer Music Tutorial</em> (2nd ed.). Ch. 28</div>
+    <div class="footer-affiliation">CSU East Bay Music Composition Department</div>
+    <div class="footer-version">version 1.5 · Spring 2026 · Inés Thiebaut</div>
+  </footer>
+
+</div>
+
+<script>
+// ============================================================
+// ONE-POLE IIR FILTER · pedagogical tool
+// y[n] = g·x[n] + r·y[n−1]
+// ============================================================
+
+const SR = 48000;
+const NYQUIST = SR / 2;
+
+const C = {
+  text:    '#1a1a17',
+  muted:   '#6a6862',
+  dim:     '#a8a59f',
+  border:  '#e2dfd6',
+  borderS: '#c9c5b8',
+  panel2:  '#f4f2ec',
+  accent:  '#b8693a',
+  accentS: 'rgba(184,105,58,0.18)',
+  pole:    '#c73862',
+  poleS:   'rgba(199,56,98,0.15)',
+  curve:   '#2c7d6f',
+  warn:    '#c92e1f',
+};
+
+let r = 0.8;
+let g = 0.20;
+let isPlaying = false;
+let audioCtx = null;
+let filterNode = null;
+let sourceNode = null;
+let gainNode = null;
+let volume = 0.3;
+
+const rSlider = document.getElementById('r-slider');
+const gSlider = document.getElementById('g-slider');
+const rValue = document.getElementById('r-value');
+const gValue = document.getElementById('g-value');
+const statusBox = document.getElementById('status-box');
+const statusText = document.getElementById('status-text');
+const mCharacter = document.getElementById('m-character');
+const mCutoff = document.getElementById('m-cutoff');
+const mDecay = document.getElementById('m-decay');
+const mStable = document.getElementById('m-stable');
+const calcSub = document.getElementById('calc-sub');
+const playBtn = document.getElementById('play-btn');
+const volSlider = document.getElementById('vol-slider');
+
+// live-equation DOM refs: these spans show the current coefficients inside
+// y[n] = g·x[n] + r·y[n−1], so students see the numbers they will type
+// into ChucK moving in real time as they drag the sliders.
+const liveEqBody = document.getElementById('live-equation-body');
+const liveG = document.getElementById('live-g');
+const liveR = document.getElementById('live-r');
+const liveSign = document.getElementById('live-sign');
+
+// Below this |r|, the magnitude response never drops as low as −3 dB at any
+// frequency, so the standard cutoff formula has no real solution (its acos
+// argument falls outside [−1, 1]). Rather than clamp silently and produce
+// confusing readouts, we report the cutoff as "n/a" and draw no marker.
+// At |r| = 0.3, the maximum attenuation is roughly 2.3 dB at Nyquist — just
+// shy of the −3 dB reference; below this value the −3 dB cutoff concept loses
+// meaning, since the filter never attenuates that much anywhere.
+const R_MIN_MEANINGFUL = 0.3;
+
+function setupCanvas(id) {
+  const canvas = document.getElementById(id);
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  ctx.scale(dpr, dpr);
+  return { ctx, w: rect.width, h: rect.height };
+}
+
+let zp, ip, fr;
+function initCanvases() {
+  zp = setupCanvas('zplane');
+  ip = setupCanvas('impulse');
+  fr = setupCanvas('freq');
+}
+
+// ============================================================
+// VIZ 1 · Z-PLANE
+// ============================================================
+function drawZPlane() {
+  const { ctx, w, h } = zp;
+  ctx.clearRect(0, 0, w, h);
+
+  const cx = w / 2, cy = h / 2;
+  const radius = Math.min(w, h) * 0.38;
+
+  ctx.strokeStyle = C.border;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(0, cy); ctx.lineTo(w, cy);
+  ctx.moveTo(cx, 0); ctx.lineTo(cx, h);
+  ctx.stroke();
+
+  ctx.strokeStyle = C.borderS;
+  ctx.setLineDash([4, 4]);
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  ctx.fillStyle = C.muted;
+  ctx.font = "11px 'DM Mono', monospace";
+  ctx.textAlign = 'center';
+  ctx.fillText('Re', w - 14, cy - 6);
+  ctx.fillText('Im', cx + 14, 12);
+  ctx.textAlign = 'left';
+  ctx.fillText('+1 (DC)', cx + radius + 8, cy + 18);
+  ctx.textAlign = 'right';
+  ctx.fillText('−1 (Nyq)', cx - radius - 8, cy + 18);
+  ctx.textAlign = 'center';
+
+  ctx.fillStyle = C.dim;
+  ctx.font = "10px 'DM Mono', monospace";
+  // Origin "0" label — suppress when the pole sits very close to z = 0,
+  // because the pole's halo (radius 14) and dot (radius 6) sit on top of
+  // it and produce a visual collision otherwise.
+  if (Math.abs(r) > 0.07) {
+    ctx.fillText('0', cx + 8, cy + 14);
+  }
+  ctx.fillText('+0.5', cx + radius * 0.5, cy + 14);
+  ctx.fillText('−0.5', cx - radius * 0.5, cy + 14);
+
+  ctx.strokeStyle = C.accentS;
+  ctx.lineWidth = 6;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(cx - radius, cy);
+  ctx.lineTo(cx + radius, cy);
+  ctx.stroke();
+  ctx.lineWidth = 1;
+
+  const px = cx + r * radius;
+  const py = cy;
+  const stable = Math.abs(r) < 1;
+
+  ctx.fillStyle = stable ? C.pole : C.warn;
+  ctx.font = "12px 'DM Mono', monospace";
+  ctx.textAlign = 'left';
+  ctx.fillText(`pole at z = ${r.toFixed(3)}`, 16, 22);
+
+  ctx.fillStyle = stable ? C.poleS : 'rgba(201,46,31,0.15)';
+  ctx.beginPath();
+  ctx.arc(px, py, 14, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = stable ? C.pole : C.warn;
+  ctx.beginPath();
+  ctx.arc(px, py, 6, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(px - 4, py - 4); ctx.lineTo(px + 4, py + 4);
+  ctx.moveTo(px + 4, py - 4); ctx.lineTo(px - 4, py + 4);
+  ctx.stroke();
+}
+
+// ============================================================
+// VIZ 2 · IMPULSE RESPONSE
+// ============================================================
+function drawImpulse() {
+  const { ctx, w, h } = ip;
+  ctx.clearRect(0, 0, w, h);
+
+  // Dynamic window: show enough samples for the decay to reach ~1% of initial.
+  // For weak filters (small |r|) the decay is fast, so few samples are needed;
+  // for strong filters (|r| near 1) we show more. This keeps the curve filling
+  // the plot instead of trailing off as a long line near zero.
+  const ar = Math.abs(r);
+  const stable = ar < 1;
+  const N = ar < 0.05
+    ? 20
+    : Math.max(25, Math.min(120, Math.ceil(Math.log(0.01) / Math.log(Math.max(0.05, ar))) + 5));
+
+  const padL = 36, padR = 16, padT = 16, padB = 28;
+  const plotW = w - padL - padR;
+  const plotH = h - padT - padB;
+  const cy = padT + plotH / 2;
+
+  const samples = [];
+  let maxAbs = 0;
+  for (let n = 0; n < N; n++) {
+    const y = g * Math.pow(r, n);
+    samples.push(y);
+    if (Math.abs(y) > maxAbs) maxAbs = Math.abs(y);
+  }
+  const displayMax = Math.min(maxAbs, 2.0);
+  const yScale = (plotH / 2) / (displayMax * 1.1 || 1);
+
+  // Pick a tick step that yields 4-10 visible labels
+  const nStep = (N <= 10) ? 1 : (N <= 20) ? 2 : (N <= 50) ? 5 : (N <= 100) ? 10 : 25;
+
+  // --- grid (behind everything) ---
+  ctx.strokeStyle = C.border;
+  ctx.lineWidth = 1;
+  // vertical n-gridlines
+  for (let n = 0; n <= N; n += nStep) {
+    const x = padL + (n / Math.max(1, N - 1)) * plotW;
+    ctx.beginPath();
+    ctx.moveTo(x, padT);
+    ctx.lineTo(x, padT + plotH);
+    ctx.stroke();
+  }
+  // horizontal guides at ±0.5·max and ±max
+  for (const frac of [1, 0.5, -0.5, -1]) {
+    const y = cy - frac * displayMax * yScale;
+    if (y < padT || y > padT + plotH) continue;
+    ctx.beginPath();
+    ctx.moveTo(padL, y); ctx.lineTo(w - padR, y);
+    ctx.stroke();
+  }
+
+  // --- axes on top of grid, slightly stronger ---
+  ctx.strokeStyle = C.borderS;
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.moveTo(padL, cy); ctx.lineTo(w - padR, cy);      // zero line
+  ctx.moveTo(padL, padT); ctx.lineTo(padL, padT + plotH); // y-axis
+  ctx.stroke();
+
+  // --- y-axis labels (+/-/0) ---
+  ctx.fillStyle = C.muted;
+  ctx.font = "10px 'DM Mono', monospace";
+  ctx.textAlign = 'right';
+  ctx.fillText('+', padL - 4, padT + 8);
+  ctx.fillText('0', padL - 4, cy + 4);
+  ctx.fillText('−', padL - 4, padT + plotH);
+
+  // --- x-axis n-value labels ---
+  ctx.textAlign = 'center';
+  for (let n = 0; n <= N; n += nStep) {
+    const x = padL + (n / Math.max(1, N - 1)) * plotW;
+    ctx.fillText(n.toString(), x, h - 10);
+  }
+  ctx.textAlign = 'left';
+  ctx.fillStyle = C.dim;
+  ctx.fillText('n', w - padR + 2, h - 10);
+
+  // --- amber envelope (behind stems) ---
+  if (stable && ar > 0) {
+    ctx.strokeStyle = C.accentS;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    for (let i = 0; i <= 200; i++) {
+      const n = (i / 200) * (N - 1);
+      const env = g * Math.pow(ar, n);
+      const x = padL + (n / (N - 1)) * plotW;
+      const y = cy - env * yScale;
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    ctx.beginPath();
+    for (let i = 0; i <= 200; i++) {
+      const n = (i / 200) * (N - 1);
+      const env = g * Math.pow(ar, n);
+      const x = padL + (n / (N - 1)) * plotW;
+      const y = cy + env * yScale;
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+
+  // --- teal stems ---
+  ctx.strokeStyle = C.curve;
+  ctx.fillStyle = C.curve;
+  ctx.lineWidth = 1.5;
+  for (let n = 0; n < N; n++) {
+    const x = padL + (n / Math.max(1, N - 1)) * plotW;
+    const y = cy - samples[n] * yScale;
+    const yClipped = Math.max(padT, Math.min(padT + plotH, y));
+    ctx.beginPath();
+    ctx.moveTo(x, cy);
+    ctx.lineTo(x, yClipped);
+    ctx.stroke();
+    if (yClipped === y) {
+      ctx.beginPath();
+      ctx.arc(x, y, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  if (!stable) {
+    ctx.fillStyle = C.warn;
+    ctx.font = "12px 'DM Mono', monospace";
+    ctx.textAlign = 'center';
+    ctx.fillText('UNSTABLE: output grows without bound', w / 2, padT + 14);
+  }
+}
+
+// ============================================================
+// VIZ 3 · FREQUENCY RESPONSE (denser grid)
+// ============================================================
+function drawFrequency() {
+  const { ctx, w, h } = fr;
+  ctx.clearRect(0, 0, w, h);
+
+  const padL = 50, padR = 20, padT = 18, padB = 32;
+  const plotW = w - padL - padR;
+  const plotH = h - padT - padB;
+
+  // dB range: +80 down to −60 dB (140 dB total). For the one-pole the peak
+  // gain scales as g/(1−|r|) — a linear explosion near instability — which
+  // can reach ~+66 dB at the slider's extremes (r=0.9995, g=1). A +50 dB
+  // ceiling clipped the top of the curve for the most aggressive settings,
+  // so the ceiling is bumped to +80 dB. This also keeps the one-pole and
+  // two-pole charts at the same vertical scale, which makes it easier to
+  // compare the two filters' peak magnitudes side by side even though the
+  // one-pole never reaches the two-pole's +(40…80) dB peaks at extreme r.
+  const dbMax = 80;
+  const dbMin = -60;
+  const dbRange = dbMax - dbMin;
+
+  // Full-range view: 1 Hz (essentially DC) → Nyquist. Log scale can't reach
+  // literal 0 Hz — log10(0) is −∞ — but at audio sample rates a one-pole's
+  // magnitude at 1 Hz is indistinguishable from its DC value, so this gives
+  // a mathematically honest picture of the filter from DC through to Nyquist.
+  // Students can now see the full peak + knee + rolloff for any stable r.
+  const fMin = Math.log10(1);
+  const fMax = Math.log10(NYQUIST);
+
+  // dB grid every 10 dB
+  ctx.lineWidth = 1;
+  ctx.font = "10px 'DM Mono', monospace";
+  for (let db = dbMax; db >= dbMin; db -= 10) {
+    const y = padT + ((dbMax - db) / dbRange) * plotH;
+    ctx.strokeStyle = C.border;
+    ctx.beginPath();
+    ctx.moveTo(padL, y); ctx.lineTo(w - padR, y);
+    ctx.stroke();
+    ctx.fillStyle = C.muted;
+    ctx.textAlign = 'right';
+    // mark 0 dB slightly stronger so unity-gain is visually anchored
+    const label = db === 0 ? '0 dB' : (db > 0 ? '+' + db + ' dB' : db + ' dB');
+    ctx.fillText(label, padL - 6, y + 3);
+  }
+
+  // minor frequency grid (no labels) — 1-2-3-...-9 pattern in each decade
+  // covers the five decades from 1 Hz to Nyquist.
+  const minorFreqs = [
+    2, 3, 4, 5, 6, 7, 8, 9,
+    20, 30, 40, 50, 60, 70, 80, 90,
+    200, 300, 400, 500, 600, 700, 800, 900,
+    2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000,
+    20000
+  ];
+  ctx.strokeStyle = '#f0ede4';
+  ctx.lineWidth = 1;
+  for (const f of minorFreqs) {
+    const x = padL + ((Math.log10(f) - fMin) / (fMax - fMin)) * plotW;
+    ctx.beginPath();
+    ctx.moveTo(x, padT); ctx.lineTo(x, padT + plotH);
+    ctx.stroke();
+  }
+
+  // major (labeled) frequency grid — one tick per decade plus Nyquist
+  const majorFreqs = [
+    { f: 1,     label: '1'    },
+    { f: 10,    label: '10'   },
+    { f: 100,   label: '100'  },
+    { f: 1000,  label: '1k'   },
+    { f: 10000, label: '10k'  },
+    { f: NYQUIST, label: 'Nyq' }  // Nyquist = SR/2 = 24 kHz at SR = 48 kHz
+  ];
+  ctx.strokeStyle = C.border;
+  ctx.lineWidth = 1;
+  for (const { f, label } of majorFreqs) {
+    const x = padL + ((Math.log10(f) - fMin) / (fMax - fMin)) * plotW;
+    ctx.beginPath();
+    ctx.moveTo(x, padT); ctx.lineTo(x, padT + plotH);
+    ctx.stroke();
+    ctx.fillStyle = C.muted;
+    ctx.textAlign = 'center';
+    ctx.fillText(label, x, h - 14);
+  }
+  ctx.textAlign = 'right';
+  ctx.fillStyle = C.dim;
+  ctx.fillText('Hz', w - padR - 4, h - 4);
+
+  // (No horizontal −3 dB reference line and no vertical cutoff marker on this
+  // graph. Earlier versions drew both, but the cutoff marker would appear and
+  // disappear as |r| crossed the meaningfulness threshold — visually correct
+  // but read as a bug. The cutoff is now reported numerically in the
+  // "what's happening" card below, leaving the graph as the pure magnitude
+  // curve.)
+
+  // response curve
+  const stable = Math.abs(r) < 1;
+  const safe_r = stable ? r : Math.sign(r) * 0.999;
+
+  ctx.strokeStyle = stable ? C.curve : C.warn;
+  ctx.lineWidth = 2.2;
+  ctx.beginPath();
+  const NPTS = 500;
+  for (let i = 0; i <= NPTS; i++) {
+    const flogN = fMin + (i / NPTS) * (fMax - fMin);
+    // Endpoint handling: the chart's log scale runs 1 Hz → Nyquist, but the
+    // one-pole's peak sits at exactly ω=0 (for r > 0) or ω=π (for r < 0) —
+    // i.e. at DC or Nyquist literally, not at the chart's leftmost or
+    // rightmost log-sample. For narrow filters (|r| > 0.99) the peak's
+    // bandwidth is sub-Hz, so even evaluating at 1 Hz misses the true peak
+    // by a dB or more. To avoid under-reporting the peak at extreme
+    // settings, we force i=0 to evaluate at ω=0 and i=NPTS to evaluate at
+    // ω=π. The visual result: the chart's left and right edges always show
+    // the true DC and Nyquist magnitudes, and for wide filters this agrees
+    // with the log-scale value to within rounding anyway.
+    const omega = i === 0 ? 0 : (i === NPTS ? Math.PI : 2 * Math.PI * Math.pow(10, flogN) / SR);
+    const denom = Math.sqrt(1 - 2 * safe_r * Math.cos(omega) + safe_r * safe_r);
+    const mag = g / denom;
+    const db = 20 * Math.log10(Math.max(1e-10, mag));
+    const dbClipped = Math.max(dbMin, Math.min(dbMax, db));
+    const x = padL + (i / NPTS) * plotW;
+    const y = padT + ((dbMax - dbClipped) / dbRange) * plotH;
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+}
+
+// ============================================================
+// LIVE STATUS
+// ============================================================
+function updateStatus() {
+  const stable = Math.abs(r) < 1;
+  const ar = Math.abs(r);
+
+  // Intensity tier shared by lowpass and highpass status text. Tier names map
+  // to |r| ranges: gentle (< 0.5), moderate (< 0.85), strong (< 0.97), very
+  // narrow (≥ 0.97). Computed once here, used in both branches below.
+  const intensity = ar < 0.5 ? 'gentle'
+                  : ar < 0.85 ? 'moderate'
+                  : ar < 0.97 ? 'strong'
+                  : 'very narrow';
+
+  let text;
+  if (!stable) {
+    text = `r = ${r.toFixed(3)} sits ${r > 0 ? 'above +1' : 'below −1'} on the real axis, outside the unit circle. Each sample multiplies the last by |r| > 1, so output grows without bound. Audio is muted.`;
+  } else if (ar < 0.05) {
+    text = `r ≈ 0 means almost no feedback. The filter passes input nearly unchanged with gain g.`;
+  } else if (r > 0) {
+    text = `Pole at z = +${r.toFixed(3)} → ${intensity} lowpass. Each output sample is a weighted blend of input + ${(ar*100).toFixed(1)}% of the previous output. This running blend smooths fast variations between consecutive samples, which is exactly what attenuates high frequencies.`;
+  } else {
+    text = `Pole at z = ${r.toFixed(3)} → ${intensity} highpass. The negative coefficient flips sign every sample, producing a running difference between consecutive outputs that highlights fast variations and attenuates slow ones (the lows).`;
+  }
+  statusText.textContent = text;
+  statusBox.classList.toggle('warn', !stable);
+
+  if (!stable) {
+    mCharacter.textContent = 'unstable';
+    mCharacter.className = 'metric-value warn';
+  } else if (ar < 0.05) {
+    mCharacter.textContent = 'neutral';
+    mCharacter.className = 'metric-value';
+  } else if (r > 0) {
+    mCharacter.textContent = 'lowpass';
+    mCharacter.className = 'metric-value ok';
+  } else {
+    mCharacter.textContent = 'highpass';
+    mCharacter.className = 'metric-value ok';
+  }
+
+  // Cutoff metric. Below R_MIN_MEANINGFUL (|r| < 0.3), the filter is so gentle
+  // that its magnitude response never drops to −3 dB at any frequency, so the
+  // standard cutoff formula has no real solution. Rather than show a clamped/
+  // confusing value, we report "n/a" with a brief reason.
+  let cutoffStr = '…';
+  if (!stable) {
+    cutoffStr = 'n/a (unstable)';
+  } else if (ar < R_MIN_MEANINGFUL) {
+    cutoffStr = 'n/a (too gentle)';
+  } else {
+    const absR = ar;
+    const arg = 1 - Math.pow(1 - absR, 2) / (2 * absR);
+    // At |r| ≥ 0.3, arg is safely within [−1, 1] — the clamp is defensive only.
+    const omega_c = Math.acos(Math.max(-1, Math.min(1, arg)));
+    const baseFc = omega_c * SR / (2 * Math.PI);
+    const fc = r > 0 ? baseFc : (NYQUIST - baseFc);
+    cutoffStr = fc < 1000 ? fc.toFixed(0) + ' Hz' : (fc / 1000).toFixed(2) + ' kHz';
+  }
+  mCutoff.textContent = cutoffStr;
+
+  // Impulse decay to 1%. With r near 0, decay is essentially instantaneous
+  // (one sample); with r near ±1, it stretches to seconds. The middle branch
+  // handles the normal case; the other two cover the boundary states.
+  let decayStr = '…';
+  if (!stable) {
+    decayStr = 'n/a (unstable)';
+  } else if (ar <= 0.01) {
+    decayStr = '< 0.02 ms';  // one sample at 48 kHz ≈ 0.021 ms; rounded down
+  } else {
+    const n = Math.log(0.01) / Math.log(ar);
+    const ms = (n / SR) * 1000;
+    decayStr = ms < 10 ? ms.toFixed(2) + ' ms' : ms < 1000 ? ms.toFixed(1) + ' ms' : (ms / 1000).toFixed(2) + ' s';
+  }
+  mDecay.textContent = decayStr;
+
+  mStable.textContent = stable ? 'stable' : 'UNSTABLE';
+  mStable.className = stable ? 'metric-value ok' : 'metric-value warn';
+
+  // live substitution into the cutoff formula
+  let calcHTML;
+  if (!stable) {
+    // Mirror the depth of the "too gentle" branch below so the unstable case
+    // doesn't feel terse by comparison. Explain *why* the cutoff concept fails
+    // when the system itself diverges, not just that it does.
+    calcHTML =
+      `<span class="eq-line">with r = <span class="num">${r.toFixed(3)}</span>, |r| = <span class="num">${ar.toFixed(3)}</span></span>` +
+      `<span class="eq-line"> </span>` +
+      `<span class="eq-line" style="color: var(--muted);">|r| ≥ 1 places the pole on or outside the unit circle.</span>` +
+      `<span class="eq-line" style="color: var(--muted);">The filter no longer has a steady-state magnitude response —</span>` +
+      `<span class="eq-line" style="color: var(--muted);">its output grows without bound regardless of input frequency,</span>` +
+      `<span class="eq-line" style="color: var(--muted);">so cutoff has no meaning here. Bring |r| back below 1.</span>`;
+  } else if (ar < R_MIN_MEANINGFUL) {
+    // The acos argument falls outside [−1, 1] for very weak filters, so no
+    // real cutoff frequency exists. Explain this in situ instead of hiding it.
+    const absR = ar;
+    const argRaw = 1 - Math.pow(1 - absR, 2) / (2 * absR);
+    calcHTML =
+      `<span class="eq-line">with r = <span class="num">${r.toFixed(3)}</span>, |r| = <span class="num">${absR.toFixed(3)}</span></span>` +
+      `<span class="eq-line"> </span>` +
+      `<span class="eq-line">1 − (${(1-absR).toFixed(3)})² / (2·${absR.toFixed(3)}) <span class="op">=</span> <span class="num">${argRaw.toFixed(3)}</span></span>` +
+      `<span class="eq-line"> </span>` +
+      `<span class="eq-line" style="color: var(--muted);">${argRaw.toFixed(3)} is outside acos's domain [−1, 1].</span>` +
+      `<span class="eq-line" style="color: var(--muted);">The filter's magnitude never drops to −3 dB at any frequency,</span>` +
+      `<span class="eq-line" style="color: var(--muted);">so no cutoff frequency exists. Try |r| ≥ 0.3.</span>`;
+  } else {
+    const absR = ar;
+    const numer = Math.pow(1 - absR, 2);
+    const denom = 2 * absR;
+    const arg = 1 - numer / denom;
+    const omega_c = Math.acos(Math.max(-1, Math.min(1, arg)));
+    const baseFc = omega_c * SR / (2 * Math.PI);
+    const fc = r > 0 ? baseFc : (NYQUIST - baseFc);
+    const fmt = (x, d = 5) => (Math.abs(x) < 1e-4 ? x.toExponential(2) : x.toFixed(d));
+    const fcDisp = fc < 1000 ? fc.toFixed(0) + ' Hz' : (fc / 1000).toFixed(2) + ' kHz';
+    const branch = r > 0
+      ? `f<sub>c</sub> <span class="op">=</span> <span class="num">${fmt(omega_c)}</span> · ${SR} / (2π) <span class="op">=</span> <span class="num">${fcDisp}</span>`
+      : `f<sub>c</sub> <span class="op">=</span> ${NYQUIST} − <span class="num">${fmt(omega_c)}</span> · ${SR} / (2π) <span class="op">=</span> <span class="num">${fcDisp}</span>`;
+    calcHTML =
+      `<span class="eq-line">with r = <span class="num">${r.toFixed(3)}</span>, |r| = <span class="num">${absR.toFixed(3)}</span>, SR = ${SR}</span>` +
+      `<span class="eq-line"> </span>` +
+      `<span class="eq-line">ω<sub>c</sub> <span class="op">=</span> acos(1 − (${(1-absR).toFixed(3)})² / (2·${absR.toFixed(3)}))</span>` +
+      `<span class="eq-line">    <span class="op">=</span> acos(<span class="num">${fmt(arg)}</span>)</span>` +
+      `<span class="eq-line">    <span class="op">=</span> <span class="num">${fmt(omega_c)}</span> rad</span>` +
+      `<span class="eq-line"> </span>` +
+      `<span class="eq-line">${branch}</span>`;
+  }
+  calcSub.innerHTML = calcHTML;
+}
+
+// ============================================================
+// AUDIO
+// ============================================================
+async function setupAudio() {
+  if (audioCtx) return;
+  // Request 48 kHz to match the SR constant used throughout the visualizations.
+  // Most browsers honor this on Mac/Windows/Linux. If the system can't oblige
+  // (rare), the AudioContext falls back to its default (typically 44.1 kHz on
+  // Mac, 48 kHz on Windows). We display the actual rate to the user below the
+  // audio controls so any mismatch with the visualization is transparent.
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 48000 });
+  // Update the displayed rate once the context is live, in case the request
+  // wasn't honored. updateAudioRateDisplay() handles formatting and the
+  // "matches visualization" indicator.
+  updateAudioRateDisplay();
+}
+
+// Show the actual AudioContext sample rate beneath the audio controls. If it
+// matches our SR constant (48 kHz) the visualization and the audio agree
+// perfectly; if not, students see the discrepancy spelled out so they can
+// reason about why the audible cutoff might differ slightly from the plotted
+// cutoff.
+function updateAudioRateDisplay() {
+  const el = document.getElementById('audio-rate');
+  if (!el) return;
+  if (!audioCtx) {
+    el.textContent = 'audio · not yet started · visualizations use SR = ' + SR + ' Hz';
+    return;
+  }
+  const actualSR = audioCtx.sampleRate;
+  if (actualSR === SR) {
+    el.textContent = 'audio sample rate · ' + actualSR + ' Hz · matches visualization';
+  } else {
+    el.textContent =
+      'audio sample rate · ' + actualSR + ' Hz · visualization assumes ' + SR + ' Hz · ' +
+      'the audible filter shape is correct, but cutoff frequencies will differ slightly from the plotted values';
+  }
+}
+
+function makeSourceNode() {
+  if (sourceNode) { try { sourceNode.stop(); } catch(e){} sourceNode.disconnect(); sourceNode = null; }
+
+  // White noise: a 2-second buffer of uniform random samples in [−1, 1],
+  // looped seamlessly. White noise has equal energy at all frequencies, so
+  // anything you hear in the output is the filter's transfer function in
+  // audible form — making it the cleanest source for hearing what the filter
+  // does to the spectrum.
+  const bufSize = audioCtx.sampleRate * 2;
+  const buffer = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < bufSize; i++) data[i] = Math.random() * 2 - 1;
+  const node = audioCtx.createBufferSource();
+  node.buffer = buffer;
+  node.loop = true;
+  return node;
+}
+
+function makeFilterNode() {
+  // y[n] = g·x[n] + r·y[n−1]
+  // IIRFilterNode: feedforward = [g], feedback = [1, −r]
+  const stable = Math.abs(r) < 1;
+  if (!stable) return null;
+  const safe_r = Math.max(-0.9999, Math.min(0.9999, r));
+  return audioCtx.createIIRFilter([g], [1, -safe_r]);
+}
+
+// Output compensation: keeps audio from clipping when peak gain is large.
+// The frequency response plot still shows the filter's true (uncompensated)
+// transfer function; this only affects the audible loudness.
+function computeCompensation() {
+  if (Math.abs(r) >= 1) return 0;
+  const peakGain = g / Math.max(0.001, 1 - Math.abs(r));
+  return Math.min(1.0, 0.7 / Math.max(0.001, peakGain));
+}
+
+async function startAudio() {
+  await setupAudio();
+  if (audioCtx.state === 'suspended') await audioCtx.resume();
+
+  if (filterNode) { filterNode.disconnect(); filterNode = null; }
+  if (gainNode) { gainNode.disconnect(); gainNode = null; }
+
+  filterNode = makeFilterNode();
+  if (!filterNode) {
+    isPlaying = false;
+    playBtn.textContent = '▶ play';
+    playBtn.classList.remove('playing');
+    return;
+  }
+
+  gainNode = audioCtx.createGain();
+  gainNode.gain.value = volume * computeCompensation();
+
+  sourceNode = makeSourceNode();
+  sourceNode.connect(filterNode);
+  filterNode.connect(gainNode);
+  gainNode.connect(audioCtx.destination);
+  sourceNode.start();
+}
+
+function stopAudio() {
+  if (sourceNode) { try { sourceNode.stop(); } catch(e){} sourceNode.disconnect(); sourceNode = null; }
+  if (filterNode) { filterNode.disconnect(); filterNode = null; }
+  if (gainNode) { gainNode.disconnect(); gainNode = null; }
+}
+
+async function rebuildAudio() {
+  if (!isPlaying) return;
+  stopAudio();
+  await startAudio();
+}
+
+// ============================================================
+// LIVE EQUATION
+// ============================================================
+// Writes the current coefficients into the displayed recurrence
+// y[n] = g·x[n] + r·y[n−1]. The sign flips automatically when r goes
+// negative so the expression reads naturally (e.g. "... + 0.8·y[n−1]" vs
+// "... − 0.8·y[n−1]"). When the filter is unstable, the numbers go red.
+function updateLiveEquation() {
+  liveG.textContent = g.toFixed(2);
+  // Absolute value here; the sign is carried by the operator between terms.
+  liveR.textContent = Math.abs(r).toFixed(3);
+  liveSign.textContent = r < 0 ? '−' : '+';
+  liveEqBody.classList.toggle('unstable', Math.abs(r) >= 1);
+}
+
+// ============================================================
+// UI WIRING
+// ============================================================
+// update() refreshes every reactive part of the UI: all three visualizations,
+// the status card, the live equation, and the slider-side numeric displays.
+// Centralizing the displays here means there's one source of truth for what
+// "shown to the user" means at any given r/g state.
+function update() {
+  drawZPlane();
+  drawImpulse();
+  drawFrequency();
+  updateStatus();
+  updateLiveEquation();
+  // Slider-side numeric displays — kept in sync with the live equation by
+  // updating in the same pass.
+  rValue.textContent = r.toFixed(3);
+  gValue.textContent = g.toFixed(2);
+}
+
+rSlider.addEventListener('input', () => {
+  r = parseFloat(rSlider.value);
+  update();
+  rebuildAudio();
+});
+
+gSlider.addEventListener('input', () => {
+  g = parseFloat(gSlider.value);
+  update();
+  rebuildAudio();
+});
+
+playBtn.addEventListener('click', async () => {
+  if (isPlaying) {
+    stopAudio();
+    isPlaying = false;
+    playBtn.textContent = '▶ play';
+    playBtn.classList.remove('playing');
+  } else {
+    isPlaying = true;
+    playBtn.textContent = '■ stop';
+    playBtn.classList.add('playing');
+    await startAudio();
+  }
+});
+
+volSlider.addEventListener('input', () => {
+  volume = parseFloat(volSlider.value);
+  if (gainNode) gainNode.gain.value = volume * computeCompensation();
+});
+
+window.addEventListener('load', () => {
+  initCanvases();
+  update();
+});
+window.addEventListener('resize', () => {
+  initCanvases();
+  update();
+});
+</script>
+</body>
+</html>
