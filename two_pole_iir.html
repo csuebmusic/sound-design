@@ -825,6 +825,20 @@
     </div>
   </section>
 
+  <!-- GROUP DELAY -->
+  <section>
+    <h2>group delay</h2>
+    <div class="viz-card">
+      <div class="viz-explainer">
+        <p><strong>What is group delay?</strong> The number of samples by which the filter shifts each frequency component in time. For a linear-phase filter (like the FIR moving average) every frequency is delayed by the same amount, and group delay is one number. For an IIR filter, group delay <em>varies with frequency</em> — the curve below is what that variation looks like.</p>
+        <p><strong>For this two-pole filter:</strong> group delay peaks at the resonant frequency, where the filter rings. The peak grows steeply as radius approaches 1 — roughly as <em>1/(1−r)</em>, the same growth law that drives the magnitude peak. The curve is bell-shaped around the resonant frequency, narrower and taller as radius climbs. This is the perceptual side of resonance: a sharp resonator doesn't just emphasize a frequency band, it also delays that band relative to everything else. A short percussive input played through a sharp resonator sounds smeared because the resonant content arrives noticeably later than the wide-band attack — the filter stretches the struck moment out in time.</p>
+        <p><strong>The negative regions</strong> (the curve dips below zero away from the resonant peak) are real, not a plotting error. They're roughly twice as deep as the one-pole's at the same radius — down to about <em>−1 sample</em> near instability. Depending on where the resonant frequency sits in the spectrum, negative regions can appear on one or both sides of the peak. Negative group delay is a property of how the filter reshapes wave envelopes, not a violation of cause and effect; it's part of why group delay needed its own name rather than being called "latency."</p>
+      </div>
+      <canvas id="gdelay" width="1000" height="300"></canvas>
+      <div class="viz-caption">y axis · group delay in samples (auto-scaled to peak) · x axis · log frequency from 10 Hz to Nyquist · pink dashed line · resonant frequency · heavier horizontal line · zero delay</div>
+    </div>
+  </section>
+
   <!-- STATUS -->
   <section>
     <h2>what's happening</h2>
@@ -838,6 +852,10 @@
         <div class="metric">
           <div class="metric-label">Q (sharpness)</div>
           <div class="metric-value" id="m-q">…</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">group delay at f<sub>res</sub></div>
+          <div class="metric-value" id="m-gd">…</div>
         </div>
         <div class="metric">
           <div class="metric-label">impulse decay to 1%</div>
@@ -910,6 +928,7 @@
         <li>The coefficients are computed from radius <em>r</em> and resonant frequency <em>f₀</em> as: <code>b₁ = 2r·cos(ω₀)</code> and <code>b₂ = −r²</code>, where <code>ω₀ = 2π·f₀ / SR</code>. This places the two poles at <code>z = r·e^(±jω₀)</code> — same magnitude <em>r</em>, opposite angles ±ω₀. That symmetric placement is what guarantees the coefficients are real numbers (no imaginary part), so the filter can run on real-valued audio samples.</li>
         <li>The impulse response is <code>h[n] = (g/sin(ω₀)) · rⁿ · sin((n+1)·ω₀)</code>, an exponentially-decaying sinusoid. The <em>rⁿ</em> term is the envelope; the <em>sin</em> term is the ring. This is the same form as a struck bell, a plucked string in its decay phase, or any damped harmonic oscillator — a deep connection to physical systems.</li>
         <li>Two ways to measure how long the filter rings: the <strong>time constant</strong> <code>τ = −1 / (SR · ln(r))</code> seconds is when the envelope decays to 1/e (≈ 37%); the "impulse decay to 1%" metric in the status card above measures the same exponential decay further out, at 1% (≈ −40 dB). Same envelope, two thresholds. The 1% measure correlates well with how long the ring is audible to a listener.</li>
+        <li><strong>Group delay</strong> for a two-pole is the sum of the two complex poles' contributions, since the denominator factors as <code>(1 − r·e^(jω₀)·z⁻¹)(1 − r·e^(−jω₀)·z⁻¹)</code> and the log of a product is a sum (so phase contributions add, and so do their derivatives). In the plotted frequency range [0, π] only the <em>+ω₀</em> pole produces a visible spike — centered at the resonant frequency — while the <em>−ω₀</em> pole contributes a shallow mostly-negative baseline. The observed peak height at <em>ω = ω₀</em> grows roughly as <code>1/(1−r)</code>, comparable to how the magnitude peak grows. This frequency-dependent delay is the timing side of resonance: a short percussive input gets stretched in time at the resonant frequency, which is how a struck wineglass turns a quick tap into a long-ringing tone. FIR filters with symmetric coefficients sidestep this entirely (every frequency delayed by exactly <code>(N−1)/2</code> samples), at the cost of needing many more taps.</li>
         <li><strong>Q (quality factor)</strong> measures how sharp the resonance is: <code>Q ≈ ω₀ / (−2·ln r)</code> when r is close to 1. Doubling Q halves the bandwidth and roughly doubles the ringing time. Q is the universal language of resonators — synth filters, pendulum clocks, RLC circuits, string instruments all use it.</li>
         <li><strong>Bandwidth</strong> (the width of the resonant peak at −3 dB) is approximately <code>BW ≈ (1−r) · SR / π</code>. As radius approaches 1, bandwidth approaches zero; the filter becomes a pure oscillator at <em>f₀</em>.</li>
         <li><strong>Peak gain</strong> at the resonant frequency is approximately <code>g / ((1 − r) · |1 − r·e^(−j2ω₀)|)</code>. As <em>r</em> approaches 1, the first factor blows up — which is exactly the towering peak you see in the frequency response graph at high radius. In musical practice, audio filter designs often <em>auto-normalize</em> by scaling <em>g</em> so the peak stays at 0 dB regardless of radius.</li>
@@ -934,7 +953,7 @@
     <div class="footer-item">Cook, P. (2002). <em>Real Sound Synthesis for Interactive Applications.</em> Ch. 3</div>
     <div class="footer-item">Roads, C. (2023). <em>The Computer Music Tutorial</em> (2nd ed.). Ch. 28</div>
     <div class="footer-affiliation">CSU East Bay Music Composition Department</div>
-    <div class="footer-version">version 1.6 · Spring 2026 · Inés Thiebaut</div>
+    <div class="footer-version">version 1.7 · Spring 2026 · Inés Thiebaut</div>
   </footer>
 
 </div>
@@ -998,6 +1017,7 @@ const statusBox = document.getElementById('status-box');
 const statusText = document.getElementById('status-text');
 const mFreq = document.getElementById('m-freq');
 const mQ = document.getElementById('m-q');
+const mGD = document.getElementById('m-gd');
 const mRing = document.getElementById('m-ring');
 const mStable = document.getElementById('m-stable');
 const calcSub = document.getElementById('calc-sub');
@@ -1034,11 +1054,12 @@ function setupCanvas(id) {
   return { ctx, w: rect.width, h: rect.height };
 }
 
-let zp, ip, fr;
+let zp, ip, fr, gd;
 function initCanvases() {
   zp = setupCanvas('zplane');
   ip = setupCanvas('impulse');
   fr = setupCanvas('freq');
+  gd = setupCanvas('gdelay');
 }
 
 // ---- log slider conversion ----
@@ -1480,6 +1501,269 @@ function drawFrequency() {
 }
 
 // ============================================================
+// GROUP DELAY · sum of complex-pole contributions
+// ============================================================
+// For a single complex pole at z = r·e^(jθ), the group-delay contribution is
+//     τ_p(ω) = (r·cos(ω − θ) − r²) / (1 − 2r·cos(ω − θ) + r²)
+// The two-pole has a complex-conjugate pair at θ = ±ω₀, so total group delay
+// is the sum of the two contributions. This generalizes the one-pole formula:
+// one-pole has θ = 0 (or π for negative-r), reducing to (r·cos(ω) − r²) / …
+//
+// Why sum? In the z-domain, the denominator factors as
+//     (1 − r·e^(jω₀)·z⁻¹)(1 − r·e^(−jω₀)·z⁻¹)
+// and the log of a product is a sum, so the phase contributions add — and so
+// do their derivatives, the group delays.
+//
+// Sign: τ can be negative, especially in the side bands away from the
+// resonant peak. For two-pole the negative excursion can reach about −1
+// sample at high radius (deeper than one-pole's bounded −0.5).
+function groupDelaySamples(omega) {
+  function poleContribution(theta) {
+    const cosw = Math.cos(omega - theta);
+    return (radius * cosw - radius * radius) /
+           Math.max(1e-10, 1 - 2 * radius * cosw + radius * radius);
+  }
+  return poleContribution(omega0) + poleContribution(-omega0);
+}
+
+// ============================================================
+// VIZ 4 · GROUP DELAY (samples vs. log frequency)
+// ============================================================
+// Pairs visually with the magnitude response above: identical x-axis (log
+// frequency, 10 Hz to Nyquist), identical curve color (teal), identical
+// frequency grid. Resonant-frequency marker matches the magnitude chart's
+// pink dashed line, so students see the same anchor in both plots.
+function drawGroupDelay() {
+  const { ctx, w, h } = gd;
+  ctx.clearRect(0, 0, w, h);
+
+  const padL = 50, padR = 20, padT = 18, padB = 32;
+  const plotW = w - padL - padR;
+  const plotH = h - padT - padB;
+
+  const stable = radius < 1;
+
+  // ---- x-axis range matches the magnitude chart exactly (10 Hz → Nyquist) ----
+  const fMin = Math.log10(10);
+  const fMax = Math.log10(NYQUIST);
+
+  // ---- compute the curve, with extra density around the resonant peak ----
+  // The two-pole's group-delay peak is much narrower than the one-pole's
+  // because both poles contribute their own spike at the same angular
+  // frequency — at high radius the peak bandwidth shrinks toward zero. A
+  // uniform log-frequency grid can skip right over it, same problem the
+  // magnitude chart solved with a dense window around the resonant peak.
+  // Same fix here: cluster extra samples in a tight ±0.03-decade zone.
+  const NPTS = 500;
+  const samples = [];
+  const logFreqs = [];
+  for (let i = 0; i <= NPTS; i++) {
+    logFreqs.push(fMin + (i / NPTS) * (fMax - fMin));
+  }
+  if (stable) {
+    const f0Log = Math.log10(Math.max(10, freqHz));
+    const denseWindow = 0.03;
+    const denseN = 100;
+    const dMin = Math.max(fMin, f0Log - denseWindow);
+    const dMax = Math.min(fMax, f0Log + denseWindow);
+    for (let i = 0; i <= denseN; i++) {
+      logFreqs.push(dMin + (i / denseN) * (dMax - dMin));
+    }
+  }
+  logFreqs.sort((a, b) => a - b);
+  for (const flogN of logFreqs) {
+    const f = Math.pow(10, flogN);
+    const omega = 2 * Math.PI * f / SR;
+    const tau = stable ? groupDelaySamples(omega) : 0;
+    samples.push({ flogN, tau });
+  }
+
+  // ---- y-axis range: auto-scale to nice numbers ----
+  let tauMax = 0, tauMin = 0;
+  for (const s of samples) {
+    if (s.tau > tauMax) tauMax = s.tau;
+    if (s.tau < tauMin) tauMin = s.tau;
+  }
+  if (!stable || (tauMax < 0.01 && tauMin > -0.01)) {
+    tauMax = 1; tauMin = -1;
+  }
+
+  // niceCeiling: 1-2-3-5-7 pattern per decade with strict-less-than so peaks
+  // landing exactly on a tier bump up for breathing room. Standard auto-axis
+  // pattern. Same function as the one-pole.
+  function niceCeiling(v) {
+    if (v <= 0) return 1;
+    const decade = Math.pow(10, Math.floor(Math.log10(v)));
+    const norm = v / decade;
+    let mult;
+    if (norm < 1) mult = 1;
+    else if (norm < 2) mult = 2;
+    else if (norm < 3) mult = 3;
+    else if (norm < 5) mult = 5;
+    else if (norm < 7) mult = 7;
+    else mult = 10;
+    return mult * decade;
+  }
+  const yTop = niceCeiling(tauMax);
+
+  // For the lower bound: two-pole negatives can dip to about −1 sample at
+  // radius near 1, so the floor list extends further than the one-pole's.
+  // Includes 0.5 so very weak filters still get a tight floor.
+  let yBot;
+  if (tauMin < -0.01) {
+    const negFloors = [0.5, 1, 2, 3, 5, 7, 10, 20, 50];
+    let yBotMag = negFloors[negFloors.length - 1];
+    for (const t of negFloors) {
+      if (t >= -tauMin) { yBotMag = t; break; }
+    }
+    yBot = -yBotMag;
+  } else {
+    yBot = 0;
+  }
+  const yRange = yTop - yBot;
+
+  // ---- y-axis grid and labels ----
+  // yStep keyed to the larger of yTop and |yBot|. When the negative region is
+  // larger than the positive ceiling (which happens for two-pole at low
+  // radius / off-resonance frequencies, where the dip can outweigh the small
+  // peak), keying yStep on yTop alone produces too many gridlines because
+  // the loop iterates from yBot up. Using effectiveTop = max(yTop, |yBot|)
+  // gives 5-7 gridlines across the full chart range.
+  function pickYStep(yt) {
+    const decade = Math.pow(10, Math.floor(Math.log10(yt)));
+    const norm = yt / decade;
+    if (norm <= 1) return 0.2 * decade;
+    if (norm <= 2) return 0.5 * decade;
+    if (norm <= 3) return 0.5 * decade;
+    if (norm <= 5) return 1 * decade;
+    if (norm <= 7) return 1 * decade;
+    return 2 * decade;
+  }
+  const effectiveTop = Math.max(yTop, Math.abs(yBot));
+  const yStep = pickYStep(effectiveTop);
+
+  ctx.lineWidth = 1;
+  ctx.font = "10px 'DM Mono', monospace";
+  const firstTick = Math.ceil(yBot / yStep) * yStep;
+  const drawnTicks = new Set();
+  for (let v = firstTick; v <= yTop + 1e-9; v += yStep) {
+    const y = padT + ((yTop - v) / yRange) * plotH;
+    ctx.strokeStyle = (Math.abs(v) < 1e-9) ? C.borderS : C.border;
+    ctx.lineWidth = (Math.abs(v) < 1e-9) ? 1.2 : 1;
+    ctx.beginPath();
+    ctx.moveTo(padL, y); ctx.lineTo(w - padR, y);
+    ctx.stroke();
+    ctx.fillStyle = (Math.abs(v) < 1e-9) ? C.text : C.muted;
+    ctx.textAlign = 'right';
+    // Normalize floating-point near-zero to avoid rendering "-0" or "-0.0"
+    // (which happens when the tick loop accumulates error stepping through
+    // zero from a negative start, e.g. yStep=0.2 from yBot=-1.0).
+    const vFormatted = Math.abs(v) < 1e-9 ? 0 : v;
+    const lbl = Math.abs(vFormatted - Math.round(vFormatted)) < 1e-9 ? vFormatted.toFixed(0) : vFormatted.toFixed(1);
+    ctx.fillText(lbl, padL - 6, y + 3);
+    drawnTicks.add(Math.round(v * 1000) / 1000);
+  }
+  // If yBot didn't land on a natural tick, draw a boundary line at the bottom
+  // edge so the negative region has a visual anchor.
+  if (yBot < 0 && !drawnTicks.has(Math.round(yBot * 1000) / 1000)) {
+    const y = padT + plotH;
+    ctx.strokeStyle = C.border;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(padL, y); ctx.lineTo(w - padR, y);
+    ctx.stroke();
+    ctx.fillStyle = C.muted;
+    ctx.textAlign = 'right';
+    const lbl = Math.abs(yBot - Math.round(yBot)) < 1e-9 ? yBot.toFixed(0) : yBot.toFixed(1);
+    ctx.fillText(lbl, padL - 6, y + 3);
+  }
+  ctx.lineWidth = 1;
+  ctx.fillStyle = C.dim;
+  ctx.textAlign = 'left';
+  ctx.fillText('samples', padL + 4, padT + 10);
+
+  // ---- x-axis grid (mirrors the magnitude chart's 10 Hz → Nyquist range) ----
+  const minorFreqs = [
+    20, 30, 40, 50, 60, 70, 80, 90,
+    200, 300, 400, 500, 600, 700, 800, 900,
+    2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000,
+    20000
+  ];
+  ctx.strokeStyle = '#f0ede4';
+  for (const f of minorFreqs) {
+    const x = padL + ((Math.log10(f) - fMin) / (fMax - fMin)) * plotW;
+    ctx.beginPath();
+    ctx.moveTo(x, padT); ctx.lineTo(x, padT + plotH);
+    ctx.stroke();
+  }
+  const majorFreqs = [
+    { f: 10, label: '10' },
+    { f: 100, label: '100' },
+    { f: 1000, label: '1k' },
+    { f: 10000, label: '10k' },
+    { f: NYQUIST, label: 'Nyq' }
+  ];
+  ctx.strokeStyle = C.border;
+  for (const { f, label } of majorFreqs) {
+    const x = padL + ((Math.log10(f) - fMin) / (fMax - fMin)) * plotW;
+    ctx.beginPath();
+    ctx.moveTo(x, padT); ctx.lineTo(x, padT + plotH);
+    ctx.stroke();
+    ctx.fillStyle = C.muted;
+    ctx.textAlign = 'center';
+    ctx.fillText(label, x, h - 14);
+  }
+  ctx.textAlign = 'right';
+  ctx.fillStyle = C.dim;
+  ctx.fillText('Hz', w - padR - 4, h - 4);
+
+  // ---- resonant-frequency marker (always defined for stable filter) ----
+  // Same dashed-pink visual language as the magnitude chart's marker. Unlike
+  // the one-pole's cutoff (which had a meaningfulness threshold), the
+  // resonant frequency for the two-pole is always well-defined as the pole
+  // angle, so the marker is always shown when the filter is stable. We do
+  // fade it slightly when radius is below R_MIN_RESONANCE to match the
+  // magnitude chart's treatment — the marker is mathematically correct but
+  // the "peak" it points at has dissolved into a broad swell.
+  if (stable && freqHz >= 10 && freqHz <= NYQUIST) {
+    const fx = padL + ((Math.log10(freqHz) - fMin) / (fMax - fMin)) * plotW;
+    ctx.strokeStyle = C.pole;
+    ctx.globalAlpha = radius < R_MIN_RESONANCE ? 0.18 : 0.55;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(fx, padT); ctx.lineTo(fx, padT + plotH);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = C.pole;
+    ctx.font = "10px 'DM Mono', monospace";
+    ctx.textAlign = 'center';
+    ctx.fillText('resonance', fx, padT - 4);
+  }
+
+  // ---- the curve ----
+  ctx.strokeStyle = stable ? C.curve : C.warn;
+  ctx.lineWidth = 2.2;
+  ctx.beginPath();
+  for (let idx = 0; idx < samples.length; idx++) {
+    const { flogN, tau } = samples[idx];
+    const x = padL + (flogN - fMin) / (fMax - fMin) * plotW;
+    const tauClipped = Math.max(yBot, Math.min(yTop, tau));
+    const y = padT + ((yTop - tauClipped) / yRange) * plotH;
+    if (idx === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+
+  // ---- "unstable" overlay ----
+  if (!stable) {
+    ctx.fillStyle = C.warn;
+    ctx.font = "12px 'DM Mono', monospace";
+    ctx.textAlign = 'center';
+    ctx.fillText('UNSTABLE: group delay has no steady-state meaning', w / 2, padT + 14);
+  }
+}
+
+// ============================================================
 // LIVE STATUS
 // ============================================================
 function updateStatus() {
@@ -1525,6 +1809,29 @@ function updateStatus() {
     qStr = Q < 10 ? Q.toFixed(2) : Q < 100 ? Q.toFixed(1) : Q.toFixed(0);
   }
   mQ.textContent = qStr;
+
+  // Group delay at the resonant frequency. Uses the same closed-form as the
+  // curve drawing (groupDelaySamples), evaluated at ω₀. Skipped when the
+  // resonance itself isn't meaningful (unstable or radius below
+  // R_MIN_RESONANCE), for the same reason Q is skipped — there's no clear
+  // "peak" to anchor the delay reading against. The two-line display
+  // (samples on top, ms in muted smaller text below) mirrors the FIR's and
+  // one-pole's group-delay metric format.
+  let gdStr = '…';
+  if (!stable) {
+    gdStr = 'n/a (unstable)';
+  } else if (radius < R_MIN_RESONANCE) {
+    gdStr = 'n/a (too broad)';
+  } else {
+    const tau = groupDelaySamples(omega0);
+    const ms = (tau / SR) * 1000;
+    const sampleStr = Math.abs(tau) >= 10 ? tau.toFixed(1) : tau.toFixed(2);
+    const msStr = Math.abs(ms) < 0.001 ? ms.toExponential(1) + ' ms'
+                : Math.abs(ms) < 1 ? ms.toFixed(3) + ' ms'
+                : ms.toFixed(2) + ' ms';
+    gdStr = sampleStr + ' samples<br><span style="color: var(--muted); font-size: 12px;">(' + msStr + ')</span>';
+  }
+  mGD.innerHTML = gdStr;
 
   // Impulse decay to 1% — the envelope decay time. With radius near 0,
   // decay is essentially instantaneous (the ringing barely happens before
@@ -1744,6 +2051,7 @@ function update() {
   drawZPlane();
   drawImpulse();
   drawFrequency();
+  drawGroupDelay();
   updateStatus();
   updateLiveEquation();
   // Slider-side numeric displays — kept in sync with everything else by
