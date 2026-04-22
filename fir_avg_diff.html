@@ -1,0 +1,1795 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FIR Filter · Moving Average and Differentiator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #fafaf7;
+    --panel: #ffffff;
+    --panel-2: #f4f2ec;
+    --border: #e2dfd6;
+    --border-strong: #c9c5b8;
+    --text: #1a1a17;
+    --muted: #6a6862;
+    --dim: #a8a59f;
+    --accent: #b8693a;
+    --accent-soft: #b8693a22;
+    --pole: #c73862;
+    --pole-soft: #c7386218;
+    --curve: #2c7d6f;
+    --warn: #c92e1f;
+    --warn-soft: #c92e1f15;
+    --ok: #2c7d6f;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', system-ui, sans-serif;
+    font-size: 15px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 40px 28px 80px;
+  }
+  header {
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 28px;
+    margin-bottom: 32px;
+  }
+  h1 {
+    font-family: 'DM Mono', monospace;
+    font-weight: 500;
+    font-size: 26px;
+    margin: 0 0 6px;
+    letter-spacing: -0.01em;
+    color: var(--text);
+  }
+  .subtitle {
+    color: var(--muted);
+    font-size: 14px;
+    margin: 0 0 22px;
+  }
+  .equation {
+    font-family: 'DM Mono', monospace;
+    font-size: 22px;
+    color: var(--accent);
+    background: var(--panel);
+    padding: 16px 22px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    display: inline-block;
+    margin-top: 4px;
+  }
+  .equation .var { color: var(--text); }
+  .equation .op { color: var(--muted); }
+  .block-diagram {
+    margin-top: 18px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 18px 22px 14px;
+    max-width: 760px;
+  }
+  .block-diagram svg {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+  .block-diagram-legend {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+    text-align: center;
+    letter-spacing: 0.02em;
+  }
+  h2 {
+    font-family: 'DM Mono', monospace;
+    font-weight: 500;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin: 0 0 14px;
+  }
+  h3 {
+    font-family: 'DM Mono', monospace;
+    font-weight: 500;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    margin: 0 0 10px;
+  }
+  section { margin-bottom: 32px; }
+
+  /* TERMINOLOGY */
+  .terminology {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 22px 26px;
+  }
+  .terminology .lead {
+    font-size: 14px;
+    color: var(--muted);
+    margin: 0 0 18px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .term { margin-bottom: 18px; }
+  .term:last-child { margin-bottom: 0; }
+  .term-name {
+    font-family: 'DM Mono', monospace;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--accent);
+    margin-bottom: 4px;
+  }
+  .term-name .symbol {
+    color: var(--text);
+    background: var(--panel-2);
+    padding: 1px 7px;
+    border-radius: 3px;
+    margin-right: 6px;
+    font-size: 13px;
+  }
+  .term-def {
+    font-size: 14px;
+    color: var(--text);
+    margin: 0;
+  }
+  /* Indented sub-terms — used when one term has multiple closely-related
+     children (e.g. moving average and differentiator are both choices of
+     sign pattern for h[k], so they nest under h[k]). */
+  .term-sub {
+    margin-top: 10px;
+    margin-left: 20px;
+    padding-left: 14px;
+    border-left: 2px solid var(--border);
+  }
+  .term-sub + .term-sub {
+    margin-top: 8px;
+  }
+  .term-sub-name {
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--accent);
+    margin-bottom: 2px;
+  }
+  .term-sub-name .symbol {
+    color: var(--text);
+    background: var(--panel-2);
+    padding: 1px 6px;
+    border-radius: 3px;
+    margin-right: 5px;
+    font-size: 12px;
+  }
+  .term-sub-def {
+    font-size: 13.5px;
+    color: var(--text);
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  /* CONTROLS */
+  .controls {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 22px 24px;
+  }
+  .slider-row {
+    display: grid;
+    grid-template-columns: 100px 1fr 90px;
+    gap: 16px;
+    align-items: center;
+    margin-bottom: 14px;
+  }
+  .slider-row:last-child { margin-bottom: 0; }
+  .slider-row label {
+    font-family: 'DM Mono', monospace;
+    font-size: 14px;
+    color: var(--text);
+  }
+  .slider-row .desc {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+  input[type="range"] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 4px;
+    background: var(--border-strong);
+    border-radius: 2px;
+    outline: none;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    transition: transform 0.1s;
+    border: none;
+  }
+  input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
+  input[type="range"]::-moz-range-thumb {
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    border: none;
+  }
+  .value {
+    font-family: 'DM Mono', monospace;
+    font-size: 14px;
+    color: var(--accent);
+    text-align: right;
+    font-weight: 500;
+  }
+  .live-equation {
+    margin-top: 18px;
+    padding-top: 18px;
+    border-top: 1px solid var(--border);
+  }
+  .live-equation-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+  .live-equation-body {
+    font-family: 'DM Mono', monospace;
+    font-size: 17px;
+    color: var(--text);
+    padding: 14px 18px;
+    background: var(--panel-2);
+    border-radius: 4px;
+    border-left: 2px solid var(--accent);
+    letter-spacing: 0.01em;
+    line-height: 1.5;
+  }
+  .live-equation-body .var { color: var(--text); }
+  .live-equation-body .op { color: var(--muted); margin: 0 2px; }
+  .live-equation-body .num {
+    color: var(--accent);
+    font-weight: 500;
+    transition: color 0.1s;
+  }
+
+  /* STATUS */
+  .status {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 4px;
+    padding: 16px 20px;
+  }
+  .status.warn {
+    border-left-color: var(--warn);
+    background: var(--warn-soft);
+  }
+  .status-text { font-size: 14px; color: var(--text); margin: 0 0 12px; }
+  .status.warn .status-text { color: var(--warn); }
+  .metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 12px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+  }
+  .metric { font-family: 'DM Mono', monospace; }
+  .metric-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+  .metric-value {
+    font-size: 14px;
+    color: var(--text);
+    font-weight: 500;
+  }
+  .metric-value.ok { color: var(--ok); }
+  .metric-value.warn { color: var(--warn); }
+
+  /* CALC BLOCK */
+  .calc-block {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+    font-family: 'DM Mono', monospace;
+  }
+  .calc-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+  .calc-symbolic, .calc-sub {
+    font-size: 12.5px;
+    line-height: 1.8;
+  }
+  .calc-symbolic {
+    color: var(--text);
+    padding: 8px 12px;
+    background: var(--panel-2);
+    border-radius: 3px;
+    margin-bottom: 10px;
+  }
+  .calc-sub {
+    color: var(--text);
+    padding: 8px 12px;
+    border-left: 2px solid var(--accent);
+    background: #fff;
+  }
+  .calc-sub .op { color: var(--muted); }
+  .calc-sub .num { color: var(--accent); }
+  .eq-line { display: block; white-space: pre; }
+  /* LEGEND · plain-English decoder for the symbols above */
+  .calc-legend {
+    margin: 10px 0 12px;
+    padding: 10px 12px;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+  }
+  .legend-row {
+    display: grid;
+    grid-template-columns: 58px 1fr;
+    gap: 12px;
+    align-items: baseline;
+    padding: 3px 0;
+    font-size: 12.5px;
+    line-height: 1.5;
+  }
+  .legend-row + .legend-row {
+    border-top: 1px dashed var(--border);
+  }
+  .legend-sym {
+    font-family: 'DM Mono', monospace;
+    color: var(--accent);
+    font-weight: 500;
+    text-align: center;
+  }
+  .legend-def {
+    color: var(--text);
+    font-family: 'DM Sans', system-ui, sans-serif;
+  }
+  .legend-def em {
+    color: var(--muted);
+    font-style: italic;
+  }
+
+  /* VIZ CARDS */
+  .viz-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 18px 22px;
+  }
+  .viz-twoCol {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .viz-explainer {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.55;
+    background: var(--panel-2);
+    padding: 12px 14px;
+    border-radius: 4px;
+    margin-bottom: 14px;
+    border-left: 2px solid var(--border-strong);
+  }
+  .viz-explainer strong {
+    color: var(--text);
+    font-weight: 500;
+  }
+  /* Paragraphs inside viz-explainer: zero default margin, then a comfortable
+     gap between siblings. Mirrors the visual rhythm <br><br> would produce,
+     but with proper semantic markup. */
+  .viz-explainer p {
+    margin: 0;
+  }
+  .viz-explainer p + p {
+    margin-top: 12px;
+  }
+  .viz-caption {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 8px;
+    line-height: 1.4;
+  }
+  .viz-legend {
+    font-family: 'DM Mono', monospace;
+    font-size: 10.5px;
+    color: var(--muted);
+    margin-top: 10px;
+    padding: 6px 10px;
+    background: var(--panel-2);
+    border-radius: 3px;
+    letter-spacing: 0.01em;
+    line-height: 1.55;
+  }
+  canvas {
+    width: 100%;
+    height: auto;
+    display: block;
+    background: #fff;
+    border-radius: 3px;
+  }
+
+  /* AUDIO */
+  .audio {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 18px 22px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+    align-items: center;
+  }
+  .play-btn {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    padding: 10px 22px;
+    font-family: 'DM Mono', monospace;
+    font-size: 14px;
+    font-weight: 500;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  .play-btn:hover { opacity: 0.85; }
+  .play-btn.playing { background: var(--warn); }
+  .source-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    background: var(--panel-2);
+    padding: 6px 12px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    letter-spacing: 0.02em;
+  }
+  .mode-toggle {
+    display: flex;
+    gap: 4px;
+    background: var(--panel-2);
+    padding: 4px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    width: fit-content;
+  }
+  .mode-toggle button {
+    background: transparent;
+    color: var(--muted);
+    border: none;
+    padding: 6px 14px;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .mode-toggle button.active {
+    background: #fff;
+    color: var(--text);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .vol-control {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-left: auto;
+    min-width: 200px;
+  }
+  .vol-control label {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  /* NOTES */
+  .notes {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 22px 26px;
+  }
+  .notes h2 { margin-bottom: 12px; }
+  .notes h2:not(:first-child) { margin-top: 24px; }
+  .notes ul, .notes ol { margin: 0; padding-left: 20px; }
+  .notes li {
+    margin-bottom: 8px;
+    font-size: 14px;
+    color: var(--text);
+  }
+  .notes li code, .notes p code {
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    color: var(--accent);
+    background: var(--panel-2);
+    padding: 1px 6px;
+    border-radius: 3px;
+  }
+
+  footer {
+    margin-top: 48px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 12px;
+    font-family: 'DM Mono', monospace;
+  }
+  .footer-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--dim);
+    margin-bottom: 8px;
+  }
+  .footer-item {
+    margin-bottom: 4px;
+    line-height: 1.5;
+  }
+  .footer-affiliation {
+    margin-top: 18px;
+    color: var(--text);
+  }
+  .footer-version {
+    margin-top: 4px;
+    color: var(--dim);
+    font-size: 11px;
+  }
+
+  @media (max-width: 720px) {
+    .viz-twoCol { grid-template-columns: 1fr; }
+    .slider-row { grid-template-columns: 80px 1fr 70px; }
+    h1 { font-size: 22px; }
+    .equation { font-size: 16px; }
+    /* The substituted live equation gets long quickly as N grows — at N = 8
+       it already runs "0.1250·x[n] + 0.1250·x[n−1] + ... + 0.1250·x[n−7]",
+       comfortably overflowing narrow viewports at 17px. Shrink the body and
+       allow horizontal scroll as a safety net so the numbers stay readable
+       rather than wrapping mid-term. */
+    .live-equation-body {
+      font-size: 13px;
+      padding: 12px 14px;
+      overflow-x: auto;
+      white-space: nowrap;
+    }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>moving-average &amp; differentiator FIR filter</h1>
+    <p class="subtitle">The simplest finite impulse response filter: a weighted sum of recent input samples, no feedback. Tap count N sets the sharpness; the sign pattern (all + or alternating +/−) sets the character (lowpass or highpass).</p>
+    <div class="equation">
+      <span class="var">y</span>[n] <span class="op">=</span> <span class="op">(</span><span class="var">x</span>[n] <span class="op">±</span> <span class="var">x</span>[n−1] <span class="op">±</span> <span class="var">x</span>[n−2] <span class="op">±</span> ... <span class="op">±</span> <span class="var">x</span>[n−N+1]<span class="op">)</span> · <span class="op">1/</span>N
+    </div>
+
+    <div class="block-diagram">
+      <svg viewBox="0 0 700 400" xmlns="http://www.w3.org/2000/svg" font-family="DM Mono, monospace">
+        <defs>
+          <marker id="arrow-fir" viewBox="0 0 10 10" refX="8" refY="5"
+                  markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#6a6862"/>
+          </marker>
+        </defs>
+
+        <!-- ===== TOP ROW: x[n] → tap → ... → ⊕ → [1/N] → y[n] =====
+             Same shape as the two-pole IIR's top bus, with one structural
+             change: the tap dot that feeds the delay chain sits BEFORE the
+             summer (on the input side), not after it (which would be the
+             feedback case). The tap position is the only thing that
+             distinguishes feedforward (FIR) from feedback (IIR) at this
+             level of the diagram. -->
+
+        <!-- x[n] label -->
+        <text x="35" y="76" text-anchor="middle" font-size="14" fill="#1a1a17">x[n]</text>
+
+        <!-- x[n] → tap (this is the h₀ path: x[n] flows directly to summer
+             along the top bus, with no delay) -->
+        <line x1="60" y1="70" x2="178" y2="70"
+              stroke="#6a6862" stroke-width="1.5"
+              marker-end="url(#arrow-fir)"/>
+
+        <!-- tap from input line — same role as the IIR's tap on the output
+             line, but here it's on the INPUT side of the summer so the
+             delay chain receives x[n], not y[n]. -->
+        <circle cx="190" cy="70" r="3.5" fill="#6a6862"/>
+
+        <!-- tap → summer (top bus continues right, carrying h₀'s direct
+             contribution into the summer's west side) -->
+        <line x1="190" y1="70" x2="442" y2="70"
+              stroke="#6a6862" stroke-width="1.5"
+              marker-end="url(#arrow-fir)"/>
+
+        <!-- summer -->
+        <circle cx="460" cy="70" r="18"
+                fill="white" stroke="#1a1a17" stroke-width="1.5"/>
+        <text x="460" y="77" text-anchor="middle" font-size="20"
+              fill="#1a1a17" font-weight="400">±</text>
+
+        <!-- summer → 1/N -->
+        <line x1="478" y1="70" x2="498" y2="70"
+              stroke="#6a6862" stroke-width="1.5"
+              marker-end="url(#arrow-fir)"/>
+
+        <!-- 1/N multiplier (right-facing triangle), in the same role and
+             visual style as the g multiplier in the two-pole IIR. -->
+        <path d="M 500 55 L 500 85 L 535 70 z"
+              fill="white" stroke="#1a1a17" stroke-width="1.5"
+              stroke-linejoin="round"/>
+        <text x="517" y="103" text-anchor="middle" font-size="13"
+              fill="#b8693a" font-weight="500">1/N</text>
+
+        <!-- 1/N → y[n] -->
+        <line x1="537" y1="70" x2="595" y2="70"
+              stroke="#6a6862" stroke-width="1.5"
+              marker-end="url(#arrow-fir)"/>
+
+        <text x="618" y="76" text-anchor="middle" font-size="14" fill="#1a1a17">y[n]</text>
+
+        <!-- ===== DELAY CHAIN (left side, vertical, x=190) =====
+             Same vertical-column structure as the IIR's delay chain (which
+             sits at x=510 on the right). Here it sits on the LEFT side of
+             the summer instead, dropping down from the input tap point.
+             Each tap captures a delayed version of x[n]:
+             x[n−1] after one delay, x[n−2] after two, ..., x[n−N+1] at the
+             bottom of the chain. -->
+
+        <!-- ± sign label for tap 0 (h₀, on top bus); shows in differentiator
+             mode only -->
+        <text id="sign-0" x="190" y="55" text-anchor="middle" font-size="11"
+              fill="#b8693a" font-weight="500"></text>
+
+        <!-- drop from input tap to delay 1 -->
+        <line x1="190" y1="70" x2="190" y2="140"
+              stroke="#6a6862" stroke-width="1.5"/>
+
+        <!-- delay 1 box -->
+        <rect x="160" y="140" width="60" height="30"
+              fill="white" stroke="#1a1a17" stroke-width="1.5"/>
+        <text x="190" y="160" text-anchor="middle" font-size="14"
+              fill="#1a1a17">z⁻¹</text>
+
+        <!-- between delay 1 and delay 2 (this segment carries x[n−1]) -->
+        <line x1="190" y1="170" x2="190" y2="235"
+              stroke="#6a6862" stroke-width="1.5"/>
+
+        <!-- tap on x[n−1] line (h₁) -->
+        <circle cx="190" cy="200" r="3.5" fill="#6a6862"/>
+        <text x="210" y="192" text-anchor="start" font-size="11"
+              fill="#6a6862">x[n−1]</text>
+        <text id="sign-1" x="210" y="216" text-anchor="start" font-size="11"
+              fill="#b8693a" font-weight="500"></text>
+
+        <!-- delay 2 box -->
+        <rect x="160" y="235" width="60" height="30"
+              fill="white" stroke="#1a1a17" stroke-width="1.5"/>
+        <text x="190" y="255" text-anchor="middle" font-size="14"
+              fill="#1a1a17">z⁻¹</text>
+
+        <!-- after delay 2 (carries x[n−2]) -->
+        <line x1="190" y1="265" x2="190" y2="305"
+              stroke="#6a6862" stroke-width="1.5"/>
+
+        <!-- tap on x[n−2] line (h₂) -->
+        <circle cx="190" cy="305" r="3.5" fill="#6a6862"/>
+        <text x="210" y="297" text-anchor="start" font-size="11"
+              fill="#6a6862">x[n−2]</text>
+        <text id="sign-2" x="210" y="321" text-anchor="start" font-size="11"
+              fill="#b8693a" font-weight="500"></text>
+
+        <!-- vertical ellipsis along the delay column -->
+        <line x1="190" y1="305" x2="190" y2="320"
+              stroke="#6a6862" stroke-width="1.5"/>
+        <text x="190" y="343" text-anchor="middle" font-size="18"
+              fill="#a8a59f" letter-spacing="2">⋮</text>
+        <line x1="190" y1="350" x2="190" y2="370"
+              stroke="#6a6862" stroke-width="1.5"/>
+
+        <!-- tap for the final delayed sample x[n−N+1] (h_{N−1}) -->
+        <circle cx="190" cy="370" r="3.5" fill="#6a6862"/>
+        <text x="210" y="362" text-anchor="start" font-size="11"
+              fill="#6a6862">x[n−N+1]</text>
+        <text id="sign-last" x="210" y="386" text-anchor="start" font-size="11"
+              fill="#b8693a" font-weight="500"></text>
+
+        <!-- ===== TAP RISES INTO SUMMER =====
+             Each delay tap on the left feeds a bare line (no multiplier —
+             the only multiplier is 1/N at the end) that routes up into the
+             summer. We use distinct entry points around the summer so the
+             paths don't overlap visually:
+               h₁ → enters summer's SOUTH at (460, 88)
+               h₂ → routes up via column x=350 → enters summer's WEST below
+                    center at (442, 80)
+               h_{N−1} → routes up via column x=290 → enters summer's
+                    WEST above center at (442, 58) -->
+
+        <!-- h₁ path: x[n−1] tap → RIGHT → UP into summer's south -->
+        <line x1="190" y1="200" x2="460" y2="200"
+              stroke="#6a6862" stroke-width="1.5"/>
+        <line x1="460" y1="200" x2="460" y2="91"
+              stroke="#6a6862" stroke-width="1.5"
+              marker-end="url(#arrow-fir)"/>
+
+        <!-- h₂ path: x[n−2] tap → RIGHT to column x=350 → UP → RIGHT into
+             summer's west (slightly below center) -->
+        <line x1="190" y1="305" x2="350" y2="305"
+              stroke="#6a6862" stroke-width="1.5"/>
+        <line x1="350" y1="305" x2="350" y2="80"
+              stroke="#6a6862" stroke-width="1.5"/>
+        <line x1="350" y1="80" x2="442" y2="80"
+              stroke="#6a6862" stroke-width="1.5"
+              marker-end="url(#arrow-fir)"/>
+
+        <!-- h_{N-1} path: x[n−N+1] tap → RIGHT to column x=290 → UP all the
+             way to y=60 → RIGHT into summer's west (slightly above center) -->
+        <line x1="190" y1="370" x2="290" y2="370"
+              stroke="#6a6862" stroke-width="1.5"/>
+        <line x1="290" y1="370" x2="290" y2="60"
+              stroke="#6a6862" stroke-width="1.5"/>
+        <line x1="290" y1="60" x2="442" y2="60"
+              stroke="#6a6862" stroke-width="1.5"
+              marker-end="url(#arrow-fir)"/>
+
+      </svg>
+      <div class="block-diagram-legend">
+        ▷ multiplier · ± summer (signs alternate in differentiator mode) · z⁻¹ one-sample delay · ● tap / junction
+      </div>
+    </div>
+  </header>
+
+  <!-- TERMINOLOGY -->
+  <section>
+    <h2>terminology</h2>
+    <div class="terminology">
+      <p class="lead">An FIR filter is defined entirely by its list of coefficients. There is no feedback, so everything the filter can do is visible right there in the tap values.</p>
+
+      <div class="term">
+        <div class="term-name"><span class="symbol">h[k]</span> · taps (coefficients)</div>
+        <p class="term-def">The numbers that weight each delayed input sample. The whole filter is <em>y[n] = h[0]·x[n] + h[1]·x[n−1] + ... + h[N−1]·x[n−N+1]</em>. For the two filters here, every tap has magnitude <em>1/N</em>; only the signs change between modes. Those two sign patterns are the two modes you can toggle:</p>
+        <div class="term-sub">
+          <div class="term-sub-name">moving average mode</div>
+          <p class="term-sub-def">All coefficients are <em>+1/N</em>. Averaging consecutive samples smooths out fast wiggles, so this mode acts as a lowpass filter. The N-tap moving average is the single most common FIR design in all of audio DSP.</p>
+        </div>
+        <div class="term-sub">
+          <div class="term-sub-name">differentiator mode</div>
+          <p class="term-sub-def">Coefficients alternate sign: <em>+1/N, −1/N, +1/N, −1/N, ...</em>. At N=2 this is exactly the first-difference approximation of a derivative, <em>y[n] = (x[n] − x[n−1])/2</em>. For larger N it becomes a highpass comb filter, the mirror image of the moving average: kills DC, peaks at Nyquist. The N slider steps in 2s in this mode, because the DC null is only clean for even tap counts (with odd N the unbalanced + and − coefficients leave 1/N of DC leaking through).</p>
+        </div>
+      </div>
+
+      <div class="term">
+        <div class="term-name"><span class="symbol">N</span> · number of taps</div>
+        <p class="term-def">How many recent input samples are combined. Doubling N roughly doubles the sharpness of the filter's rolloff and roughly doubles the delay before output settles. For an FIR structure, N equals the number of coefficients, and N−1 equals the number of <em>z⁻¹</em> delay elements in the tapped delay line.</p>
+      </div>
+
+      <div class="term">
+        <div class="term-name"><span class="symbol">FIR</span> · finite impulse response</div>
+        <p class="term-def">With no feedback loop, the impulse response is exactly the coefficient list and nothing more. Hit the filter with a single sample and the output is h[0], h[1], h[2], ..., h[N−1], then silence forever. This "finite" property is what distinguishes FIR from IIR, and it guarantees the filter is always stable.</p>
+      </div>
+
+      <div class="term">
+        <div class="term-name">zeros</div>
+        <p class="term-def">Points on the z-plane where the filter's output drops to exactly zero. For both filters here, the zeros sit on the unit circle at equally-spaced angles (one zero every <em>2π/N</em>), which means the filter completely nulls those frequencies. As N grows, the zeros crowd closer together and the filter gets sharper.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- CONTROLS -->
+  <section>
+    <h2>parameters</h2>
+    <div class="controls">
+      <div class="slider-row">
+        <label>N (taps)</label>
+        <div>
+          <input type="range" id="n-slider" min="2" max="32" step="1" value="8">
+          <div class="desc">number of coefficients (2 = simplest, 32 = sharpest)</div>
+        </div>
+        <div class="value" id="n-value">8</div>
+      </div>
+      <div class="slider-row">
+        <label>mode</label>
+        <div>
+          <div class="mode-toggle" id="mode-toggle">
+            <button class="active" data-mode="average">moving average</button>
+            <button data-mode="differentiator">differentiator</button>
+          </div>
+          <div class="desc">all + coefficients (LPF) or alternating +/− (HPF comb)</div>
+        </div>
+        <div class="value" id="mode-value">average</div>
+      </div>
+
+      <!-- LIVE EQUATION · shows the current coefficients as a sum of taps,
+           divided by N. In moving-average mode every tap is added (+); in
+           differentiator mode signs alternate (+, −, +, −, …). At small N
+           the full sum is shown; at N > 4 the expression is truncated with
+           an ellipsis, but the last term is always kept so the sign of the
+           final tap is visible (which depends on N's parity in
+           differentiator mode). -->
+      <div class="live-equation">
+        <div class="live-equation-label">live equation · current coefficients</div>
+        <div class="live-equation-body" id="live-equation-body">…</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- LISTEN -->
+  <section>
+    <h2>listen</h2>
+    <div class="audio">
+      <button class="play-btn" id="play-btn">▶ play</button>
+      <div class="source-label">source · white noise</div>
+      <div class="vol-control">
+        <label>vol</label>
+        <input type="range" id="vol-slider" min="0" max="1" step="0.01" value="0.3">
+      </div>
+    </div>
+    <div class="viz-caption" id="audio-rate">audio · not yet started · visualizations use SR = 48000 Hz</div>
+  </section>
+
+  <!-- FREQUENCY RESPONSE -->
+  <section>
+    <h2>frequency response</h2>
+    <div class="viz-card">
+      <canvas id="freq" width="1000" height="400"></canvas>
+      <div class="viz-caption">
+        Moving average = lowpass; differentiator = highpass comb. The dashed pink lines mark the filter's zeros (frequencies where the response drops to −∞ dB). Zeros are spaced SR/N apart on the unit circle. As N grows, zeros crowd together and the filter gets sharper.
+      </div>
+    </div>
+  </section>
+
+  <!-- STATUS -->
+  <section>
+    <h2>what's happening</h2>
+    <div class="status" id="status-box">
+      <p class="status-text" id="status-text">…</p>
+      <div class="metrics">
+        <div class="metric">
+          <div class="metric-label">filter type</div>
+          <div class="metric-value" id="m-type">…</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">N (taps)</div>
+          <div class="metric-value" id="m-n">…</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">zero spacing</div>
+          <div class="metric-value" id="m-spacing">…</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">group delay (linear phase)</div>
+          <div class="metric-value" id="m-gd">…</div>
+        </div>
+      </div>
+      <div class="calc-block">
+        <div class="calc-label">how the coefficients and zeros are computed</div>
+        <div class="calc-symbolic">
+          <span class="eq-line">moving average:   h[k] = 1/N                 for k = 0, 1, ..., N−1</span>
+          <span class="eq-line">differentiator:   h[k] = (−1)ᵏ · (1/N)      (sign alternates)</span>
+          <span class="eq-line">zero frequencies: fₖ = k · SR/N              on the unit circle</span>
+          <span class="eq-line">group delay:      τ  = (N−1)/2 samples       (linear phase)</span>
+        </div>
+        <div class="calc-legend">
+          <div class="legend-row"><span class="legend-sym">h[k]</span><span class="legend-def">k-th filter coefficient — the weight applied to the sample <em>k</em> steps in the past. For this tool every |h[k]| = 1/N; only the sign pattern changes.</span></div>
+          <div class="legend-row"><span class="legend-sym">N</span><span class="legend-def">number of taps — how many past samples are combined (from the slider above)</span></div>
+          <div class="legend-row"><span class="legend-sym">k</span><span class="legend-def">tap index, ranging from 0 (present sample) to N−1 (oldest sample in the delay line)</span></div>
+          <div class="legend-row"><span class="legend-sym">f<sub>k</sub></span><span class="legend-def">k-th zero frequency — where the filter's response drops to −∞ dB</span></div>
+          <div class="legend-row"><span class="legend-sym">τ</span><span class="legend-def">group delay — the number of samples every frequency component is delayed by (same for all frequencies → linear phase)</span></div>
+          <div class="legend-row"><span class="legend-sym">Σ</span><span class="legend-def">summation — add up the values of the expression for <em>k</em> = 0 through <em>N</em>−1</span></div>
+          <div class="legend-row"><span class="legend-sym">SR</span><span class="legend-def">sample rate (48000 Hz here)</span></div>
+        </div>
+        <div class="calc-sub" id="calc-sub">…</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Z-PLANE + IMPULSE -->
+  <section>
+    <h2>under the hood</h2>
+    <div class="viz-twoCol">
+
+      <div class="viz-card">
+        <h3>z-plane · the zeros</h3>
+        <div class="viz-explainer">
+          <p><strong>What is the z-plane?</strong> A 2D map of complex numbers used to visualize what a filter does. The horizontal axis (Re) is the real part of z; the vertical axis (Im) is the imaginary part. The dashed circle is the unit circle, where |z| = 1, and it represents every frequency from DC (at z = +1) around through Nyquist (at z = −1) and back, with frequency tracked by angle. Filters are characterized by poles (where the transfer function blows up) and zeros (where it drops to zero); their positions on this plane encode the filter's entire behavior.</p>
+          <p><strong>For this FIR filter:</strong> there are no interesting poles (just a trivial one at z = 0), only zeros. Moving average and differentiator both place N−1 zeros on the unit circle at angles spaced 2π/N apart, evenly distributed, but each mode leaves one "slot" empty. Moving average leaves no zero at z = +1 (so DC passes through); differentiator with even N leaves no zero at z = −1 (so Nyquist passes through). Same zero set, different gap, and that single empty slot determines the filter's entire character.</p>
+        </div>
+        <canvas id="zplane" width="500" height="500"></canvas>
+        <div class="viz-legend">
+          Re = real axis · Im = imaginary axis · dashed circle = unit circle (|z| = 1) · pink ring = zero (N−1 total, on the unit circle) · DC = 0 Hz · Nyq = Nyquist (SR/2) · no poles drawn because the FIR has only the trivial pole at z = 0
+        </div>
+      </div>
+
+      <div class="viz-card">
+        <h3>impulse response = the coefficients</h3>
+        <div class="viz-explainer">
+          <p><strong>What is an impulse response?</strong> The output of the filter when the input is a single sample of value 1 (a click) followed by silence. Time runs left to right along the horizontal axis (n is the sample number); the vertical axis shows the output value at each sample. The impulse response is a complete fingerprint of the filter: knowing it tells you everything the filter can do to any other signal.</p>
+          <p><strong>For this FIR filter:</strong> the impulse response IS the coefficient list, and nothing more. Send a click in and the output is h[0], h[1], h[2], ..., h[N−1], then dead silence. This is exactly what the "finite" in FIR means: unlike IIR filters whose feedback makes impulse responses ring forever, the FIR output is guaranteed to be zero after N samples.</p>
+        </div>
+        <canvas id="impulse" width="500" height="500"></canvas>
+        <div class="viz-legend">
+          n = sample number (discrete time axis) · teal stems = h[k] values (output sample = coefficient) · moving average: N identical positive stems · differentiator: N stems alternating sign · after sample N−1: output is exactly zero forever
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- IN MORE DEPTH + TRY THIS -->
+  <section>
+    <div class="notes">
+      <h2>in more depth</h2>
+      <ul>
+        <li>The frequency response for an N-tap moving average is the Dirichlet kernel: <code>|H(e^jω)| = (1/N) · |sin(Nω/2) / sin(ω/2)|</code>. This gives the characteristic sinc-like shape with a main lobe near DC and a sequence of side lobes. Nulls occur exactly at <code>ω = 2πk/N</code>.</li>
+        <li>The differentiator response is the exact mirror of the moving average around Nyquist/2: <code>|H_diff(e^jω)| = |H_avg(e^j(π−ω))|</code>. Whatever the moving average does near DC, the differentiator does near Nyquist.</li>
+        <li>Because coefficients are symmetric (for moving average) or sign-antisymmetric (for differentiator), both filters have <em>linear phase</em>: every frequency is delayed by the same number of samples. That delay is <code>τ = (N−1)/2</code> samples, and it's called the <em>group delay</em>. This is a major reason FIR filters are preferred for applications where waveform shape matters (phase-sensitive audio, image processing).</li>
+        <li>Rolloff past the first zero of the moving average is roughly <code>−6 dB/octave</code> initially, softer than a first-order IIR lowpass with the same cutoff. Moving averages trade sharpness for linear phase and trivial stability.</li>
+        <li>The moving average is not the best FIR lowpass you can design. Its side lobes are only about 13 dB below the main lobe, and the transition band is wide. Windowed-sinc designs (Hamming, Blackman) and optimal designs (Parks-McClellan / remez) shape the coefficients more carefully to trade transition-band width for deeper stopband attenuation.</li>
+        <li>Unlike IIR filters, FIR filters are <em>always stable</em>: no feedback means no unbounded growth. The tradeoff is cost: to match an IIR's sharpness, an FIR typically needs many more taps (and therefore more delay and more multiplications per sample).</li>
+        <li>For efficient implementation of symmetric FIRs, you can exploit symmetry to roughly halve the number of multiplies: h[k] = h[N−1−k] means you can add the paired input samples first, then multiply once.</li>
+      </ul>
+
+      <h2>try this</h2>
+      <ol>
+        <li>Set mode = moving average. Sweep N from 2 to 32 and watch the impulse response: same stem height (1/N), more stems, wider "box". Notice how the output lingers longer as N grows; that's the filter's memory.</li>
+        <li>Start playback with mode = moving average, then sweep N from 2 to 32. At N = 2 the noise still sounds broadband; by N = 16 it's noticeably duller; at N = 32 it's quite muffled, the filter is averaging out all the fast wiggles. Classic low-pass smoothing, by ear.</li>
+        <li>Set mode = differentiator, N = 2. At N = 2 you are hearing a literal first-difference filter: its gain rises linearly with frequency, so the noise comes out bright, thin, and hiss-forward. Now raise N to 4, 8, 16, 32. As N grows the filter stops behaving like a simple derivative and starts behaving like a <em>comb</em>: the nulls crowd together and the surviving content concentrates into resonant peaks near Nyquist. The spectral character shifts from "airy highpass" to "metallic, comb-like" without ever touching a bass knob.</li>
+        <li>Toggle between moving average and differentiator at N = 16. Exact same 16-tap structure, exact same magnitudes, just sign flips. The audio swaps LPF for HPF. This is the sign-inversion duality that also showed up in the one-pole's +r versus −r.</li>
+        <li>Watch the z-plane while sweeping N. For moving average, zeros march evenly around the unit circle with a gap at z=1 (DC escapes). For differentiator, the gap moves to z=−1 (Nyquist escapes). Same zero set, different slot left empty.</li>
+        <li>With mode = moving average and N = 8, note the group delay reading in the metrics: (8−1)/2 = 3.5 samples. This is what linear phase means: every frequency in your input shows up 3.5 samples later, delayed identically, with no frequency-dependent distortion.</li>
+      </ol>
+    </div>
+  </section>
+
+  <footer>
+    <div class="footer-label">sources</div>
+    <div class="footer-item">Cook, P. (2002). <em>Real Sound Synthesis for Interactive Applications.</em> Ch. 3</div>
+    <div class="footer-item">Roads, C. (2023). <em>The Computer Music Tutorial</em> (2nd ed.). Ch. 28</div>
+    <div class="footer-affiliation">CSU East Bay Music Composition Department</div>
+    <div class="footer-version">version 1.6 · Spring 2026 · Inés Thiebaut</div>
+  </footer>
+
+</div>
+
+<script>
+// ============================================================
+// FIR FILTER · pedagogical tool
+// y[n] = Σ h[k] · x[n−k]   for k = 0, ..., N−1
+// equivalently: y[n] = (x[n] ± x[n−1] ± x[n−2] ± ... ± x[n−N+1]) / N
+// where signs are all + (moving average) or alternate (differentiator).
+// moving average:   h[k] = 1/N
+// differentiator:   h[k] = (−1)^k · (1/N)
+// ============================================================
+
+const SR = 48000;
+const NYQUIST = SR / 2;
+
+const C = {
+  text:    '#1a1a17',
+  muted:   '#6a6862',
+  dim:     '#a8a59f',
+  border:  '#e2dfd6',
+  borderS: '#c9c5b8',
+  panel2:  '#f4f2ec',
+  accent:  '#b8693a',
+  accentS: 'rgba(184,105,58,0.18)',
+  pole:    '#c73862',
+  poleS:   'rgba(199,56,98,0.15)',
+  curve:   '#2c7d6f',
+  warn:    '#c92e1f',
+};
+
+// ---- state ----
+let N = 8;
+let mode = 'average'; // 'average' or 'differentiator'
+let coeffs = [];
+
+function buildCoeffs() {
+  coeffs = new Array(N);
+  for (let k = 0; k < N; k++) {
+    const sign = (mode === 'average') ? 1 : (k % 2 === 0 ? 1 : -1);
+    coeffs[k] = sign / N;
+  }
+}
+buildCoeffs();
+
+// ---- audio ----
+let isPlaying = false;
+let audioCtx = null;
+let filterNode = null;
+let sourceNode = null;
+let gainNode = null;  // applies user volume only (the 1/N is baked into coeffs)
+let volume = 0.3;
+
+// ---- DOM ----
+const nSlider = document.getElementById('n-slider');
+const nValue = document.getElementById('n-value');
+const modeValue = document.getElementById('mode-value');
+const modeToggle = document.getElementById('mode-toggle');
+const eqBody = document.getElementById('live-equation-body');
+const statusBox = document.getElementById('status-box');
+const statusText = document.getElementById('status-text');
+const mType = document.getElementById('m-type');
+const mN = document.getElementById('m-n');
+const mSpacing = document.getElementById('m-spacing');
+const mGD = document.getElementById('m-gd');
+const calcSub = document.getElementById('calc-sub');
+const playBtn = document.getElementById('play-btn');
+const volSlider = document.getElementById('vol-slider');
+
+// ---- canvas setup ----
+function setupCanvas(id) {
+  const canvas = document.getElementById(id);
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  ctx.scale(dpr, dpr);
+  return { ctx, w: rect.width, h: rect.height };
+}
+
+let zp, ip, fr;
+function initCanvases() {
+  zp = setupCanvas('zplane');
+  ip = setupCanvas('impulse');
+  fr = setupCanvas('freq');
+}
+
+// ============================================================
+// LIVE EQUATION
+// ============================================================
+// Writes the new sum-divided-by-N form into the live equation:
+//   moving average:   y[n] = (x[n] + x[n−1] + x[n−2] + ... + x[n−N+1]) / N
+//   differentiator:   y[n] = (x[n] − x[n−1] + x[n−2] − ... ± x[n−N+1]) / N
+// At small N (≤ 4) every term is shown; at larger N the middle is replaced
+// by an ellipsis but the final term is kept so the final sign — which
+// depends on N's parity in differentiator mode — is always visible.
+function updateLiveEquation() {
+  // Render one tap term. `leading` means it's the first term (no operator
+  // in front; it's always +x[n] in both modes since h[0] is always +1/N).
+  // For non-leading terms the operator is the SIGN of that tap (which is
+  // + in average mode and alternates in differentiator mode).
+  const renderTerm = (k, leading) => {
+    const xSub = k === 0 ? 'x[n]' : `x[n−${k}]`;
+    if (leading) {
+      return `<span class="var">${xSub}</span>`;
+    }
+    const sign = coeffs[k] < 0 ? '−' : '+';
+    return ` <span class="op">${sign}</span> <span class="var">${xSub}</span>`;
+  };
+
+  let inner = '';
+  if (N <= 4) {
+    for (let k = 0; k < N; k++) {
+      inner += renderTerm(k, k === 0);
+    }
+  } else {
+    inner += renderTerm(0, true);
+    inner += renderTerm(1, false);
+    inner += renderTerm(2, false);
+    inner += ` <span class="op">+</span> <span style="color: var(--dim);">...</span>`;
+    inner += renderTerm(N - 1, false);
+  }
+
+  eqBody.innerHTML =
+    `<span class="var">y</span>[n] <span class="op">=</span> ` +
+    `<span class="op">(</span>${inner}<span class="op">)</span> ` +
+    `<span class="op">·</span> <span class="num">1/${N}</span>`;
+}
+
+// ============================================================
+// ZEROS · closed-form for equal-magnitude FIRs
+// ============================================================
+// moving average (all +):      zeros at exp(i·2π·k/N),  k = 1, ..., N−1
+// differentiator (alternating):
+//   even N: zeros at exp(i·2π·k/N),  k = 0, ..., N−1, k ≠ N/2
+//   odd N:  zeros at exp(i·π·(2k+1)/N), k = 0, ..., N−1, k ≠ (N−1)/2
+function computeZeros() {
+  const zeros = []; // each entry {angle, freq} with freq in Hz
+  if (mode === 'average') {
+    for (let k = 1; k < N; k++) {
+      const ang = 2 * Math.PI * k / N;
+      zeros.push({ angle: ang, freq: (ang / (2 * Math.PI)) * SR });
+    }
+  } else {
+    if (N % 2 === 0) {
+      const skip = N / 2;
+      for (let k = 0; k < N; k++) {
+        if (k === skip) continue;
+        const ang = 2 * Math.PI * k / N;
+        zeros.push({ angle: ang, freq: (ang / (2 * Math.PI)) * SR });
+      }
+    } else {
+      const skip = (N - 1) / 2;
+      for (let k = 0; k < N; k++) {
+        if (k === skip) continue;
+        const ang = Math.PI * (2 * k + 1) / N;
+        zeros.push({ angle: ang, freq: (ang / (2 * Math.PI)) * SR });
+      }
+    }
+  }
+  return zeros;
+}
+
+// first zero (lowest frequency in Hz; may be 0 for differentiator-even)
+function firstZeroHz() {
+  if (mode === 'average') return SR / N;
+  if (N % 2 === 0) return 0; // zero at DC for even-N differentiator
+  return (Math.PI / N) * SR / (2 * Math.PI); // = SR/(2N)
+}
+
+// Evaluate |H(e^jω)| at a given ω (ω in radians/sample)
+function magH(omega) {
+  let re = 0, im = 0;
+  for (let k = 0; k < N; k++) {
+    re += coeffs[k] * Math.cos(omega * k);
+    im -= coeffs[k] * Math.sin(omega * k);
+  }
+  return Math.sqrt(re * re + im * im);
+}
+
+// DC gain = Σ h[k]
+function dcGain() {
+  let s = 0;
+  for (let k = 0; k < N; k++) s += coeffs[k];
+  return s;
+}
+
+// Nyquist gain = Σ h[k]·(−1)^k
+function nyquistGain() {
+  let s = 0;
+  for (let k = 0; k < N; k++) s += coeffs[k] * ((k % 2 === 0) ? 1 : -1);
+  return s;
+}
+
+// ============================================================
+// VIZ 1 · Z-PLANE (zeros only)
+// ============================================================
+function drawZPlane() {
+  const { ctx, w, h } = zp;
+  ctx.clearRect(0, 0, w, h);
+
+  const cx = w / 2, cy = h / 2;
+  const radPx = Math.min(w, h) * 0.38;
+
+  // axes
+  ctx.strokeStyle = C.border;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(0, cy); ctx.lineTo(w, cy);
+  ctx.moveTo(cx, 0); ctx.lineTo(cx, h);
+  ctx.stroke();
+
+  // unit circle (dashed)
+  ctx.strokeStyle = C.borderS;
+  ctx.setLineDash([4, 4]);
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.arc(cx, cy, radPx, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.lineWidth = 1;
+
+  // axis labels
+  ctx.fillStyle = C.muted;
+  ctx.font = "11px 'DM Mono', monospace";
+  ctx.textAlign = 'center';
+  ctx.fillText('Re', w - 14, cy - 6);
+  ctx.fillText('Im', cx + 14, 12);
+  ctx.textAlign = 'left';
+  ctx.fillText('+1 (DC)', cx + radPx + 8, cy + 18);
+  ctx.textAlign = 'right';
+  ctx.fillText('−1 (Nyq)', cx - radPx - 8, cy + 18);
+  ctx.textAlign = 'center';
+
+  // info label
+  ctx.fillStyle = C.pole;
+  ctx.font = "12px 'DM Mono', monospace";
+  ctx.textAlign = 'left';
+  ctx.fillText(`${mode === 'average' ? 'moving average' : 'differentiator'} · N = ${N}`, 16, 22);
+  ctx.fillText(`${N - 1} zero${N - 1 === 1 ? '' : 's'} on the unit circle`, 16, 38);
+
+  // draw zeros as pink open circles (FIR zeros; distinguish from IIR pole X's)
+  const zeros = computeZeros();
+  for (const z of zeros) {
+    const x = cx + Math.cos(z.angle) * radPx;
+    const y = cy - Math.sin(z.angle) * radPx;
+
+    // outer soft halo
+    ctx.fillStyle = C.poleS;
+    ctx.beginPath();
+    ctx.arc(x, y, 11, 0, Math.PI * 2);
+    ctx.fill();
+
+    // open ring (zero = circle, as opposed to pole X)
+    ctx.strokeStyle = C.pole;
+    ctx.lineWidth = 2;
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(x, y, 5.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+  }
+}
+
+// ============================================================
+// VIZ 2 · IMPULSE RESPONSE = the coefficients
+// ============================================================
+function drawImpulse() {
+  const { ctx, w, h } = ip;
+  ctx.clearRect(0, 0, w, h);
+
+  const padL = 36, padR = 16, padT = 16, padB = 28;
+  const plotW = w - padL - padR;
+  const plotH = h - padT - padB;
+  const cy = padT + plotH / 2;
+
+  // show N coefficient samples plus ~6 trailing zeros, all of which are exactly zero
+  const tailZeros = 6;
+  const shown = N + tailZeros;
+
+  // Y scale based on max coefficient magnitude (× g)
+  let maxAbs = 0;
+  for (const c of coeffs) if (Math.abs(c) > maxAbs) maxAbs = Math.abs(c);
+  if (maxAbs < 0.001) maxAbs = 0.001;
+  const yScale = (plotH / 2) / (maxAbs * 1.2);
+
+  // tick step for 4-10 visible labels; for small shown, tick every 2
+  const nStep = (shown <= 10) ? 1 : (shown <= 20) ? 2 : (shown <= 40) ? 5 : 10;
+
+  // --- grid (behind everything) ---
+  ctx.strokeStyle = C.border;
+  ctx.lineWidth = 1;
+  for (let n = 0; n <= shown; n += nStep) {
+    if (n >= shown) break;
+    const x = padL + (n / Math.max(1, shown - 1)) * plotW;
+    ctx.beginPath();
+    ctx.moveTo(x, padT);
+    ctx.lineTo(x, padT + plotH);
+    ctx.stroke();
+  }
+  for (const frac of [1, 0.5, -0.5, -1]) {
+    const y = cy - frac * maxAbs * yScale;
+    if (y < padT || y > padT + plotH) continue;
+    ctx.beginPath();
+    ctx.moveTo(padL, y); ctx.lineTo(w - padR, y);
+    ctx.stroke();
+  }
+
+  // --- axes (slightly stronger) ---
+  ctx.strokeStyle = C.borderS;
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.moveTo(padL, cy); ctx.lineTo(w - padR, cy);
+  ctx.moveTo(padL, padT); ctx.lineTo(padL, padT + plotH);
+  ctx.stroke();
+
+  // --- y-axis labels ---
+  ctx.fillStyle = C.muted;
+  ctx.font = "10px 'DM Mono', monospace";
+  ctx.textAlign = 'right';
+  ctx.fillText('+', padL - 4, padT + 8);
+  ctx.fillText('0', padL - 4, cy + 4);
+  ctx.fillText('−', padL - 4, padT + plotH);
+
+  // --- x-axis n-value labels ---
+  ctx.textAlign = 'center';
+  for (let n = 0; n <= shown; n += nStep) {
+    if (n >= shown) break;
+    const x = padL + (n / Math.max(1, shown - 1)) * plotW;
+    ctx.fillText(n.toString(), x, h - 10);
+  }
+  ctx.textAlign = 'left';
+  ctx.fillStyle = C.dim;
+  ctx.fillText('n', w - padR + 2, h - 10);
+
+  // dashed vertical line at n = N (boundary of "finite" part)
+  const xN = padL + (N / (shown - 1)) * plotW;
+  ctx.strokeStyle = C.dim;
+  ctx.setLineDash([3, 4]);
+  ctx.beginPath();
+  ctx.moveTo(xN, padT);
+  ctx.lineTo(xN, padT + plotH);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = C.dim;
+  ctx.textAlign = 'left';
+  ctx.font = "10px 'DM Mono', monospace";
+  ctx.fillText('n = N → silent', xN + 4, padT + 10);
+
+  // stems
+  ctx.lineWidth = 1.6;
+  ctx.fillStyle = C.curve;
+  for (let n = 0; n < shown; n++) {
+    const val = (n < N) ? coeffs[n] : 0;
+    const x = padL + (n / (shown - 1)) * plotW;
+    const y = cy - val * yScale;
+
+    ctx.strokeStyle = (n < N) ? C.curve : C.dim;
+    ctx.beginPath();
+    ctx.moveTo(x, cy);
+    ctx.lineTo(x, y);
+    ctx.stroke();
+
+    if (n < N) {
+      ctx.fillStyle = C.curve;
+      ctx.beginPath();
+      ctx.arc(x, y, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+    } else {
+      // mark trailing zeros as open circles at the zero-line
+      ctx.strokeStyle = C.dim;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(x, cy, 1.5, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.lineWidth = 1.6;
+    }
+  }
+}
+
+// ============================================================
+// VIZ 3 · FREQUENCY RESPONSE
+// ============================================================
+function drawFrequency() {
+  const { ctx, w, h } = fr;
+  ctx.clearRect(0, 0, w, h);
+
+  const padL = 50, padR = 20, padT = 18, padB = 32;
+  const plotW = w - padL - padR;
+  const plotH = h - padT - padB;
+
+  const dbMax = 20;
+  const dbMin = -60;
+  const dbRange = dbMax - dbMin;
+
+  const fMin = Math.log10(20);
+  const fMax = Math.log10(NYQUIST);
+
+  // dB grid every 10 dB
+  ctx.lineWidth = 1;
+  ctx.font = "10px 'DM Mono', monospace";
+  for (let db = dbMax; db >= dbMin; db -= 10) {
+    const y = padT + ((dbMax - db) / dbRange) * plotH;
+    ctx.strokeStyle = C.border;
+    ctx.beginPath();
+    ctx.moveTo(padL, y); ctx.lineTo(w - padR, y);
+    ctx.stroke();
+    ctx.fillStyle = C.muted;
+    ctx.textAlign = 'right';
+    ctx.fillText(db + ' dB', padL - 6, y + 3);
+  }
+
+  // minor frequency grid, dense like a DAW EQ
+  const minorFreqs = [
+    20, 30, 40, 50, 60, 70, 80, 90,
+    100, 200, 300, 400, 500, 600, 700, 800, 900,
+    1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000,
+    10000, 20000
+  ];
+  ctx.strokeStyle = '#f0ede4';
+  ctx.lineWidth = 1;
+  for (const f of minorFreqs) {
+    const x = padL + ((Math.log10(f) - fMin) / (fMax - fMin)) * plotW;
+    ctx.beginPath();
+    ctx.moveTo(x, padT); ctx.lineTo(x, padT + plotH);
+    ctx.stroke();
+  }
+
+  // major frequency grid (labeled)
+  const majorFreqs = [20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000];
+  ctx.strokeStyle = C.border;
+  ctx.lineWidth = 1;
+  for (const f of majorFreqs) {
+    const x = padL + ((Math.log10(f) - fMin) / (fMax - fMin)) * plotW;
+    ctx.beginPath();
+    ctx.moveTo(x, padT); ctx.lineTo(x, padT + plotH);
+    ctx.stroke();
+    ctx.fillStyle = C.muted;
+    ctx.textAlign = 'center';
+    let lbl = f >= 1000 ? (f / 1000) + 'k' : f.toString();
+    ctx.fillText(lbl, x, h - 14);
+  }
+  ctx.textAlign = 'right';
+  ctx.fillStyle = C.dim;
+  ctx.fillText('Hz', w - padR - 4, h - 4);
+
+  // zero markers (pink vertical dashed lines at zero frequencies)
+  const zeros = computeZeros();
+  ctx.strokeStyle = C.pole;
+  ctx.globalAlpha = 0.45;
+  ctx.setLineDash([4, 4]);
+  for (const z of zeros) {
+    // only show zeros within audible range [20, NYQUIST]
+    if (z.freq < 20 || z.freq > NYQUIST) continue;
+    const fx = padL + ((Math.log10(z.freq) - fMin) / (fMax - fMin)) * plotW;
+    ctx.beginPath();
+    ctx.moveTo(fx, padT);
+    ctx.lineTo(fx, padT + plotH);
+    ctx.stroke();
+  }
+  ctx.setLineDash([]);
+  ctx.globalAlpha = 1;
+
+  // response curve
+  ctx.strokeStyle = C.curve;
+  ctx.lineWidth = 2.2;
+  ctx.beginPath();
+
+  // Build the frequency sample list:
+  //   (1) NPTS uniform samples in log space (the bulk of the curve).
+  //   (2) For each zero angle, the EXACT zero frequency plus a dense window
+  //       of samples in a tight neighborhood around it.
+  //
+  // Why: every FIR zero in this family sits on the unit circle, producing a
+  // true −∞ dB null that is infinitely thin in frequency. A uniform log-space
+  // grid almost never lands on the exact null angle, so the rendered curve
+  // shows whatever value the nearest grid sample happens to take — typically
+  // somewhere between −30 and −60 dB depending on how close the nearest sample
+  // got to the zero. This was the visual bug where some nulls bottomed out at
+  // the −60 dB floor and others stopped at −45 dB or shallower.
+  //
+  // The fix: explicitly include each zero's frequency in the sample list, so
+  // every null is guaranteed to clip to the −60 dB floor. The small dense
+  // window around each zero (±0.005 decades ≈ ±1.2%) ensures the curve's
+  // slope into and out of the null is rendered smoothly rather than as a
+  // single-pixel spike.
+  const NPTS = 700;
+  const logFreqs = [];
+  for (let i = 0; i <= NPTS; i++) {
+    logFreqs.push(fMin + (i / NPTS) * (fMax - fMin));
+  }
+  // Add a dense cluster around each zero that sits in the visible frequency band.
+  const denseWindow = 0.005;  // ± 0.005 decades ≈ ± 1.2%
+  const denseN = 20;
+  for (const z of zeros) {
+    if (z.freq < 20 || z.freq > NYQUIST) continue;
+    const zLog = Math.log10(z.freq);
+    if (zLog < fMin || zLog > fMax) continue;
+    // Always include the EXACT zero frequency so the null clips to the floor.
+    logFreqs.push(zLog);
+    // Plus a tight cluster around it for smooth slope rendering.
+    const dMin = Math.max(fMin, zLog - denseWindow);
+    const dMax = Math.min(fMax, zLog + denseWindow);
+    for (let i = 0; i <= denseN; i++) {
+      logFreqs.push(dMin + (i / denseN) * (dMax - dMin));
+    }
+  }
+  logFreqs.sort((a, b) => a - b);
+
+  for (let idx = 0; idx < logFreqs.length; idx++) {
+    const flogN = logFreqs[idx];
+    const f = Math.pow(10, flogN);
+    const omega = 2 * Math.PI * f / SR;
+    const mag = magH(omega);
+    const db = 20 * Math.log10(Math.max(1e-10, mag));
+    const dbClipped = Math.max(dbMin, Math.min(dbMax, db));
+    const x = padL + ((flogN - fMin) / (fMax - fMin)) * plotW;
+    const y = padT + ((dbMax - dbClipped) / dbRange) * plotH;
+    if (idx === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+}
+
+// ============================================================
+// LIVE STATUS
+// ============================================================
+function formatFreq(f) {
+  if (f <= 0) return 'DC (0 Hz)';
+  if (f < 1000) return f.toFixed(0) + ' Hz';
+  return (f / 1000).toFixed(2) + ' kHz';
+}
+
+function updateStatus() {
+  const isAvg = (mode === 'average');
+  const spacing = SR / N;
+  const dcG = dcGain();
+  const nyqG = nyquistGain();
+  const gd = (N - 1) / 2;
+
+  let text;
+  if (isAvg) {
+    if (N === 2) {
+      text = `N = 2 moving average: the gentlest possible lowpass. Each output is the mean of the current and previous sample. First null at Nyquist.`;
+    } else if (N <= 4) {
+      text = `N = ${N} moving average: mild lowpass smoothing. First null at ${formatFreq(spacing)}, ${N - 1} nulls evenly across the spectrum.`;
+    } else if (N <= 16) {
+      text = `N = ${N} moving average: moderate lowpass. First null at ${formatFreq(spacing)}. The longer the window, the more high-frequency content averages out.`;
+    } else {
+      text = `N = ${N} moving average: tight lowpass. First null at ${formatFreq(spacing)}. Output is strongly muffled; ${N - 1} equally-spaced nulls carve the spectrum.`;
+    }
+  } else {
+    if (N === 2) {
+      text = `N = 2 differentiator: the classic first-difference. Gain rises linearly with frequency (true differentiator behavior at low frequencies). Kills DC exactly.`;
+    } else if (N <= 4) {
+      text = `N = ${N} differentiator: highpass character, still close to a derivative at low freq. First null at DC${N % 2 === 0 ? '' : '-ish'}.`;
+    } else {
+      text = `N = ${N} differentiator: sharp highpass comb. Peaks near Nyquist, ${N - 1} nulls distributed across the spectrum. At larger N this stops resembling a derivative and becomes a comb filter.`;
+    }
+  }
+  statusText.textContent = text;
+
+  // metrics
+  mType.textContent = isAvg ? 'lowpass (MA)' : 'highpass (diff)';
+  mType.className = 'metric-value ok';
+
+  mN.textContent = N + ' tap' + (N === 1 ? '' : 's');
+
+  mSpacing.textContent = formatFreq(spacing);
+
+  mGD.innerHTML = gd + ' samples<br><span style="color: var(--muted); font-size: 12px;">(' + ((gd / SR) * 1000).toFixed(3) + ' ms)</span>';
+
+  // live substitution calc block
+  const samplePreview = (() => {
+    const n = Math.min(N, 4);
+    const parts = [];
+    for (let k = 0; k < n; k++) {
+      const s = coeffs[k] >= 0 ? '+' : '−';
+      parts.push(`${s}${Math.abs(coeffs[k]).toFixed(5)}`);
+    }
+    if (N > 4) parts.push('...');
+    return parts.join(', ');
+  })();
+
+  const firstZ = firstZeroHz();
+  const firstZStr = formatFreq(firstZ);
+  const spaceStr = formatFreq(spacing);
+
+  const calcHTML =
+    `<span class="eq-line">with N = <span class="num">${N}</span>, mode = <span class="num">${mode}</span>, SR = 48000</span>` +
+    `<span class="eq-line"> </span>` +
+    `<span class="eq-line">h[k] <span class="op">=</span> ${isAvg ? '1/' + N : '(−1)ᵏ / ' + N}     <span class="op">→</span>     h = [<span class="num">${samplePreview}</span>]</span>` +
+    `<span class="eq-line"> </span>` +
+    `<span class="eq-line">zero spacing <span class="op">=</span> SR / N <span class="op">=</span> 48000 / ${N} <span class="op">=</span> <span class="num">${spaceStr}</span></span>` +
+    `<span class="eq-line">first zero freq <span class="op">=</span> <span class="num">${firstZStr}</span>${firstZ === 0 ? '  (DC is a zero; output ignores DC entirely)' : ''}</span>` +
+    `<span class="eq-line"> </span>` +
+    `<span class="eq-line">group delay  <span class="op">=</span> (N−1)/2        <span class="op">=</span> (${N}−1)/2 <span class="op">=</span> <span class="num">${gd}</span> samples</span>` +
+    `<span class="eq-line"> </span>` +
+    `<span class="eq-line">DC gain      <span class="op">=</span> Σ h[k]           <span class="op">=</span> <span class="num">${dcG.toFixed(5)}</span></span>` +
+    `<span class="eq-line">Nyquist gain <span class="op">=</span> Σ (−1)ᵏ · h[k]   <span class="op">=</span> <span class="num">${nyqG.toFixed(5)}</span></span>`;
+  calcSub.innerHTML = calcHTML;
+}
+
+// ============================================================
+// AUDIO
+// ============================================================
+async function setupAudio() {
+  if (audioCtx) return;
+  // Request 48 kHz to match the SR constant used throughout the visualizations.
+  // Most browsers honor this on Mac/Windows/Linux. If the system can't oblige
+  // (rare), the AudioContext falls back to its default (typically 44.1 kHz on
+  // Mac, 48 kHz on Windows). We display the actual rate to the user below the
+  // audio controls so any mismatch with the visualization is transparent.
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 48000 });
+  updateAudioRateDisplay();
+}
+
+// Show the actual AudioContext sample rate beneath the audio controls. If it
+// matches our SR constant the visualization and the audio agree perfectly;
+// if not, the discrepancy is spelled out so students can reason about why
+// the audible zero positions might differ slightly from the plotted ones.
+function updateAudioRateDisplay() {
+  const el = document.getElementById('audio-rate');
+  if (!el) return;
+  if (!audioCtx) {
+    el.textContent = 'audio · not yet started · visualizations use SR = ' + SR + ' Hz';
+    return;
+  }
+  const actualSR = audioCtx.sampleRate;
+  if (actualSR === SR) {
+    el.textContent = 'audio sample rate · ' + actualSR + ' Hz · matches visualization';
+  } else {
+    el.textContent =
+      'audio sample rate · ' + actualSR + ' Hz · visualization assumes ' + SR + ' Hz · ' +
+      'the audible filter shape is correct, but zero frequencies will differ slightly from the plotted values';
+  }
+}
+
+function makeSourceNode() {
+  if (sourceNode) { try { sourceNode.stop(); } catch(e){} sourceNode.disconnect(); sourceNode = null; }
+
+  // White noise: a 2-second buffer of uniform random samples in [−1, 1],
+  // looped seamlessly. White noise has equal energy at all frequencies, so
+  // anything you hear in the output is the filter's transfer function in
+  // audible form -- making it the cleanest source for hearing what the
+  // filter does to the spectrum.
+  const bufSize = audioCtx.sampleRate * 2;
+  const buffer = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < bufSize; i++) data[i] = Math.random() * 2 - 1;
+  const node = audioCtx.createBufferSource();
+  node.buffer = buffer;
+  node.loop = true;
+  return node;
+}
+
+function makeFilterNode() {
+  // FIR via ConvolverNode: impulse response buffer = [h[0], h[1], ..., h[N−1]].
+  // Using ConvolverNode rather than IIRFilterNode because the Web Audio spec caps
+  // IIRFilterNode coefficient arrays at 20 elements, which silently breaks N > 20.
+  // ConvolverNode handles arbitrary-length FIR impulse responses.
+  const N_ = coeffs.length;
+  const buffer = audioCtx.createBuffer(1, N_, audioCtx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let k = 0; k < N_; k++) data[k] = coeffs[k];
+  const convolver = audioCtx.createConvolver();
+  convolver.normalize = false; // critical: preserve actual coefficient magnitudes
+  convolver.buffer = buffer;
+  return convolver;
+}
+
+async function startAudio() {
+  await setupAudio();
+  if (audioCtx.state === 'suspended') await audioCtx.resume();
+
+  if (filterNode) { filterNode.disconnect(); filterNode = null; }
+  if (gainNode) { gainNode.disconnect(); gainNode = null; }
+
+  filterNode = makeFilterNode();
+  gainNode = audioCtx.createGain();
+  gainNode.gain.value = volume;
+
+  sourceNode = makeSourceNode();
+  sourceNode.connect(filterNode);
+  filterNode.connect(gainNode);
+  gainNode.connect(audioCtx.destination);
+  sourceNode.start();
+}
+
+function stopAudio() {
+  if (sourceNode) { try { sourceNode.stop(); } catch(e){} sourceNode.disconnect(); sourceNode = null; }
+  if (filterNode) { filterNode.disconnect(); filterNode = null; }
+  if (gainNode) { gainNode.disconnect(); gainNode = null; }
+}
+
+async function rebuildAudio() {
+  if (!isPlaying) return;
+  stopAudio();
+  await startAudio();
+}
+
+// ============================================================
+// MODE CONSTRAINT · differentiator requires even N for clean DC null
+// ============================================================
+function applyModeConstraint() {
+  if (mode === 'differentiator') {
+    nSlider.step = '2';
+    if (N % 2 !== 0) {
+      N = Math.max(2, N - 1);
+      nSlider.value = N;
+      nValue.textContent = N;
+    }
+  } else {
+    nSlider.step = '1';
+  }
+}
+
+// ============================================================
+// UI WIRING
+// ============================================================
+
+// Updates the ± sign labels rendered next to each tap dot in the SVG block
+// diagram. In moving-average mode every coefficient is +1/N, so the sign
+// labels stay empty (no clutter). In differentiator mode the signs alternate
+// (+1/N, −1/N, +1/N, …), and we display the actual sign of each shown tap:
+// taps 0, 1, 2, and the final tap (N−1). This is the only mode-dependent
+// content in the otherwise-static SVG.
+function updateDiagramSigns() {
+  const labels = ['sign-0', 'sign-1', 'sign-2', 'sign-last'];
+  const indices = [0, 1, 2, N - 1];
+  for (let i = 0; i < labels.length; i++) {
+    const el = document.getElementById(labels[i]);
+    if (!el) continue;
+    if (mode === 'average') {
+      el.textContent = '';
+      continue;
+    }
+    const k = indices[i];
+    // Differentiator: sign alternates with k. Skip the "last tap" label
+    // when N is small enough that it overlaps tap 0/1/2 — i.e., when
+    // N − 1 ≤ 2, the "last" position would duplicate one of the first
+    // three. In that case clear it.
+    if (i === 3 && k <= 2) {
+      el.textContent = '';
+      continue;
+    }
+    const sign = (k % 2 === 0) ? '+' : '−';
+    el.textContent = sign;
+  }
+}
+
+function update() {
+  buildCoeffs();
+  updateLiveEquation();
+  updateDiagramSigns();
+  drawZPlane();
+  drawImpulse();
+  drawFrequency();
+  updateStatus();
+}
+
+nSlider.addEventListener('input', () => {
+  N = parseInt(nSlider.value, 10);
+  nValue.textContent = N;
+  update();
+  rebuildAudio();
+});
+
+modeToggle.querySelectorAll('button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    modeToggle.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    mode = btn.dataset.mode;
+    modeValue.textContent = mode === 'average' ? 'average' : 'diff';
+    applyModeConstraint();
+    update();
+    rebuildAudio();
+  });
+});
+
+playBtn.addEventListener('click', async () => {
+  if (isPlaying) {
+    stopAudio();
+    isPlaying = false;
+    playBtn.textContent = '▶ play';
+    playBtn.classList.remove('playing');
+  } else {
+    isPlaying = true;
+    playBtn.textContent = '■ stop';
+    playBtn.classList.add('playing');
+    await startAudio();
+  }
+});
+
+volSlider.addEventListener('input', () => {
+  volume = parseFloat(volSlider.value);
+  if (gainNode) gainNode.gain.value = volume;
+});
+
+// ---- init ----
+window.addEventListener('load', () => {
+  initCanvases();
+  applyModeConstraint();
+  nValue.textContent = N;
+  modeValue.textContent = mode === 'average' ? 'average' : 'diff';
+  update();
+});
+window.addEventListener('resize', () => {
+  initCanvases();
+  update();
+});
+</script>
+</body>
+</html>
