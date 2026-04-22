@@ -1,0 +1,2035 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2-Zero FIR Filter</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #fafaf7;
+    --panel: #ffffff;
+    --panel-2: #f4f2ec;
+    --border: #e2dfd6;
+    --border-strong: #c9c5b8;
+    --text: #1a1a17;
+    --muted: #6a6862;
+    --dim: #a8a59f;
+    --accent: #b8693a;
+    --pole: #c73862;
+    --pole-soft: #c7386218;
+    --curve: #2c7d6f;
+    --warn: #c92e1f;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', system-ui, sans-serif;
+    font-size: 15px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 40px 28px 80px;
+  }
+  header {
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 28px;
+    margin-bottom: 32px;
+  }
+  h1 {
+    font-family: 'DM Mono', monospace;
+    font-weight: 500;
+    font-size: 26px;
+    margin: 0 0 6px;
+    letter-spacing: -0.01em;
+    color: var(--text);
+  }
+  .subtitle {
+    color: var(--muted);
+    font-size: 14px;
+    margin: 0 0 22px;
+  }
+  .equation {
+    font-family: 'DM Mono', monospace;
+    font-size: 22px;
+    color: var(--accent);
+    background: var(--panel);
+    padding: 16px 22px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    display: inline-block;
+    margin-top: 4px;
+  }
+  .equation .var { color: var(--text); }
+  .equation .op { color: var(--muted); }
+  .block-diagram {
+    margin-top: 18px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 18px 22px 14px;
+    max-width: 760px;
+  }
+  .block-diagram svg {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+  .block-diagram-legend {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+    text-align: center;
+    letter-spacing: 0.02em;
+  }
+  h2 {
+    font-family: 'DM Mono', monospace;
+    font-weight: 500;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin: 0 0 14px;
+  }
+  h3 {
+    font-family: 'DM Mono', monospace;
+    font-weight: 500;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    margin: 0 0 10px;
+  }
+  section { margin-bottom: 32px; }
+
+  /* TERMINOLOGY */
+  .terminology {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 22px 26px;
+  }
+  .terminology .lead {
+    font-size: 14px;
+    color: var(--muted);
+    margin: 0 0 18px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .term { margin-bottom: 18px; }
+  .term:last-child { margin-bottom: 0; }
+  .term-name {
+    font-family: 'DM Mono', monospace;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--accent);
+    margin-bottom: 4px;
+  }
+  .term-name .symbol {
+    color: var(--text);
+    background: var(--panel-2);
+    padding: 1px 7px;
+    border-radius: 3px;
+    margin-right: 6px;
+    font-size: 13px;
+  }
+  .term-def {
+    font-size: 14px;
+    color: var(--text);
+    margin: 0;
+  }
+  /* Indented sub-terms — used when one term has multiple closely-related
+     children (e.g. b₁ and b₂ are both feedback coefficients with their own
+     roles). */
+  .term-sub {
+    margin-top: 10px;
+    margin-left: 20px;
+    padding-left: 14px;
+    border-left: 2px solid var(--border);
+  }
+  .term-sub + .term-sub {
+    margin-top: 8px;
+  }
+  .term-sub-name {
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--accent);
+    margin-bottom: 2px;
+  }
+  .term-sub-name .symbol {
+    color: var(--text);
+    background: var(--panel-2);
+    padding: 1px 6px;
+    border-radius: 3px;
+    margin-right: 5px;
+    font-size: 12px;
+  }
+  .term-sub-def {
+    font-size: 13.5px;
+    color: var(--text);
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  /* CONTROLS */
+  .controls {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 22px 24px;
+  }
+  .slider-row {
+    display: grid;
+    grid-template-columns: 100px 1fr 90px;
+    gap: 16px;
+    align-items: center;
+    margin-bottom: 14px;
+  }
+  .slider-row:last-child { margin-bottom: 0; }
+  .slider-row label {
+    font-family: 'DM Mono', monospace;
+    font-size: 14px;
+    color: var(--text);
+  }
+  .slider-row .desc {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+  input[type="range"] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 4px;
+    background: var(--border-strong);
+    border-radius: 2px;
+    outline: none;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    transition: transform 0.1s;
+    border: none;
+  }
+  input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
+  input[type="range"]::-moz-range-thumb {
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    border: none;
+  }
+  .value {
+    font-family: 'DM Mono', monospace;
+    font-size: 14px;
+    color: var(--accent);
+    text-align: right;
+    font-weight: 500;
+  }
+  .live-equation {
+    margin-top: 18px;
+    padding-top: 18px;
+    border-top: 1px solid var(--border);
+  }
+  .live-equation-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+  .live-equation-body {
+    font-family: 'DM Mono', monospace;
+    font-size: 17px;
+    color: var(--text);
+    padding: 14px 18px;
+    background: var(--panel-2);
+    border-radius: 4px;
+    border-left: 2px solid var(--accent);
+    letter-spacing: 0.01em;
+    line-height: 1.5;
+  }
+  .live-equation-body .var { color: var(--text); }
+  .live-equation-body .op { color: var(--muted); margin: 0 2px; }
+  .live-equation-body .num {
+    color: var(--accent);
+    font-weight: 500;
+    transition: color 0.1s;
+  }
+
+  /* STATUS */
+  .status {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 4px;
+    padding: 16px 20px;
+  }
+  .status-text { font-size: 14px; color: var(--text); margin: 0 0 12px; }
+  .metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 12px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+  }
+  .metric { font-family: 'DM Mono', monospace; }
+  .metric-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+  .metric-value {
+    font-size: 14px;
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  /* CALC BLOCK */
+  .calc-block {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+    font-family: 'DM Mono', monospace;
+  }
+  .calc-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+  .calc-symbolic, .calc-sub {
+    font-size: 12.5px;
+    line-height: 1.8;
+  }
+  .calc-symbolic {
+    color: var(--text);
+    padding: 8px 12px;
+    background: var(--panel-2);
+    border-radius: 3px;
+    margin-bottom: 10px;
+  }
+  .calc-sub {
+    color: var(--text);
+    padding: 8px 12px;
+    border-left: 2px solid var(--accent);
+    background: #fff;
+  }
+  .calc-sub .op { color: var(--muted); }
+  .calc-sub .num { color: var(--accent); }
+  .eq-line { display: block; white-space: pre; }
+  /* LEGEND · plain-English decoder for the symbols above */
+  .calc-legend {
+    margin: 10px 0 12px;
+    padding: 10px 12px;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+  }
+  .legend-row {
+    display: grid;
+    grid-template-columns: 58px 1fr;
+    gap: 12px;
+    align-items: baseline;
+    padding: 3px 0;
+    font-size: 12.5px;
+    line-height: 1.5;
+  }
+  .legend-row + .legend-row {
+    border-top: 1px dashed var(--border);
+  }
+  .legend-sym {
+    font-family: 'DM Mono', monospace;
+    color: var(--accent);
+    font-weight: 500;
+    text-align: center;
+  }
+  .legend-def {
+    color: var(--text);
+    font-family: 'DM Sans', system-ui, sans-serif;
+  }
+  .legend-def em {
+    color: var(--muted);
+    font-style: italic;
+  }
+
+  /* VIZ CARDS */
+  .viz-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 18px 22px;
+  }
+  .viz-twoCol {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .viz-explainer {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.55;
+    background: var(--panel-2);
+    padding: 12px 14px;
+    border-radius: 4px;
+    margin-bottom: 14px;
+    border-left: 2px solid var(--border-strong);
+  }
+  .viz-explainer strong {
+    color: var(--text);
+    font-weight: 500;
+  }
+  /* Paragraphs inside viz-explainer: zero default margin, then a comfortable
+     gap between siblings. Mirrors the visual rhythm <br><br> would produce,
+     but with proper semantic markup. */
+  .viz-explainer p {
+    margin: 0;
+  }
+  .viz-explainer p + p {
+    margin-top: 12px;
+  }
+  .viz-caption {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 8px;
+    line-height: 1.4;
+  }
+  .viz-legend {
+    font-family: 'DM Mono', monospace;
+    font-size: 10.5px;
+    color: var(--muted);
+    margin-top: 10px;
+    padding: 6px 10px;
+    background: var(--panel-2);
+    border-radius: 3px;
+    letter-spacing: 0.01em;
+    line-height: 1.55;
+  }
+  canvas {
+    width: 100%;
+    height: auto;
+    display: block;
+    background: #fff;
+    border-radius: 3px;
+  }
+
+  /* AUDIO */
+  .audio {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 18px 22px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+    align-items: center;
+  }
+  .play-btn {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    padding: 10px 22px;
+    font-family: 'DM Mono', monospace;
+    font-size: 14px;
+    font-weight: 500;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  .play-btn:hover { opacity: 0.85; }
+  .play-btn.playing { background: var(--warn); }
+  .source-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    background: var(--panel-2);
+    padding: 6px 12px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    letter-spacing: 0.02em;
+  }
+  .vol-control {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-left: auto;
+    min-width: 200px;
+  }
+  .vol-control label {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  /* NOTES */
+  .notes {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 22px 26px;
+  }
+  .notes h2 { margin-bottom: 12px; }
+  .notes h2:not(:first-child) { margin-top: 24px; }
+  .notes ul, .notes ol { margin: 0; padding-left: 20px; }
+  .notes li {
+    margin-bottom: 8px;
+    font-size: 14px;
+    color: var(--text);
+  }
+  .notes li code, .notes p code {
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    color: var(--accent);
+    background: var(--panel-2);
+    padding: 1px 6px;
+    border-radius: 3px;
+  }
+
+  footer {
+    margin-top: 48px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 12px;
+    font-family: 'DM Mono', monospace;
+  }
+  .footer-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--dim);
+    margin-bottom: 8px;
+  }
+  .footer-item {
+    margin-bottom: 4px;
+    line-height: 1.5;
+  }
+  .footer-affiliation {
+    margin-top: 18px;
+    color: var(--text);
+  }
+  .footer-version {
+    margin-top: 4px;
+    color: var(--dim);
+    font-size: 11px;
+  }
+
+  @media (max-width: 720px) {
+    .viz-twoCol { grid-template-columns: 1fr; }
+    .slider-row { grid-template-columns: 80px 1fr 70px; }
+    h1 { font-size: 22px; }
+    .equation { font-size: 16px; }
+    /* The substituted live equation (y[n] = 1.00 · x[n] − 1.7846 · x[n−1]
+       + 0.8100 · x[n−2]) is long enough to overflow narrow viewports at
+       17px. Shrink the body and allow horizontal scroll as a safety net so
+       the numbers stay readable rather than wrapping mid-term. */
+    .live-equation-body {
+      font-size: 13px;
+      padding: 12px 14px;
+      overflow-x: auto;
+      white-space: nowrap;
+    }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>2-zero FIR filter</h1>
+    <p class="subtitle">A non-recursive filter with three feedforward taps, producing a complex conjugate zero pair on the z-plane. At <em>r</em> = 1 the zeros sit on the unit circle and the filter becomes a pure notch; at <em>r</em> &lt; 1 the zeros sit inside and the filter combines a partial dip at <em>f_zero</em> with a broader spectral tilt.</p>
+    <div class="equation">
+      <span class="var">y</span>[n] <span class="op">=</span> <span class="var">g</span> · <span class="var">x</span>[n] <span class="op">+</span> <span class="var">a₁</span> · <span class="var">x</span>[n−1] <span class="op">+</span> <span class="var">a₂</span> · <span class="var">x</span>[n−2]
+    </div>
+
+    <div class="block-diagram">
+      <svg viewBox="0 0 650 340" xmlns="http://www.w3.org/2000/svg" font-family="DM Mono, monospace">
+        <defs>
+          <marker id="arrow-fir2" viewBox="0 0 10 10" refX="8" refY="5"
+                  markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#6a6862"/>
+          </marker>
+        </defs>
+
+        <!-- ===== TOP ROW: x[n] → tap → [g] → ⊕ → y[n] =====
+             Standard textbook direct-form FIR. The tap sits right after x[n],
+             the delay chain drops from there carrying unscaled x[n], and the
+             g multiplier sits on the h₀ branch between the tap and summer. -->
+
+        <!-- x[n] label -->
+        <text x="35" y="76" text-anchor="middle" font-size="14" fill="#1a1a17">x[n]</text>
+
+        <!-- x[n] → tap -->
+        <line x1="60" y1="70" x2="178" y2="70"
+              stroke="#6a6862" stroke-width="1.5"
+              marker-end="url(#arrow-fir2)"/>
+
+        <!-- tap at (190, 70): h₀ branch continues right through g to summer;
+             delay chain drops down carrying unscaled x[n] -->
+        <circle cx="190" cy="70" r="3.5" fill="#6a6862"/>
+
+        <!-- tap → g multiplier -->
+        <line x1="190" y1="70" x2="238" y2="70"
+              stroke="#6a6862" stroke-width="1.5"/>
+
+        <!-- g multiplier (right-facing triangle) on the h₀ branch -->
+        <path d="M 240 55 L 240 85 L 275 70 z"
+              fill="white" stroke="#1a1a17" stroke-width="1.5"
+              stroke-linejoin="round"/>
+        <text x="257" y="103" text-anchor="middle" font-size="14"
+              fill="#b8693a" font-weight="500">g</text>
+
+        <!-- g → summer -->
+        <line x1="277" y1="70" x2="402" y2="70"
+              stroke="#6a6862" stroke-width="1.5"
+              marker-end="url(#arrow-fir2)"/>
+
+        <!-- summer (moved left for compactness) -->
+        <circle cx="420" cy="70" r="18"
+                fill="white" stroke="#1a1a17" stroke-width="1.5"/>
+        <text x="420" y="77" text-anchor="middle" font-size="22"
+              fill="#1a1a17" font-weight="400">+</text>
+
+        <!-- summer → y[n] -->
+        <line x1="438" y1="70" x2="515" y2="70"
+              stroke="#6a6862" stroke-width="1.5"
+              marker-end="url(#arrow-fir2)"/>
+
+        <text x="540" y="76" text-anchor="middle" font-size="14" fill="#1a1a17">y[n]</text>
+
+        <!-- ===== DELAY CHAIN (left column, x=190) =====
+             Drops from the tap carrying unscaled x[n]. Standard direct-form:
+             the main column is never scaled, only the branches that peel off
+             to feed the summer get multiplied by their coefficients. -->
+
+        <!-- drop from input tap to delay 1 -->
+        <line x1="190" y1="70" x2="190" y2="140"
+              stroke="#6a6862" stroke-width="1.5"/>
+
+        <!-- delay 1 box -->
+        <rect x="160" y="140" width="60" height="30"
+              fill="white" stroke="#1a1a17" stroke-width="1.5"/>
+        <text x="190" y="160" text-anchor="middle" font-size="14"
+              fill="#1a1a17">z⁻¹</text>
+
+        <!-- segment after delay 1 carrying x[n−1], down to the tap point -->
+        <line x1="190" y1="170" x2="190" y2="198"
+              stroke="#6a6862" stroke-width="1.5"/>
+
+        <!-- x[n−1] label (above-left of tap dot) -->
+        <text x="175" y="195" text-anchor="end" font-size="11"
+              fill="#6a6862">x[n−1]</text>
+
+        <!-- tap on x[n−1] line -->
+        <circle cx="190" cy="200" r="3.5" fill="#6a6862"/>
+
+        <!-- ===== a₁ BRANCH (peels right from the x[n−1] tap) =====
+             Standard direct-form: multiplier sits on the branch immediately
+             after the tap. Routes right to column x=420, then up into summer. -->
+
+        <!-- short right-going segment from tap to a₁ multiplier -->
+        <line x1="190" y1="200" x2="218" y2="200"
+              stroke="#6a6862" stroke-width="1.5"/>
+
+        <!-- a₁ multiplier (right-facing triangle) -->
+        <path d="M 220 185 L 220 215 L 255 200 z"
+              fill="white" stroke="#1a1a17" stroke-width="1.5"
+              stroke-linejoin="round"/>
+        <text x="237" y="232" text-anchor="middle" font-size="14"
+              fill="#b8693a" font-weight="500">a₁</text>
+
+        <!-- after a₁: horizontal run right to column x=420, then up into summer south -->
+        <line x1="257" y1="200" x2="420" y2="200"
+              stroke="#6a6862" stroke-width="1.5"/>
+        <line x1="420" y1="200" x2="420" y2="91"
+              stroke="#6a6862" stroke-width="1.5"
+              marker-end="url(#arrow-fir2)"/>
+
+        <!-- ===== MAIN COLUMN CONTINUES: tap → delay 2 =====
+             The x[n−1] value on the main column continues down into delay 2. -->
+
+        <line x1="190" y1="200" x2="190" y2="245"
+              stroke="#6a6862" stroke-width="1.5"/>
+
+        <!-- delay 2 box -->
+        <rect x="160" y="245" width="60" height="30"
+              fill="white" stroke="#1a1a17" stroke-width="1.5"/>
+        <text x="190" y="265" text-anchor="middle" font-size="14"
+              fill="#1a1a17">z⁻¹</text>
+
+        <!-- segment after delay 2 carrying x[n−2] -->
+        <line x1="190" y1="275" x2="190" y2="303"
+              stroke="#6a6862" stroke-width="1.5"/>
+
+        <!-- x[n−2] label (above-left of tap dot) -->
+        <text x="175" y="300" text-anchor="end" font-size="11"
+              fill="#6a6862">x[n−2]</text>
+
+        <!-- tap on x[n−2] line -->
+        <circle cx="190" cy="305" r="3.5" fill="#6a6862"/>
+
+        <!-- ===== a₂ BRANCH (peels right from the x[n−2] tap) =====
+             Routes at a different intermediate column so paths don't overlap.
+             Right to x=300, up to y=85, then right into summer west. -->
+
+        <!-- short right-going segment from tap to a₂ multiplier -->
+        <line x1="190" y1="305" x2="218" y2="305"
+              stroke="#6a6862" stroke-width="1.5"/>
+
+        <!-- a₂ multiplier (right-facing triangle) -->
+        <path d="M 220 290 L 220 320 L 255 305 z"
+              fill="white" stroke="#1a1a17" stroke-width="1.5"
+              stroke-linejoin="round"/>
+        <text x="237" y="337" text-anchor="middle" font-size="14"
+              fill="#b8693a" font-weight="500">a₂</text>
+
+        <!-- after a₂: horizontal run right to column x=300, then up, then
+             right into summer west at (402, 85) -->
+        <line x1="257" y1="305" x2="300" y2="305"
+              stroke="#6a6862" stroke-width="1.5"/>
+        <line x1="300" y1="305" x2="300" y2="85"
+              stroke="#6a6862" stroke-width="1.5"/>
+        <line x1="300" y1="85" x2="402" y2="85"
+              stroke="#6a6862" stroke-width="1.5"
+              marker-end="url(#arrow-fir2)"/>
+
+      </svg>
+      <div class="block-diagram-legend">
+        ▷ multiplier (gain) · ⊕ summer · z⁻¹ one-sample delay · ● tap / junction
+      </div>
+    </div>
+  </header>
+
+  <!-- TERMINOLOGY -->
+  <section>
+    <h2>terminology</h2>
+    <div class="terminology">
+      <p class="lead">The 2-zero FIR is the feedforward mirror of the two-pole IIR. Where the IIR placed a conjugate pole pair to create resonance, this filter places a conjugate <strong>zero pair</strong>. Same geometric vocabulary (angle, radius, unit circle), always stable. This filter is a <strong>pure notch only at r = 1</strong>. At r &lt; 1 the zeros sit inside the unit circle and the filter combines a partial dip at <em>f_zero</em> with a broader spectral tilt across the full band.</p>
+
+      <div class="term">
+        <div class="term-name"><span class="symbol">x[n−1]</span> and <span class="symbol">x[n−2]</span> · two input delays</div>
+        <p class="term-def">The delay chain runs through <em>x</em>: <em>x[n]</em> into the first <em>z⁻¹</em> gives <em>x[n−1]</em>; a second <em>z⁻¹</em> gives <em>x[n−2]</em>. Each delayed copy is scaled by its own coefficient and summed. The output is never fed back.</p>
+      </div>
+
+      <div class="term">
+        <div class="term-name"><span class="symbol">g</span>, <span class="symbol">a₁</span>, and <span class="symbol">a₂</span> are coefficients</div>
+        <p class="term-def">Three numbers that define the filter completely. All <em>feedforward</em>: each multiplies a delayed copy of the input. Each plays a distinct role:</p>
+        <div class="term-sub">
+          <div class="term-sub-name"><span class="symbol">g</span> current-sample coefficient</div>
+          <p class="term-sub-def">Scales the most recent input <em>x[n]</em>. In the IIR tools <em>g</em> sat in front of the whole recurrence as an overall gain; here it's also the first tap of the FIR, so it's part of what shapes the filter, not just a level control. Sliding <em>g</em> affects the DC gain, the Nyquist gain, and (mildly) the zero locations.</p>
+        </div>
+        <div class="term-sub">
+          <div class="term-sub-name"><span class="symbol">a₁</span> first delay coefficient</div>
+          <p class="term-sub-def">Scales the one-sample-delayed input <em>x[n−1]</em>. Computed from the zero frequency and radius as <code>a₁ = −2r·g·cos(ω₀)</code>. The negative sign comes from the polynomial-root identity: to place zeros at <em>z = r·e^(±jω₀)</em> the coefficient of <em>z⁻¹</em> has to be <em>−(sum of the zeros)</em>. Students often see <em>a₁</em> as negative for low zero frequencies and positive for high ones (past SR/4).</p>
+        </div>
+        <div class="term-sub">
+          <div class="term-sub-name"><span class="symbol">a₂</span> second delay coefficient</div>
+          <p class="term-sub-def">Scales the two-sample-delayed input <em>x[n−2]</em>. Computed as <code>a₂ = g·r²</code>; always the same sign as <em>g</em>, always smaller in magnitude for <em>r</em> &lt; 1. At <em>r</em> = 1 we get <em>a₂ = g</em> exactly, making the coefficient sequence symmetric (<em>g, a₁, g</em>), which turns the filter into a pure-notch linear-phase filter.</p>
+        </div>
+      </div>
+
+      <div class="term">
+        <div class="term-name">complex conjugate zero pair</div>
+        <p class="term-def">The two values of <em>z</em> where the filter's output drops to a minimum (or to exactly zero if the zeros sit on the unit circle). For real coefficients, zeros must be real or come in mirror pairs across the real axis (one above, one below, same distance from origin). This mirror pair is the headline object of this tool. You don't set <em>a₁</em> and <em>a₂</em> directly; you set the <strong>frequency</strong> and <strong>radius</strong> of the zero pair, and the filter derives the coefficients:</p>
+        <div class="term-sub">
+          <div class="term-sub-name"><span class="symbol">freq</span> zero frequency = zero angle</div>
+          <p class="term-sub-def">The <em>angle</em> of the zero pair on the z-plane, expressed in Hz for easier intuition. Musically, this is the frequency that gets attenuated: where the notch or dip sits. Sliding it rotates the zeros around the unit circle (if <em>r</em> = 1) or around a smaller circle (if <em>r</em> &lt; 1), staying as a mirror pair across the real axis.</p>
+        </div>
+        <div class="term-sub">
+          <div class="term-sub-name"><span class="symbol">radius</span> zero distance from origin</div>
+          <p class="term-sub-def">How <em>far</em> the zeros are from the center of the z-plane. <strong>Only at <em>r</em> = 1</strong> does the filter become a pure notch: the zeros sit exactly on the unit circle and the magnitude response touches −∞ dB at the zero frequency, while staying flat on both sides. <strong>At <em>r</em> &lt; 1</strong> the zeros pull inside, and two things happen at once: the dip at <em>f_zero</em> becomes shallower (about −19 dB at <em>r</em> = 0.9, −38 dB at <em>r</em> = 0.99), and the whole spectrum gains a <em>tilt</em> because the coefficient sequence <em>(g, a₁, g·r²)</em> is asymmetric. The tilt is mild when <em>f_zero</em> sits in the middle of the audible band and dramatic when <em>f_zero</em> sits near DC or Nyquist. So the slider controls not only notch depth but how close the filter gets to being a true notch at all.</p>
+        </div>
+        <div class="term-sub">
+          <div class="term-sub-name">at <span class="symbol">r</span> = 1 · the pure notch case</div>
+          <p class="term-sub-def">When zeros sit exactly on the unit circle, the coefficient sequence becomes <em>(g, −2g·cos(ω₀), g)</em>, which is <strong>symmetric</strong>. Three consequences: (1) the filter has linear phase, with group delay exactly 1 sample at every frequency except at f_zero itself; (2) the magnitude response is flat at <em>g</em> everywhere except the single-sample-wide notch at <em>f_zero</em>; (3) the filter has the cleanest possible "kill one frequency, pass everything else" character, which is why this is the textbook starting point for notch filters.</p>
+        </div>
+        <div class="term-sub">
+          <div class="term-sub-name">the filter's "voice"</div>
+          <p class="term-sub-def">A 2-zero FIR doesn't ring; it <strong>silences</strong> selectively. Hit it with an impulse and the output is three samples long, then dead. In the r = 1 limit this is the foundation of textbook notch filters (killing 50/60 Hz hum, removing a specific tone). At r &lt; 1 the filter produces a broader range of behaviors: shallow dips combined with spectral tilts. Three multiplies per sample, unconditionally stable.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CONTROLS -->
+  <section>
+    <h2>parameters</h2>
+    <div class="controls">
+      <div class="slider-row">
+        <label>frequency</label>
+        <div>
+          <input type="range" id="freq-slider" min="0" max="1" step="0.001" value="0.5">
+          <div class="desc">zero frequency · log scale 10 Hz – 24 kHz · angle of the zero pair on the z-plane · the frequency that gets attenuated</div>
+        </div>
+        <div class="value" id="freq-value">1000 Hz</div>
+      </div>
+      <div class="slider-row">
+        <label>radius</label>
+        <div>
+          <input type="range" id="radius-slider" min="0" max="1" step="0.001" value="0.9">
+          <div class="desc">zero distance from origin · 1.0 = pure notch (perfectly flat elsewhere) · lower values = shallower dip combined with broader spectral tilt · always stable</div>
+        </div>
+        <div class="value" id="radius-value">0.900</div>
+      </div>
+      <div class="slider-row">
+        <label>g</label>
+        <div>
+          <input type="range" id="g-slider" min="0" max="2" step="0.01" value="1.00">
+          <div class="desc">current-sample coefficient · first tap of the FIR · also scales a₁ and a₂ (both are proportional to g)</div>
+        </div>
+        <div class="value" id="g-value">1.00</div>
+      </div>
+
+      <!-- LIVE EQUATION · shows coefficients substituted into the recurrence.
+           Students see how moving frequency and radius (the human-friendly
+           knobs) flows into a₁ and a₂ (the actual feedforward coefficients).
+           This is literally the expression they will translate into ChucK. -->
+      <div class="live-equation">
+        <div class="live-equation-label">live equation · current coefficients</div>
+        <div class="live-equation-body" id="live-equation-body">
+          <span class="var">y</span>[n] <span class="op">=</span>
+          <span class="num" id="live-g">1.00</span> <span class="op">·</span> <span class="var">x</span>[n]
+          <span class="op" id="live-a1-sign">−</span>
+          <span class="num" id="live-a1">1.7846</span> <span class="op">·</span> <span class="var">x</span>[n−1]
+          <span class="op" id="live-a2-sign">+</span>
+          <span class="num" id="live-a2">0.8100</span> <span class="op">·</span> <span class="var">x</span>[n−2]
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- LISTEN -->
+  <section>
+    <h2>listen</h2>
+    <div class="audio">
+      <button class="play-btn" id="play-btn">▶ play</button>
+      <div class="source-label">source · white noise</div>
+      <div class="vol-control">
+        <label>vol</label>
+        <input type="range" id="vol-slider" min="0" max="1" step="0.01" value="0.3">
+      </div>
+    </div>
+    <div class="viz-caption">
+      White noise is fed through the filter. At r = 0 you hear unfiltered noise (scaled by g). As r rises, a dip opens up at the zero frequency; at r = 0.99 the zero frequency is attenuated by about 30-50 dB (depending on f_zero, see the frequency response plot). At r = 1 the filter is a pure notch; below that, the values r &lt; 1 give a mix of dip and spectral tilt. Output gain is not auto-compensated (unlike the IIR tools): FIR peak gain is bounded by |g| + |a₁| + |a₂|.
+    </div>
+    <div class="viz-caption" id="audio-rate">audio · not yet started · visualizations use SR = 48000 Hz</div>
+  </section>
+
+  <!-- FREQUENCY RESPONSE -->
+  <section>
+    <h2>frequency response</h2>
+    <div class="viz-card">
+      <canvas id="freq" width="1000" height="400"></canvas>
+      <div class="viz-caption">sample rate · 48 kHz · Nyquist = 24 kHz</div>
+    </div>
+  </section>
+
+  <!-- GROUP DELAY -->
+  <section>
+    <h2>group delay</h2>
+    <div class="viz-card">
+      <div class="viz-explainer">
+        <p><strong>What is group delay?</strong> The number of samples by which the filter shifts each frequency component in time. For a linear-phase filter (like the moving-average FIR from the sibling tool) every frequency is delayed by the same amount, and group delay is one number. But not every FIR is linear-phase, and this one isn't, except in a very specific limit.</p>
+        <p><strong>For this FIR:</strong> group delay has a dramatic negative spike at the zero frequency. It's the mirror image of the two-pole IIR's positive peak at its resonant frequency: same narrow band of large excursion, same 1/(1−r) growth law, same root cause (|H(ω)| getting small in a narrow region), with the sign flipped. Zeros subtract phase near f_zero just like poles add phase near f_res. At r = 0.9 the spike reaches about −9 samples; at r = 0.99 it reaches about −99; at r = 1 it is undefined (the group-delay formula has a 0/0 at the notch, which the chart handles by returning 0 at that point).</p>
+        <p><strong>Away from the zero frequency</strong>, group delay sits near <em>+1 sample</em> across the rest of the spectrum (especially at high r). That's exactly the mean tap position <em>(N−1)/2 = 1</em> for a 3-tap filter (the same linear-phase formula you saw in the moving-average FIR), because as <em>r</em> → 1, the coefficients approach the symmetric form <em>(g, a₁, g)</em>. So this filter is approximately linear-phase everywhere except in a narrow band around the notch, where the geometry of the zero on the unit circle breaks symmetry and produces the spike. Negative group delay here, like in the IIR, doesn't violate causality; it's a property of how the filter reshapes wave envelopes.</p>
+      </div>
+      <canvas id="gdelay" width="1000" height="300"></canvas>
+      <div class="viz-caption">y axis · group delay in samples (auto-scaled to the spike) · x axis · log frequency from 10 Hz to Nyquist · pink dashed line · zero frequency · heavier horizontal line · zero delay</div>
+    </div>
+  </section>
+
+  <!-- STATUS -->
+  <section>
+    <h2>what's happening</h2>
+    <div class="status" id="status-box">
+      <p class="status-text" id="status-text">…</p>
+      <div class="metrics">
+        <div class="metric">
+          <div class="metric-label">zero freq</div>
+          <div class="metric-value" id="m-freq">…</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">dip at f<sub>zero</sub></div>
+          <div class="metric-value" id="m-notch">…</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">group delay at f<sub>zero</sub></div>
+          <div class="metric-value" id="m-gd">…</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Nyquist gain</div>
+          <div class="metric-value" id="m-nyq">…</div>
+        </div>
+      </div>
+      <div class="calc-block">
+        <div class="calc-label">how zero angle and coefficients are computed</div>
+        <div class="calc-symbolic">
+          <span class="eq-line">ω₀ = 2π · f<sub>zero</sub> / SR</span>
+          <span class="eq-line">a₁ = −2g · r · cos(ω₀)</span>
+          <span class="eq-line">a₂ = g · r²</span>
+        </div>
+        <div class="calc-legend">
+          <div class="legend-row"><span class="legend-sym">ω₀</span><span class="legend-def">zero angle, in radians per sample (subscript <em>0</em> = the zero center). In general, ω = 2π · f / SR.</span></div>
+          <div class="legend-row"><span class="legend-sym">f<sub>zero</sub></span><span class="legend-def">zero frequency, in Hz (from the slider above): the frequency where the filter notches or dips</span></div>
+          <div class="legend-row"><span class="legend-sym">r</span><span class="legend-def">zero radius (from the slider above): distance of the zero pair from the origin; 1 produces a perfect null, less than 1 produces a partial dip</span></div>
+          <div class="legend-row"><span class="legend-sym">g</span><span class="legend-def">current-sample coefficient / first tap (from the slider above): scales the whole transfer function</span></div>
+          <div class="legend-row"><span class="legend-sym">a₁</span><span class="legend-def">one-sample-delay coefficient, scales <em>x[n−1]</em></span></div>
+          <div class="legend-row"><span class="legend-sym">a₂</span><span class="legend-def">two-sample-delay coefficient, scales <em>x[n−2]</em>; same sign as <em>g</em> for this parameterization</span></div>
+          <div class="legend-row"><span class="legend-sym">SR</span><span class="legend-def">sample rate (48000 Hz here)</span></div>
+          <div class="legend-row"><span class="legend-sym">cos</span><span class="legend-def">cosine: projects the zero's angle onto the real axis, scaled by −2g·r to give a₁</span></div>
+        </div>
+        <div class="calc-sub" id="calc-sub">…</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Z-PLANE + IMPULSE -->
+  <section>
+    <h2>under the hood</h2>
+    <div class="viz-twoCol">
+
+      <div class="viz-card">
+        <h3>z-plane · zero pair</h3>
+        <div class="viz-explainer">
+          <p><strong>What is the z-plane?</strong> A 2D map of complex numbers used to visualize what a filter does. The horizontal axis (Re) is the real part of z; the vertical axis (Im) is the imaginary part. The dashed circle is the unit circle, where |z| = 1, and it represents every frequency from DC (at z = +1) around through Nyquist (at z = −1) and back, with frequency tracked by angle. Filters are characterized by poles (where the transfer function goes to infinity) and zeros (where it drops to zero); their positions on this plane encode the filter's entire behavior.</p>
+          <p><strong>For this FIR:</strong> there are no interesting poles (just a trivial double pole at z = 0 that we don't draw), only zeros. The two zeros come as a complex conjugate pair, drawn as pink <em>rings</em>, not the X-marks used for poles in the IIR tools. Their angle sets the zero frequency; their distance from the center sets how deep the dip is at that frequency. At radius = 1 the zeros sit exactly on the unit circle (which is the set of points the frequency response actually traces), so the filter's output drops to exactly zero at that frequency: a true notch with flat response on either side. At radius &lt; 1 the zeros sit inside the circle, producing a shallower dip and also tilting the overall spectrum.</p>
+        </div>
+        <canvas id="zplane" width="500" height="500"></canvas>
+        <div class="viz-legend">
+          Re = real axis · Im = imaginary axis · dashed circle = unit circle (|z| = 1) · pink ring = zero (two zeros, mirrored across Re) · zero angle = frequency · distance from origin = radius · DC = 0 Hz · Nyq = Nyquist (SR/2)
+        </div>
+      </div>
+
+      <div class="viz-card">
+        <h3>impulse response · three samples, then silence</h3>
+        <div class="viz-explainer">
+          <p><strong>What is an impulse response?</strong> The output of the filter when the input is a single sample of value 1 (a click) followed by silence. Time runs left to right along the horizontal axis (n is the sample number); the vertical axis shows the output value at each sample. The impulse response is a complete fingerprint of the filter: knowing it tells you everything the filter can do to any other signal.</p>
+          <p><strong>For this FIR:</strong> the impulse response IS the coefficient list. Three samples (<em>h[0] = g</em>, <em>h[1] = a₁</em>, <em>h[2] = a₂</em>), then silence. That's the defining "finite" property of finite impulse response: feed the filter a click, count to three, and the output is dead. Compare to the two-pole IIR, whose impulse response is an exponentially-decaying sinusoid that only approaches silence over many samples.</p>
+        </div>
+        <canvas id="impulse" width="500" height="500"></canvas>
+        <div class="viz-legend">
+          n = sample number (discrete time axis) · teal stems at n=0,1,2 = the three coefficients (g, a₁, a₂) · faint dots from n=3 onward = the filter's output is exactly zero · dashed line marks the transition to silence
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- IN MORE DEPTH + TRY THIS -->
+  <section>
+    <div class="notes">
+      <h2>in more depth</h2>
+      <ul>
+        <li>The transfer function in the z-domain is <code>H(z) = g + a₁·z⁻¹ + a₂·z⁻²</code>, a polynomial in <em>z⁻¹</em>. This is the recurrence <code>y[n] = g·x[n] + a₁·x[n−1] + a₂·x[n−2]</code> rewritten in the language of the z-transform. Since there's no feedback, there's no denominator: all three coefficients appear directly in the numerator. The zeros of the filter are the roots of that polynomial: the two values of <em>z</em> where H(z) = 0; those roots encode the filter's entire spectral behavior.</li>
+        <li>The coefficients are computed from radius <em>r</em>, zero frequency <em>f₀</em>, and gain <em>g</em> as: <code>a₁ = −2g·r·cos(ω₀)</code> and <code>a₂ = g·r²</code>, where <code>ω₀ = 2π·f₀ / SR</code>. This comes from factoring H(z) as <code>g · (1 − r·e^(jω₀)·z⁻¹)(1 − r·e^(−jω₀)·z⁻¹)</code>, which places the two zeros at <em>z = r·e^(±jω₀)</em>. Expanding and collecting: the <em>z⁰</em> term is <em>g</em>, the <em>z⁻¹</em> term is <em>−g(r·e^(jω₀) + r·e^(−jω₀)) = −2g·r·cos(ω₀)</em>, and the <em>z⁻²</em> term is <em>g·r·e^(jω₀)·r·e^(−jω₀) = g·r²</em>. The cancellation of imaginary parts is exactly what the conjugate-pair structure guarantees, which is why we use a pair of zeros (not a single complex zero) to keep the coefficients real.</li>
+        <li><strong>The impulse response IS the coefficient list.</strong> Hit this filter with a single <em>x[0] = 1</em>, and the outputs are <em>y[0] = g</em>, <em>y[1] = a₁</em>, <em>y[2] = a₂</em>, then zero. The filter retains nothing past N−1 = 2 samples. Compare with the two-pole IIR, whose impulse response is an exponentially-decaying sinusoid; feedback keeps the output alive for hundreds or thousands of samples.</li>
+        <li><strong>DC gain and Nyquist gain</strong> have simple closed forms. At DC (ω = 0), <em>e⁻ʲʷ = 1</em>, so <code>H(1) = g + a₁ + a₂</code>. At Nyquist (ω = π), <em>e⁻ʲπ = −1</em> so <em>e⁻ʲ²π = 1</em>, giving <code>H(−1) = g − a₁ + a₂</code>. Since all coefficients are real, both gains are real numbers (not just magnitudes) and can even be negative, which corresponds to phase inversion at that frequency. At <em>f_zero</em> = 12 kHz (= SR/4) DC and Nyquist gain are equal; move the zero away from there and they diverge.</li>
+        <li><strong>Notch depth</strong> at the zero frequency has the closed form <code>|H(ω₀)| = g · (1 − r) · |1 − r·e^(−j2ω₀)|</code>. The <em>(1 − r)</em> factor is the dominant one: it drives the dip depth toward zero as <em>r</em> → 1, which is why r controls the slider's "how deep" behavior so cleanly. The second factor depends on where <em>f_zero</em> sits in the spectrum. At <em>ω₀ = π/2</em> (f_zero = SR/4 = 12 kHz) the second factor equals <em>1 + r</em>, giving notch depth <code>g · (1 − r²)</code>; at extreme frequencies (near DC or Nyquist) the second factor approaches <em>(1 − r)</em>, giving depth <code>g · (1 − r)²</code>, deeper by a factor of <em>(1 + r)/(1 − r)</em>. This is why the notch-depth metric varies strongly with <em>f_zero</em> at fixed <em>r</em>.</li>
+        <li><strong>This FIR is unconditionally stable.</strong> With no feedback, the output at every sample is bounded by three multiplies of the current input — zeros can sit anywhere in the z-plane without risk. The trade-off is sharpness: a BiQuad (poles + zeros together) can achieve a much narrower notch for the same coefficient count, because its poles amplify the effect of its zeros.</li>
+        <li><strong>Linear phase happens only at <em>r</em> = 1.</strong> For a symmetric coefficient sequence <em>(h[0], h[1], h[0])</em> the filter has exactly linear phase, with group delay <em>(N−1)/2 = 1</em> sample at every frequency. Our coefficients are <em>(g, a₁, g·r²)</em>, symmetric only when <em>g = g·r²</em>, which forces <em>r = 1</em>. At <em>r</em> &lt; 1 the sequence is asymmetric and the filter is non-linear-phase in general. Interestingly, this deviation is concentrated in a narrow band around the notch: everywhere else on the spectrum group delay sits near <em>τ = 1</em>. So the filter is "almost" linear phase except in the neighborhood of the feature it's actually creating.</li>
+        <li><strong>Group delay</strong> has the closed form <code>τ(ω) = Re[N(ω)/D(ω)]</code> where <em>N(ω) = a₁·e⁻ʲʷ + 2·a₂·e⁻ʲ²ʷ</em> and <em>D(ω) = g + a₁·e⁻ʲʷ + a₂·e⁻ʲ²ʷ = H(e^jω)</em>. The negative spike at <em>ω = ω₀</em> is driven by <em>D(ω)</em> getting small in a narrow band, the same narrow band where the magnitude dip lives. This is the timing mirror of the two-pole IIR's positive spike at its resonance: both arise from |H| being small in a narrow region, but with opposite signs because zeros subtract phase where poles add it.</li>
+        <li><strong>Practical use</strong>: notch filters. Setting <em>r</em> close to 1 and <em>f_zero</em> = 60 Hz removes power-line hum from a recording. Setting <em>f_zero</em> = 50 Hz does the same in Europe. More generally, any time you need to kill a single narrow-band interfering frequency without disturbing much else in the spectrum, a 2-zero FIR with <em>r</em> ≈ 0.97–0.99 is a first-choice building block.</li>
+        <li><strong>Building toward the BiQuad.</strong> This filter is the numerator of the general second-order IIR: <code>H(z) = (g + a₁·z⁻¹ + a₂·z⁻²) / (1 − b₁·z⁻¹ − b₂·z⁻²)</code>. Combining our 2-zero FIR feedforward with the two-pole IIR's feedback gives the BiQuad, the most important single second-order filter in audio DSP, because with free choice of zeros and poles it can realize any lowpass, highpass, bandpass, notch, peaking, or shelving response. The BiQuad is the natural next step after these three tools.</li>
+      </ul>
+
+      <h2>try this</h2>
+      <ol>
+        <li>Set <code>f_zero = 1 kHz</code>, <code>g = 1</code>, start playback. Slowly sweep radius from 0 to 1 and <strong>watch the frequency response panel</strong>. Two things happen at once. The dip at 1 kHz deepens (that's what's easy to see). The whole curve changes shape too: at r = 0.5 it's a rising slope with a small dip, at r = 0.9 the slope is less, and at r = 1 the rest of the spectrum is flat and the dip reaches the chart floor. The slider controls not just depth but how close the filter gets to being a true notch.</li>
+        <li>Set <code>f_zero = 60 Hz</code>, <code>r = 0.98</code>, <code>g = 1</code>: a classic power-line hum rejection setting (50 Hz in Europe instead). At r close to 1 the filter is essentially a notch: the dip at 60 Hz reaches about −30 dB while the rest of the spectrum is close to flat. This is what a DAW's "notch" EQ band does in the low-frequency range. Now try r = 0.5 at the same f_zero: the dip shrinks and a rising slope appears because the filter is no longer a pure notch.</li>
+        <li>Compare <code>(f_zero = 5 kHz, r = 0.5)</code> and <code>(f_zero = 5 kHz, r = 0.99)</code>. At r = 0.5 the filter has a broad tilt from roughly −7 dB at DC rising through +11 dB at Nyquist, with a small dip at 5 kHz; at r = 0.99 the whole spectrum is flat near 0 dB except for a deep dip at 5 kHz. Same f_zero, same pair of zeros on the z-plane, just at different distances from the unit circle, and the behavior is completely different.</li>
+        <li>At <code>r = 0.9, g = 1</code>, compare <code>f_zero = 3 kHz</code> (cos ω₀ &gt; 0 → a₁ negative) with <code>f_zero = 20 kHz</code> (cos ω₀ &lt; 0 → a₁ positive). Watch the impulse response panel: same magnitudes for all three coefficients, but the middle tap flips sign. This is the FIR version of the sign-flip duality you saw in the moving-average / differentiator tool; the sign pattern determines whether the dip sits below or above SR/4.</li>
+        <li>Watch the z-plane while sweeping radius: the two zeros slide along a radial line toward the unit circle, staying at the same angle. At r = 1 the zeros sit exactly on the unit circle and the response touches −∞ dB at that frequency. Now sweep frequency while holding r = 1: the zero pair rotates around the circle as a mirrored pair.</li>
+        <li>Set <code>f_zero = 1 kHz</code>, <code>r = 0.5</code> first, look at the group-delay chart: a shallow dip near 1 kHz on an otherwise near-flat curve. Now bump r to 0.95, then to 0.99. The negative spike deepens enormously: from about −2 samples at r = 0.5, to −20 at r = 0.95, to −99 at r = 0.99. The group-delay spike grows as 1/(1−r), the same law as the IIR's resonant peak but with the sign flipped.</li>
+        <li>With <code>r = 1</code>, <code>g = 1</code>, slowly sweep f_zero from 100 Hz to 20 kHz and listen. You're dragging a narrow silence through the noise, the perceptual opposite of the two-pole IIR's resonance sweep (which drags a narrow tone through the noise). A bank of these, tuned to specific frequencies, is the basis of <em>inverse formant</em> processing and spectral-hole effects.</li>
+      </ol>
+    </div>
+  </section>
+
+  <footer>
+    <div class="footer-label">sources</div>
+    <div class="footer-item">Cook, P. (2002). <em>Real Sound Synthesis for Interactive Applications.</em> Ch. 3</div>
+    <div class="footer-item">Roads, C. (2023). <em>The Computer Music Tutorial</em> (2nd ed.). Ch. 28</div>
+    <div class="footer-affiliation">CSU East Bay Music Composition Department</div>
+    <div class="footer-version">version 1 · Spring 2026 · Inés Thiebaut</div>
+  </footer>
+
+</div>
+
+<script>
+// ============================================================
+// 2-ZERO FIR FILTER · pedagogical tool
+// y[n] = g·x[n] + a₁·x[n−1] + a₂·x[n−2]
+// where a₁ = −2g·r·cos(ω₀), a₂ = g·r²
+// ============================================================
+
+const SR = 48000;
+const NYQUIST = SR / 2;
+
+const C = {
+  text:    '#1a1a17',
+  muted:   '#6a6862',
+  dim:     '#a8a59f',
+  border:  '#e2dfd6',
+  borderS: '#c9c5b8',
+  panel2:  '#f4f2ec',
+  accent:  '#b8693a',
+  pole:    '#c73862',
+  poleS:   'rgba(199,56,98,0.15)',
+  poleSS:  'rgba(199,56,98,0.45)',
+  curve:   '#2c7d6f',
+  warn:    '#c92e1f',
+};
+
+// ---- state ----
+let freqHz = 1000;
+let radius = 0.9;
+let g = 1.00;
+
+// derived coefficients
+// FIR 2-zero: H(z) = g + a1·z⁻¹ + a2·z⁻²
+//   = g · (1 − r·e^(jω₀)·z⁻¹) · (1 − r·e^(−jω₀)·z⁻¹)
+// Expanding: a1 = −2·g·r·cos(ω₀), a2 = g·r²
+// Sign convention as stated in the equation: y[n] = g·x[n] + a1·x[n−1] + a2·x[n−2]
+// — no unary minus baked in, so a1 will display as negative when ω₀ < π/2 (i.e. when
+// the zero frequency is below SR/4) and positive when above it.
+let a1, a2, omega0;
+function recomputeCoeffs() {
+  omega0 = 2 * Math.PI * freqHz / SR;
+  a1 = -2 * g * radius * Math.cos(omega0);
+  a2 = g * radius * radius;
+}
+recomputeCoeffs();
+
+// audio
+let isPlaying = false;
+let audioCtx = null;
+let filterNode = null;
+let sourceNode = null;
+let gainNode = null;
+let volume = 0.3;
+
+// ---- DOM ----
+const freqSlider = document.getElementById('freq-slider');
+const radiusSlider = document.getElementById('radius-slider');
+const gSlider = document.getElementById('g-slider');
+const freqValue = document.getElementById('freq-value');
+const radiusValue = document.getElementById('radius-value');
+const gValue = document.getElementById('g-value');
+const statusBox = document.getElementById('status-box');
+const statusText = document.getElementById('status-text');
+const mFreq = document.getElementById('m-freq');
+const mNotch = document.getElementById('m-notch');
+const mGD = document.getElementById('m-gd');
+const mNyq = document.getElementById('m-nyq');
+const calcSub = document.getElementById('calc-sub');
+const playBtn = document.getElementById('play-btn');
+const volSlider = document.getElementById('vol-slider');
+
+// live-equation DOM refs: these spans show the current coefficients inside
+// y[n] = g·x[n] + a₁·x[n−1] + a₂·x[n−2].
+// — a₁ = −2g·r·cos(ω₀) is negative when ω₀ < π/2 (f_zero < SR/4 = 12 kHz),
+//   positive when ω₀ > π/2. The sign span flips between "−" and "+" accordingly
+//   and we display |a₁|.
+// — a₂ = g·r² has the same sign as g (always nonnegative at our slider ranges
+//   where g ≥ 0). The sign span is hardcoded "+" in the markup and we display a₂.
+const liveEqBody = document.getElementById('live-equation-body');
+const liveG = document.getElementById('live-g');
+const liveA1 = document.getElementById('live-a1');
+const liveA2 = document.getElementById('live-a2');
+const liveA1Sign = document.getElementById('live-a1-sign');
+
+// ---- canvas setup ----
+function setupCanvas(id) {
+  const canvas = document.getElementById(id);
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  ctx.scale(dpr, dpr);
+  return { ctx, w: rect.width, h: rect.height };
+}
+
+let zp, ip, fr, gd;
+function initCanvases() {
+  zp = setupCanvas('zplane');
+  ip = setupCanvas('impulse');
+  fr = setupCanvas('freq');
+  gd = setupCanvas('gdelay');
+}
+
+// ---- log slider conversion ----
+// The freq slider spans the practical mathematical range of the filter:
+// 10 Hz (essentially DC at audio sample rates) up to NYQUIST (SR/2 = 24 kHz
+// at SR = 48 kHz). We start at 10 Hz rather than 1 Hz because the response
+// at 1–10 Hz is visually indistinguishable from the DC response — nothing
+// interesting happens there to look at — so the slider reflects the range
+// where moving the thumb produces a visible change. This still spans the
+// full audible range and dips meaningfully into sub-audio territory because
+// Digital filters operate across the full spectrum, not only audible audio —
+// sub-audio frequencies matter for control-rate and modular applications.
+//
+// slider [0..1] → freq [10..NYQUIST] Hz, log-scaled.
+// At s=0: f = 10; at s=1: f = NYQUIST.
+const FREQ_MIN = 10;
+const FREQ_MAX = NYQUIST;
+function sliderToFreq(s) { return FREQ_MIN * Math.pow(FREQ_MAX / FREQ_MIN, s); }
+function freqToSlider(f) { return Math.log(f / FREQ_MIN) / Math.log(FREQ_MAX / FREQ_MIN); }
+
+// ============================================================
+// VIZ 1 · Z-PLANE
+// ============================================================
+function drawZPlane() {
+  const { ctx, w, h } = zp;
+  ctx.clearRect(0, 0, w, h);
+
+  const cx = w / 2, cy = h / 2;
+  const radPx = Math.min(w, h) * 0.38;
+
+  // axes
+  ctx.strokeStyle = C.border;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(0, cy); ctx.lineTo(w, cy);
+  ctx.moveTo(cx, 0); ctx.lineTo(cx, h);
+  ctx.stroke();
+
+  // unit circle (dashed, slightly emphasized)
+  ctx.strokeStyle = C.borderS;
+  ctx.setLineDash([4, 4]);
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.arc(cx, cy, radPx, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.lineWidth = 1;
+
+  // axis labels
+  ctx.fillStyle = C.muted;
+  ctx.font = "11px 'DM Mono', monospace";
+  ctx.textAlign = 'center';
+  ctx.fillText('Re', w - 14, cy - 6);
+  ctx.fillText('Im', cx + 14, 12);
+  ctx.textAlign = 'left';
+  ctx.fillText('+1 (DC)', cx + radPx + 8, cy + 18);
+  ctx.textAlign = 'right';
+  ctx.fillText('−1 (Nyq)', cx - radPx - 8, cy + 18);
+  ctx.textAlign = 'center';
+
+  // Half-radius markers on the real axis, so students can read off the zero
+  // radius visually without only trusting the metric value.
+  ctx.fillStyle = C.dim;
+  ctx.font = "10px 'DM Mono', monospace";
+  ctx.textAlign = 'left';
+  ctx.fillText('+0.5', cx + radPx * 0.5 + 4, cy + 14);
+  ctx.textAlign = 'right';
+  ctx.fillText('−0.5', cx - radPx * 0.5 - 4, cy + 14);
+  // Origin "0" label — suppress when the zero pair sits very close to the
+  // origin (radius < 0.07), since the zero glyph would collide with the text.
+  if (radius > 0.07) {
+    ctx.textAlign = 'left';
+    ctx.fillText('0', cx + 4, cy + 14);
+  }
+  ctx.textAlign = 'center';
+
+  // zero positions (complex conjugate pair at r·e^(±jω₀))
+  const zx = cx + radius * Math.cos(omega0) * radPx;
+  const zy_top = cy - radius * Math.sin(omega0) * radPx;  // upper zero (positive Im)
+  const zy_bot = cy + radius * Math.sin(omega0) * radPx;  // lower zero (conjugate)
+
+  // lines from origin to each zero (subtle, helps show angle = frequency)
+  ctx.strokeStyle = C.poleSS;
+  ctx.lineWidth = 1;
+  ctx.setLineDash([2, 3]);
+  ctx.beginPath();
+  ctx.moveTo(cx, cy); ctx.lineTo(zx, zy_top);
+  ctx.moveTo(cx, cy); ctx.lineTo(zx, zy_bot);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // info label
+  ctx.fillStyle = C.pole;
+  ctx.font = "12px 'DM Mono', monospace";
+  ctx.textAlign = 'left';
+  ctx.fillText(`zero pair · radius ${radius.toFixed(3)}`, 16, 22);
+  ctx.fillText(`angle ±${(omega0 * 180 / Math.PI).toFixed(1)}°`, 16, 38);
+
+  // draw zeros as open rings (the standard z-plane symbol for zeros, the
+  // counterpart to the X-marked poles in the IIR tools)
+  function drawZero(x, y) {
+    // soft halo behind the ring, keeps visual weight parity with the pole marker
+    ctx.fillStyle = C.poleS;
+    ctx.beginPath();
+    ctx.arc(x, y, 14, 0, Math.PI * 2);
+    ctx.fill();
+
+    // white inner disk to produce the "hollow" effect of the ring
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(x, y, 7, 0, Math.PI * 2);
+    ctx.fill();
+
+    // the ring outline itself
+    ctx.strokeStyle = C.pole;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(x, y, 7, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  drawZero(zx, zy_top);
+  drawZero(zx, zy_bot);
+}
+
+// ============================================================
+// VIZ 2 · IMPULSE RESPONSE
+// For an FIR, the impulse response IS the coefficient list:
+//   h = [g, a1, a2]  then silence forever
+// No need to run the filter — we just plot the three coefficients as
+// stems at n=0,1,2 and show trailing zeros for several more samples so
+// the "finite" part of "finite impulse response" is visually obvious.
+// ============================================================
+function drawImpulse() {
+  const { ctx, w, h } = ip;
+  ctx.clearRect(0, 0, w, h);
+
+  // Fixed small window — the impulse response is exactly 3 samples long,
+  // and we want enough trailing zeros to make the termination visible.
+  const N = 16;
+
+  const padL = 36, padR = 16, padT = 16, padB = 28;
+  const plotW = w - padL - padR;
+  const plotH = h - padT - padB;
+  const cy = padT + plotH / 2;
+
+  // The three coefficient values — that's the entire impulse response.
+  const coeffs = [g, a1, a2];
+  const samples = [];
+  for (let n = 0; n < N; n++) {
+    samples.push(n < 3 ? coeffs[n] : 0);
+  }
+
+  // y-scale based on the largest coefficient magnitude
+  let maxAbs = 0;
+  for (const c of coeffs) {
+    if (Math.abs(c) > maxAbs) maxAbs = Math.abs(c);
+  }
+  const displayMax = Math.max(0.1, maxAbs);
+  const yScale = (plotH / 2) / (displayMax * 1.15);
+
+  // x-axis tick step
+  const nStep = 2;
+
+  // --- grid (behind everything) ---
+  ctx.strokeStyle = C.border;
+  ctx.lineWidth = 1;
+  for (let n = 0; n <= N; n += nStep) {
+    const x = padL + (n / Math.max(1, N - 1)) * plotW;
+    ctx.beginPath();
+    ctx.moveTo(x, padT);
+    ctx.lineTo(x, padT + plotH);
+    ctx.stroke();
+  }
+  for (const frac of [1, 0.5, -0.5, -1]) {
+    const y = cy - frac * displayMax * yScale;
+    if (y < padT || y > padT + plotH) continue;
+    ctx.beginPath();
+    ctx.moveTo(padL, y); ctx.lineTo(w - padR, y);
+    ctx.stroke();
+  }
+
+  // --- axes (slightly stronger) ---
+  ctx.strokeStyle = C.borderS;
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.moveTo(padL, cy); ctx.lineTo(w - padR, cy);
+  ctx.moveTo(padL, padT); ctx.lineTo(padL, padT + plotH);
+  ctx.stroke();
+
+  // --- y-axis labels (+/-/0) ---
+  ctx.fillStyle = C.muted;
+  ctx.font = "10px 'DM Mono', monospace";
+  ctx.textAlign = 'right';
+  ctx.fillText('+', padL - 4, padT + 8);
+  ctx.fillText('0', padL - 4, cy + 4);
+  ctx.fillText('−', padL - 4, padT + plotH);
+
+  // --- x-axis n-value labels ---
+  ctx.textAlign = 'center';
+  ctx.fillStyle = C.muted;
+  for (let n = 0; n <= N; n += nStep) {
+    const x = padL + (n / Math.max(1, N - 1)) * plotW;
+    ctx.fillText(n.toString(), x, h - 10);
+  }
+  ctx.textAlign = 'left';
+  ctx.fillStyle = C.dim;
+  ctx.fillText('n', w - padR + 2, h - 10);
+
+  // Divider line at n=3 (start of silence) — a visual reminder that the
+  // impulse response has ended, the distinctive FIR "finite" property.
+  const xSilence = padL + (3 / (N - 1)) * plotW;
+  ctx.strokeStyle = C.dim;
+  ctx.setLineDash([2, 3]);
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(xSilence, padT); ctx.lineTo(xSilence, padT + plotH);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = C.dim;
+  ctx.textAlign = 'left';
+  ctx.font = "10px 'DM Mono', monospace";
+  ctx.fillText('→ 0 from here', xSilence + 4, padT + 12);
+
+  // --- stems ---
+  // Active stems (n = 0, 1, 2) drawn in curve teal; trailing zeros drawn as
+  // faint dim ticks at the zero line to show the sequence continuing.
+  ctx.lineWidth = 2.2;
+  for (let n = 0; n < N; n++) {
+    const x = padL + (n / (N - 1)) * plotW;
+    const val = samples[n];
+    const y = cy - val * yScale;
+
+    if (n < 3) {
+      // Active stem
+      ctx.strokeStyle = C.curve;
+      ctx.beginPath();
+      ctx.moveTo(x, cy); ctx.lineTo(x, y);
+      ctx.stroke();
+      // Filled dot at the stem tip
+      ctx.fillStyle = C.curve;
+      ctx.beginPath();
+      ctx.arc(x, y, 3, 0, Math.PI * 2);
+      ctx.fill();
+      // Label the stem with its coefficient name
+      const labels = ['g', 'a₁', 'a₂'];
+      ctx.fillStyle = C.text;
+      ctx.font = "11px 'DM Mono', monospace";
+      ctx.textAlign = 'center';
+      // Put label above the positive stem tip or below the negative stem tip,
+      // so it never collides with the zero axis or the stem itself.
+      const labelY = val >= 0 ? y - 8 : y + 18;
+      ctx.fillText(labels[n], x, labelY);
+    } else {
+      // Silent tail: a small dim tick at the zero line
+      ctx.fillStyle = C.dim;
+      ctx.beginPath();
+      ctx.arc(x, cy, 1.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+}
+
+// ============================================================
+// VIZ 3 · FREQUENCY RESPONSE
+// |H(e^jω)| = |g + a₁·e^(−jω) + a₂·e^(−j2ω)|
+// ============================================================
+function drawFrequency() {
+  const { ctx, w, h } = fr;
+  ctx.clearRect(0, 0, w, h);
+
+  const padL = 50, padR = 20, padT = 18, padB = 32;
+  const plotW = w - padL - padR;
+  const plotH = h - padT - padB;
+
+  // dB range: −200 to +20. Peak gain at slider extremes is about +18 dB.
+  // −200 dB floor lets the deep notch at r → 1 fully descend into view.
+  const dbMax = 20;
+  const dbMin = -200;
+  const dbRange = dbMax - dbMin;
+
+  // Full-range view: 10 Hz → Nyquist. Matches the slider's range, so the
+  // zero-frequency marker is always visible and the chart reflects the full
+  // mathematical range the user can produce. Starting at 10 Hz uses the
+  // horizontal space efficiently — three full audible decades (10–100,
+  // 100–1k, 1k–10k) plus a partial decade up to Nyquist.
+  const fMin = Math.log10(10);
+  const fMax = Math.log10(NYQUIST);
+
+  // dB grid
+  ctx.lineWidth = 1;
+  ctx.font = "10px 'DM Mono', monospace";
+  for (let db = dbMax; db >= dbMin; db -= 10) {
+    const y = padT + ((dbMax - db) / dbRange) * plotH;
+    ctx.strokeStyle = C.border;
+    ctx.beginPath();
+    ctx.moveTo(padL, y); ctx.lineTo(w - padR, y);
+    ctx.stroke();
+    ctx.fillStyle = C.muted;
+    ctx.textAlign = 'right';
+    // mark 0 dB slightly stronger so unity-gain is visually anchored
+    const label = db === 0 ? '0 dB' : (db > 0 ? '+' + db + ' dB' : db + ' dB');
+    ctx.fillText(label, padL - 6, y + 3);
+  }
+
+  // minor frequency grid (no labels) — 2-3-...-9 pattern in each decade
+  // covers the four decades from 10 Hz to ~24 kHz Nyquist.
+  const minorFreqs = [
+    20, 30, 40, 50, 60, 70, 80, 90,
+    200, 300, 400, 500, 600, 700, 800, 900,
+    2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000,
+    20000
+  ];
+  ctx.strokeStyle = '#f0ede4';
+  for (const f of minorFreqs) {
+    const x = padL + ((Math.log10(f) - fMin) / (fMax - fMin)) * plotW;
+    ctx.beginPath();
+    ctx.moveTo(x, padT); ctx.lineTo(x, padT + plotH);
+    ctx.stroke();
+  }
+
+  // major (labeled) frequency grid — one tick per decade plus Nyquist
+  const majorFreqs = [
+    { f: 10,    label: '10'   },
+    { f: 100,   label: '100'  },
+    { f: 1000,  label: '1k'   },
+    { f: 10000, label: '10k'  },
+    { f: NYQUIST, label: 'Nyq' }  // Nyquist = SR/2 = 24 kHz at SR = 48 kHz
+  ];
+  ctx.strokeStyle = C.border;
+  for (const { f, label } of majorFreqs) {
+    const x = padL + ((Math.log10(f) - fMin) / (fMax - fMin)) * plotW;
+    ctx.beginPath();
+    ctx.moveTo(x, padT); ctx.lineTo(x, padT + plotH);
+    ctx.stroke();
+    ctx.fillStyle = C.muted;
+    ctx.textAlign = 'center';
+    ctx.fillText(label, x, h - 14);
+  }
+  ctx.textAlign = 'right';
+  ctx.fillStyle = C.dim;
+  ctx.fillText('Hz', w - padR - 4, h - 4);
+
+  // Zero-frequency vertical marker. For this FIR the zero angle is always
+  // well-defined (and unlike the IIR's R_MIN_RESONANCE carve-out, there's no
+  // "too broad" case — the dip at f_zero is always a real spectral feature,
+  // even at low r where it's just a few dB). The marker helps students lock
+  // on to the dip, which at high r can become narrow enough to miss visually.
+  const fx = padL + ((Math.log10(freqHz) - fMin) / (fMax - fMin)) * plotW;
+  ctx.strokeStyle = C.pole;
+  ctx.globalAlpha = 0.55;
+  ctx.setLineDash([4, 4]);
+  ctx.beginPath();
+  ctx.moveTo(fx, padT); ctx.lineTo(fx, padT + plotH);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = C.pole;
+  ctx.font = "10px 'DM Mono', monospace";
+  ctx.textAlign = 'center';
+  ctx.fillText('zero freq', fx, padT - 4);
+  ctx.globalAlpha = 1;
+
+  // response curve
+  ctx.strokeStyle = C.curve;
+  ctx.lineWidth = 2.2;
+  ctx.beginPath();
+
+  // Build the frequency sample list:
+  //   (1) NPTS uniform samples in log space (the bulk of the curve)
+  //   (2) A dense window of extra samples clustered around the zero angle.
+  //
+  // Why: at high radius (r → 1) the notch is razor-thin — the dip at f_zero
+  // deepens (−19 dB at r=0.9, −38 dB at r=0.99, −∞ at r=1) and its bandwidth
+  // shrinks. A uniform log-space grid at NPTS=500 leaves ~1.5% gaps in
+  // frequency, which at 11 kHz is ~170 Hz — potentially wider than the dip
+  // when r is high. So the uniform grid can render a flat-bottomed curve
+  // that underestimates the notch depth, or miss it entirely.
+  //
+  // Same trick as the two-pole IIR's peak capture: a tight ±0.03-decade
+  // (≈ ±7%) zone of 100 extra samples near the zero angle guarantees the
+  // dip gets sampled at least once within a few Hz of its true position.
+  const NPTS = 500;
+  const logFreqs = [];
+  for (let i = 0; i <= NPTS; i++) {
+    logFreqs.push(fMin + (i / NPTS) * (fMax - fMin));
+  }
+  const f0Log = Math.log10(Math.max(10, freqHz));
+  const denseWindow = 0.03;  // ± 0.03 decades ≈ ± 7%
+  const denseN = 100;
+  const dMin = Math.max(fMin, f0Log - denseWindow);
+  const dMax = Math.min(fMax, f0Log + denseWindow);
+  for (let i = 0; i <= denseN; i++) {
+    logFreqs.push(dMin + (i / denseN) * (dMax - dMin));
+  }
+  logFreqs.sort((a, b) => a - b);
+
+  for (let idx = 0; idx < logFreqs.length; idx++) {
+    const flogN = logFreqs[idx];
+    const f = Math.pow(10, flogN);
+    const w_ = 2 * Math.PI * f / SR;
+    // |H(ω)|² = |g + a1·e^(−jω) + a2·e^(−j2ω)|²
+    //         = (g + a1·cos(ω) + a2·cos(2ω))² + (a1·sin(ω) + a2·sin(2ω))²
+    const re = g + a1 * Math.cos(w_) + a2 * Math.cos(2 * w_);
+    const im = -(a1 * Math.sin(w_) + a2 * Math.sin(2 * w_));
+    const mag = Math.sqrt(re * re + im * im);
+    const db = 20 * Math.log10(Math.max(1e-10, mag));
+    const dbClipped = Math.max(dbMin, Math.min(dbMax, db));
+    const x = padL + ((flogN - fMin) / (fMax - fMin)) * plotW;
+    const y = padT + ((dbMax - dbClipped) / dbRange) * plotH;
+    if (idx === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+}
+
+// ============================================================
+// GROUP DELAY · for a 3-tap FIR polynomial
+// ============================================================
+// For any polynomial filter H(z) = Σ h_k·z⁻ᵏ, group delay has the closed form
+//     τ(ω) = Re[ N(ω) / D(ω) ]
+// where N(ω) = Σ k·h_k·e⁻ʲʷᵏ and D(ω) = Σ h_k·e⁻ʲʷᵏ = H(e^jω).
+// This is the standard textbook formula (see Oppenheim & Schafer, or any
+// DSP reference), derivable by writing H in polar form, taking the phase,
+// and differentiating.
+//
+// For our three coefficients at indices k = 0, 1, 2:
+//   N(ω) = 0·g·e^0 + 1·a1·e⁻ʲʷ + 2·a2·e⁻ʲ²ʷ
+//        = a1·e⁻ʲʷ + 2·a2·e⁻ʲ²ʷ
+//   D(ω) = g + a1·e⁻ʲʷ + a2·e⁻ʲ²ʷ
+//
+// Behavior notes:
+// — Everywhere except at the zero frequency, τ stays small (in |·| ≤ a few samples).
+// — At the zero frequency ω₀: as r → 1, D(ω₀) → 0, and τ plunges to large
+//   negative values (−9 samples at r=0.9, −99 at r=0.99, −∞ at r=1).
+// — At r = 1 exactly, g = a2 so coefficients are symmetric and the filter is
+//   linear-phase τ = 1 everywhere except at ω₀ where it's 0/0 (undefined).
+//   At r=1 exactly the formula returns 0 at the notch frequency (0/0 guard).
+// — Unlike the IIR, τ can be large in magnitude (tens of samples) and
+//   strongly negative. This is honest about the physics: negative group delay
+//   is a real property of notch filters, one of the most striking places it
+//   shows up at human-audible scales.
+function groupDelaySamples(omega) {
+  const cosw = Math.cos(omega), sinw = Math.sin(omega);
+  const cos2w = Math.cos(2 * omega), sin2w = Math.sin(2 * omega);
+  // N(ω) = a1·e⁻ʲʷ + 2·a2·e⁻ʲ²ʷ
+  const N_re = a1 * cosw + 2 * a2 * cos2w;
+  const N_im = -(a1 * sinw + 2 * a2 * sin2w);
+  // D(ω) = g + a1·e⁻ʲʷ + a2·e⁻ʲ²ʷ
+  const D_re = g + a1 * cosw + a2 * cos2w;
+  const D_im = -(a1 * sinw + a2 * sin2w);
+  // Re[N/D] = (N_re·D_re + N_im·D_im) / (D_re² + D_im²)
+  const denom = D_re * D_re + D_im * D_im;
+  if (denom < 1e-20) return 0;  // avoid 0/0 at the notch when r=1
+  return (N_re * D_re + N_im * D_im) / denom;
+}
+
+// ============================================================
+// VIZ 4 · GROUP DELAY (samples vs. log frequency)
+// ============================================================
+// Pairs visually with the magnitude response above: identical x-axis (log
+// frequency, 10 Hz to Nyquist), identical curve color (teal), identical
+// frequency grid. Zero-frequency marker matches the magnitude chart's pink
+// dashed line, so students see the same anchor in both plots.
+//
+// Two things are distinctive compared to the IIR tools:
+// — FIR is always stable, so there's no "unstable" overlay.
+// — The group-delay feature at the zero frequency is a negative SPIKE (not
+//   a positive peak like the IIR). As r → 1, τ at ω₀ goes to −∞. At r=0.99
+//   it reaches about −99 samples, so the auto-scale has to handle a much
+//   larger negative excursion than the IIR tools ever produced.
+function drawGroupDelay() {
+  const { ctx, w, h } = gd;
+  ctx.clearRect(0, 0, w, h);
+
+  const padL = 50, padR = 20, padT = 18, padB = 32;
+  const plotW = w - padL - padR;
+  const plotH = h - padT - padB;
+
+  // ---- x-axis range matches the magnitude chart exactly (10 Hz → Nyquist) ----
+  const fMin = Math.log10(10);
+  const fMax = Math.log10(NYQUIST);
+
+  // ---- compute the curve, with extra density around the zero frequency ----
+  // The negative spike at ω₀ is razor-thin for high r (same reason the
+  // magnitude dip is razor-thin — they're both driven by |H(ω)| being small
+  // in a narrow band). A uniform log-frequency grid can skip over it. Cluster
+  // extra samples in a tight ±0.03-decade zone around the zero frequency,
+  // same fix as the magnitude chart.
+  const NPTS = 500;
+  const samples = [];
+  const logFreqs = [];
+  for (let i = 0; i <= NPTS; i++) {
+    logFreqs.push(fMin + (i / NPTS) * (fMax - fMin));
+  }
+  {
+    const f0Log = Math.log10(Math.max(10, freqHz));
+    const denseWindow = 0.03;
+    const denseN = 100;
+    const dMin = Math.max(fMin, f0Log - denseWindow);
+    const dMax = Math.min(fMax, f0Log + denseWindow);
+    for (let i = 0; i <= denseN; i++) {
+      logFreqs.push(dMin + (i / denseN) * (dMax - dMin));
+    }
+  }
+  logFreqs.sort((a, b) => a - b);
+  for (const flogN of logFreqs) {
+    const f = Math.pow(10, flogN);
+    const omega = 2 * Math.PI * f / SR;
+    const tau = groupDelaySamples(omega);
+    samples.push({ flogN, tau });
+  }
+
+  // ---- y-axis range: auto-scale to nice numbers ----
+  let tauMax = 0, tauMin = 0;
+  for (const s of samples) {
+    if (s.tau > tauMax) tauMax = s.tau;
+    if (s.tau < tauMin) tauMin = s.tau;
+  }
+  if (tauMax < 0.01 && tauMin > -0.01) {
+    tauMax = 1; tauMin = -1;
+  }
+
+  // niceCeiling: 1-2-3-5-7 pattern per decade with strict-less-than so peaks
+  // landing exactly on a tier bump up for breathing room. Standard auto-axis
+  // pattern shared across the filter-tool suite.
+  function niceCeiling(v) {
+    if (v <= 0) return 1;
+    const decade = Math.pow(10, Math.floor(Math.log10(v)));
+    const norm = v / decade;
+    let mult;
+    if (norm < 1) mult = 1;
+    else if (norm < 2) mult = 2;
+    else if (norm < 3) mult = 3;
+    else if (norm < 5) mult = 5;
+    else if (norm < 7) mult = 7;
+    else mult = 10;
+    return mult * decade;
+  }
+  const yTop = niceCeiling(tauMax);
+
+  // Lower bound: FIR 2-zero negatives are much deeper than the IIRs' — down
+  // to about −99 samples at r=0.99. The floor list extends to 200 to handle
+  // the full slider range (at r=0.99 the spike is roughly −99 samples; leaving
+  // a 2× headroom accommodates the exact-slider-max value cleanly).
+  let yBot;
+  if (tauMin < -0.01) {
+    const negFloors = [0.5, 1, 2, 5, 10, 20, 50, 100, 200];
+    let yBotMag = negFloors[negFloors.length - 1];
+    for (const t of negFloors) {
+      if (t >= -tauMin) { yBotMag = t; break; }
+    }
+    yBot = -yBotMag;
+  } else {
+    yBot = 0;
+  }
+  const yRange = yTop - yBot;
+
+  // ---- y-axis grid and labels ----
+  // yStep keyed to the larger of yTop and |yBot|. When the negative region is
+  // larger than the positive ceiling (which is the common case for this FIR —
+  // positive τ rarely exceeds a few samples while negative τ can reach −99),
+  // keying yStep on yTop alone produces too many gridlines. Using
+  // effectiveTop = max(yTop, |yBot|) gives 5-7 gridlines across the range.
+  function pickYStep(yt) {
+    const decade = Math.pow(10, Math.floor(Math.log10(yt)));
+    const norm = yt / decade;
+    if (norm <= 1) return 0.2 * decade;
+    if (norm <= 2) return 0.5 * decade;
+    if (norm <= 3) return 0.5 * decade;
+    if (norm <= 5) return 1 * decade;
+    if (norm <= 7) return 1 * decade;
+    return 2 * decade;
+  }
+  const effectiveTop = Math.max(yTop, Math.abs(yBot));
+  const yStep = pickYStep(effectiveTop);
+
+  ctx.lineWidth = 1;
+  ctx.font = "10px 'DM Mono', monospace";
+  const firstTick = Math.ceil(yBot / yStep) * yStep;
+  const drawnTicks = new Set();
+  for (let v = firstTick; v <= yTop + 1e-9; v += yStep) {
+    const y = padT + ((yTop - v) / yRange) * plotH;
+    ctx.strokeStyle = (Math.abs(v) < 1e-9) ? C.borderS : C.border;
+    ctx.lineWidth = (Math.abs(v) < 1e-9) ? 1.2 : 1;
+    ctx.beginPath();
+    ctx.moveTo(padL, y); ctx.lineTo(w - padR, y);
+    ctx.stroke();
+    ctx.fillStyle = (Math.abs(v) < 1e-9) ? C.text : C.muted;
+    ctx.textAlign = 'right';
+    // Normalize floating-point near-zero to avoid rendering "-0" or "-0.0"
+    // (which happens when the tick loop accumulates error stepping through
+    // zero from a negative start, e.g. yStep=0.2 from yBot=-1.0).
+    const vFormatted = Math.abs(v) < 1e-9 ? 0 : v;
+    const lbl = Math.abs(vFormatted - Math.round(vFormatted)) < 1e-9 ? vFormatted.toFixed(0) : vFormatted.toFixed(1);
+    ctx.fillText(lbl, padL - 6, y + 3);
+    drawnTicks.add(Math.round(v * 1000) / 1000);
+  }
+  // If yBot didn't land on a natural tick, draw a boundary line at the bottom
+  // edge so the negative region has a visual anchor.
+  if (yBot < 0 && !drawnTicks.has(Math.round(yBot * 1000) / 1000)) {
+    const y = padT + plotH;
+    ctx.strokeStyle = C.border;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(padL, y); ctx.lineTo(w - padR, y);
+    ctx.stroke();
+    ctx.fillStyle = C.muted;
+    ctx.textAlign = 'right';
+    const lbl = Math.abs(yBot - Math.round(yBot)) < 1e-9 ? yBot.toFixed(0) : yBot.toFixed(1);
+    ctx.fillText(lbl, padL - 6, y + 3);
+  }
+  ctx.lineWidth = 1;
+  ctx.fillStyle = C.dim;
+  ctx.textAlign = 'left';
+  ctx.fillText('samples', padL + 4, padT + 10);
+
+  // ---- x-axis grid (mirrors the magnitude chart's 10 Hz → Nyquist range) ----
+  const minorFreqs = [
+    20, 30, 40, 50, 60, 70, 80, 90,
+    200, 300, 400, 500, 600, 700, 800, 900,
+    2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000,
+    20000
+  ];
+  ctx.strokeStyle = '#f0ede4';
+  for (const f of minorFreqs) {
+    const x = padL + ((Math.log10(f) - fMin) / (fMax - fMin)) * plotW;
+    ctx.beginPath();
+    ctx.moveTo(x, padT); ctx.lineTo(x, padT + plotH);
+    ctx.stroke();
+  }
+  const majorFreqs = [
+    { f: 10, label: '10' },
+    { f: 100, label: '100' },
+    { f: 1000, label: '1k' },
+    { f: 10000, label: '10k' },
+    { f: NYQUIST, label: 'Nyq' }
+  ];
+  ctx.strokeStyle = C.border;
+  for (const { f, label } of majorFreqs) {
+    const x = padL + ((Math.log10(f) - fMin) / (fMax - fMin)) * plotW;
+    ctx.beginPath();
+    ctx.moveTo(x, padT); ctx.lineTo(x, padT + plotH);
+    ctx.stroke();
+    ctx.fillStyle = C.muted;
+    ctx.textAlign = 'center';
+    ctx.fillText(label, x, h - 14);
+  }
+  ctx.textAlign = 'right';
+  ctx.fillStyle = C.dim;
+  ctx.fillText('Hz', w - padR - 4, h - 4);
+
+  // ---- zero-frequency marker (always shown) ----
+  // Same dashed-pink visual language as the magnitude chart's marker. The
+  // zero frequency is always meaningful for this filter (no R_MIN threshold
+  // like the one-pole's cutoff), so the marker is unconditional.
+  if (freqHz >= 10 && freqHz <= NYQUIST) {
+    const fx = padL + ((Math.log10(freqHz) - fMin) / (fMax - fMin)) * plotW;
+    ctx.strokeStyle = C.pole;
+    ctx.globalAlpha = 0.55;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(fx, padT); ctx.lineTo(fx, padT + plotH);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = C.pole;
+    ctx.font = "10px 'DM Mono', monospace";
+    ctx.textAlign = 'center';
+    ctx.fillText('zero freq', fx, padT - 4);
+  }
+
+  // ---- the curve ----
+  ctx.strokeStyle = C.curve;
+  ctx.lineWidth = 2.2;
+  ctx.beginPath();
+  for (let idx = 0; idx < samples.length; idx++) {
+    const { flogN, tau } = samples[idx];
+    const x = padL + (flogN - fMin) / (fMax - fMin) * plotW;
+    const tauClipped = Math.max(yBot, Math.min(yTop, tau));
+    const y = padT + ((yTop - tauClipped) / yRange) * plotH;
+    if (idx === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+}
+
+// ============================================================
+// LIVE STATUS
+// ============================================================
+function updateStatus() {
+  // Status text — five tiers by radius, describing notch depth and character.
+  // Status text tiers key on radius. The lower tiers are NOT clean notches —
+  // the filter only becomes a true notch in the r → 1 limit, so language below
+  // that reflects the actual behavior (shallow dip + spectral tilt) rather than
+  // calling it a notch.
+  let text;
+  if (radius < 0.15) {
+    text = `radius = ${radius.toFixed(3)} keeps the zeros very close to the origin → almost no attenuation at ${formatFreq(freqHz)}. The magnitude curve is nearly flat. Essentially a passthrough scaled by g.`;
+  } else if (radius < 0.5) {
+    text = `radius = ${radius.toFixed(3)} → gentle dip at ${formatFreq(freqHz)} of a few dB, combined with a broad spectral tilt because the coefficient sequence is asymmetric at low r. Not yet a notch filter.`;
+  } else if (radius < 0.85) {
+    text = `radius = ${radius.toFixed(3)} → the dip at ${formatFreq(freqHz)} deepens to around −10 to −20 dB, but the filter still has noticeable spectral tilt beyond the dip. Between "broad tilt" and "clean notch."`;
+  } else if (radius < 0.97) {
+    text = `radius = ${radius.toFixed(3)} → the dip at ${formatFreq(freqHz)} approaches −25 to −35 dB and the tilt is small enough that the filter starts to look like a notch. At this range the pure-notch approximation is fair.`;
+  } else {
+    text = `radius = ${radius.toFixed(3)} → near-pure notch at ${formatFreq(freqHz)}. The filter is approaching its textbook notch form: more than −35 dB of rejection at f_zero, near-flat response everywhere else. At this setting the group delay at the zero frequency diverges (large negative values), visible in the chart below.`;
+  }
+  statusText.textContent = text;
+
+  // Metric: zero frequency (straight readout)
+  mFreq.textContent = formatFreq(freqHz);
+
+  // Metric: notch depth at ω₀. Compute |H(ω₀)| using the same formula as
+  // the magnitude-response curve, then convert to dB. At r = 0.99 this
+  // reaches about −38 dB; at r = 0 it's near 0 dB (no attenuation).
+  const cosw0 = Math.cos(omega0), sinw0 = Math.sin(omega0);
+  const cos2w0 = Math.cos(2 * omega0), sin2w0 = Math.sin(2 * omega0);
+  const H_re = g + a1 * cosw0 + a2 * cos2w0;
+  const H_im = -(a1 * sinw0 + a2 * sin2w0);
+  const Hmag = Math.sqrt(H_re * H_re + H_im * H_im);
+  const notchDb = 20 * Math.log10(Math.max(1e-10, Hmag));
+  if (notchDb < -200) {
+    mNotch.textContent = '< −200 dB';
+  } else {
+    mNotch.textContent = notchDb.toFixed(1) + ' dB';
+  }
+
+  // Metric: group delay at f_zero. Uses the same closed-form as the curve
+  // drawing (groupDelaySamples), evaluated at ω₀. Typically negative for
+  // this filter (see the math notes in drawGroupDelay). Two-line format
+  // matches the FIR moving-average and one-pole/two-pole IIR tools.
+  const tau = groupDelaySamples(omega0);
+  const ms = (tau / SR) * 1000;
+  const sampleStr = Math.abs(tau) >= 10 ? tau.toFixed(1) : tau.toFixed(2);
+  const msStr = Math.abs(ms) < 0.001 ? ms.toExponential(1) + ' ms'
+              : Math.abs(ms) < 1 ? ms.toFixed(3) + ' ms'
+              : ms.toFixed(2) + ' ms';
+  mGD.innerHTML = sampleStr + ' samples<br><span style="color: var(--muted); font-size: 12px;">(' + msStr + ')</span>';
+
+  // Metric: Nyquist gain = |H(π)| = |g - a1 + a2|. Also real; report value
+  // with sign.
+  const nyqVal = g - a1 + a2;
+  const nyqDb = 20 * Math.log10(Math.max(1e-10, Math.abs(nyqVal)));
+  mNyq.innerHTML = nyqVal.toFixed(3) + '<br><span style="color: var(--muted); font-size: 12px;">(' +
+                   nyqDb.toFixed(1) + ' dB' + ')</span>';
+
+  // Live substitution into the zero-angle and coefficient formulas.
+  // One branch: normal case (FIR always stable, no "too broad" threshold).
+  const omegaDeg = (omega0 * 180 / Math.PI).toFixed(2);
+  const calcHTML =
+    `<span class="eq-line">with f<sub>zero</sub> = <span class="num">${freqHz.toFixed(0)}</span> Hz, r = <span class="num">${radius.toFixed(3)}</span>, g = <span class="num">${g.toFixed(3)}</span>, SR = ${SR}</span>` +
+    `<span class="eq-line"> </span>` +
+    `<span class="eq-line">ω₀ <span class="op">=</span> 2π · ${freqHz.toFixed(0)} / ${SR}</span>` +
+    `<span class="eq-line">   <span class="op">=</span> <span class="num">${omega0.toFixed(5)}</span> rad    (zero angle = <span class="num">${omegaDeg}°</span>)</span>` +
+    `<span class="eq-line"> </span>` +
+    `<span class="eq-line">a₁ <span class="op">=</span> −2 · ${g.toFixed(3)} · ${radius.toFixed(3)} · cos(${omega0.toFixed(4)})</span>` +
+    `<span class="eq-line">   <span class="op">=</span> −2 · ${g.toFixed(3)} · ${radius.toFixed(3)} · ${cosw0.toFixed(5)}</span>` +
+    `<span class="eq-line">   <span class="op">=</span> <span class="num">${a1.toFixed(4)}</span></span>` +
+    `<span class="eq-line"> </span>` +
+    `<span class="eq-line">a₂ <span class="op">=</span> ${g.toFixed(3)} · (${radius.toFixed(3)})²</span>` +
+    `<span class="eq-line">   <span class="op">=</span> <span class="num">${a2.toFixed(4)}</span></span>`;
+  calcSub.innerHTML = calcHTML;
+}
+
+function formatFreq(f) {
+  if (f < 1000) return f.toFixed(0) + ' Hz';
+  return (f / 1000).toFixed(2) + ' kHz';
+}
+
+// ============================================================
+// AUDIO
+// ============================================================
+async function setupAudio() {
+  if (audioCtx) return;
+  // Request 48 kHz to match the SR constant used throughout the visualizations.
+  // Most browsers honor this on Mac/Windows/Linux. If the system can't oblige
+  // (rare), the AudioContext falls back to its default (typically 44.1 kHz on
+  // Mac, 48 kHz on Windows). We display the actual rate to the user below the
+  // audio controls so any mismatch with the visualization is transparent.
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 48000 });
+  updateAudioRateDisplay();
+}
+
+// Show the actual AudioContext sample rate beneath the audio controls. If it
+// matches our SR constant the visualization and the audio agree perfectly;
+// if not, the discrepancy is spelled out so students can reason about why
+// the audible cutoff might differ slightly from the plotted cutoff.
+function updateAudioRateDisplay() {
+  const el = document.getElementById('audio-rate');
+  if (!el) return;
+  if (!audioCtx) {
+    el.textContent = 'audio · not yet started · visualizations use SR = ' + SR + ' Hz';
+    return;
+  }
+  const actualSR = audioCtx.sampleRate;
+  if (actualSR === SR) {
+    el.textContent = 'audio sample rate · ' + actualSR + ' Hz · matches visualization';
+  } else {
+    el.textContent =
+      'audio sample rate · ' + actualSR + ' Hz · visualization assumes ' + SR + ' Hz · ' +
+      'the audible filter shape is correct, but zero frequencies will differ slightly from the plotted values';
+  }
+}
+
+function makeSourceNode() {
+  if (sourceNode) { try { sourceNode.stop(); } catch(e){} sourceNode.disconnect(); sourceNode = null; }
+
+  // White noise: a 2-second buffer of uniform random samples in [−1, 1],
+  // looped seamlessly. White noise has equal energy at all frequencies, so
+  // anything you hear in the output is the filter's transfer function in
+  // audible form — making it the cleanest source for hearing what the filter
+  // does to the spectrum.
+  const bufSize = audioCtx.sampleRate * 2;
+  const buffer = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < bufSize; i++) data[i] = Math.random() * 2 - 1;
+  const node = audioCtx.createBufferSource();
+  node.buffer = buffer;
+  node.loop = true;
+  return node;
+}
+
+function makeFilterNode() {
+  // FIR 2-zero: y[n] = g·x[n] + a1·x[n−1] + a2·x[n−2]
+  // Web Audio's createIIRFilter takes (feedforward, feedback).
+  // For an FIR, feedforward is the tap coefficients and feedback is [1]
+  // (normalization only — no actual feedback).
+  return audioCtx.createIIRFilter([g, a1, a2], [1]);
+}
+
+// Output compensation. For this FIR the peak frequency-response gain is
+// bounded above by |g| + |a1| + |a2| = g · (1 + 2r + r²) = g·(1+r)², which
+// at the slider extremes (g=2, r=0.99) reaches about 7.9 ≈ +18 dB. Not
+// catastrophic — the volume slider handles this range comfortably — so
+// unlike the IIR version no active compensation is needed. This function
+// exists as a no-op for structural parity with the other tools.
+function computeCompensation() {
+  return 1.0;
+}
+
+async function startAudio() {
+  await setupAudio();
+  if (audioCtx.state === 'suspended') await audioCtx.resume();
+
+  if (filterNode) { filterNode.disconnect(); filterNode = null; }
+  if (gainNode) { gainNode.disconnect(); gainNode = null; }
+
+  filterNode = makeFilterNode();
+
+  gainNode = audioCtx.createGain();
+  gainNode.gain.value = volume * computeCompensation();
+
+  sourceNode = makeSourceNode();
+  sourceNode.connect(filterNode);
+  filterNode.connect(gainNode);
+  gainNode.connect(audioCtx.destination);
+  sourceNode.start();
+}
+
+function stopAudio() {
+  if (sourceNode) { try { sourceNode.stop(); } catch(e){} sourceNode.disconnect(); sourceNode = null; }
+  if (filterNode) { filterNode.disconnect(); filterNode = null; }
+  if (gainNode) { gainNode.disconnect(); gainNode = null; }
+}
+
+async function rebuildAudio() {
+  if (!isPlaying) return;
+  stopAudio();
+  await startAudio();
+}
+
+// ============================================================
+// LIVE EQUATION
+// ============================================================
+// Writes the current coefficients into the displayed recurrence
+// y[n] = g·x[n] + a₁·x[n−1] + a₂·x[n−2].
+// — a₁ = −2g·r·cos(ω₀) flips sign with frequency: negative for f_zero < SR/4
+//   = 12 kHz (where cos(ω₀) > 0) and positive above. Show |a₁| with the
+//   sign carried by the operator span between terms.
+// — a₂ = g·r² is always nonnegative for our g ≥ 0 slider, so its sign span
+//   stays hardcoded "+" in the HTML.
+function updateLiveEquation() {
+  liveG.textContent = g.toFixed(2);
+  liveA1.textContent = Math.abs(a1).toFixed(4);
+  liveA1Sign.textContent = a1 < 0 ? '−' : '+';
+  liveA2.textContent = a2.toFixed(4);
+}
+
+// ============================================================
+// UI WIRING
+// ============================================================
+// update() refreshes every reactive part of the UI: all four visualizations,
+// the status card, the live equation, and the slider-side numeric displays.
+// Centralizing the displays here means there's one source of truth for what
+// "shown to the user" means at any given parameter state.
+function update() {
+  recomputeCoeffs();
+  drawZPlane();
+  drawImpulse();
+  drawFrequency();
+  drawGroupDelay();
+  updateStatus();
+  updateLiveEquation();
+  // Slider-side numeric displays — kept in sync with everything else by
+  // updating in the same pass.
+  freqValue.textContent = formatFreq(freqHz);
+  radiusValue.textContent = radius.toFixed(3);
+  gValue.textContent = g.toFixed(2);
+}
+
+freqSlider.addEventListener('input', () => {
+  freqHz = sliderToFreq(parseFloat(freqSlider.value));
+  update();
+  rebuildAudio();
+});
+
+radiusSlider.addEventListener('input', () => {
+  radius = parseFloat(radiusSlider.value);
+  update();
+  rebuildAudio();
+});
+
+gSlider.addEventListener('input', () => {
+  g = parseFloat(gSlider.value);
+  update();
+  rebuildAudio();
+});
+
+playBtn.addEventListener('click', async () => {
+  if (isPlaying) {
+    stopAudio();
+    isPlaying = false;
+    playBtn.textContent = '▶ play';
+    playBtn.classList.remove('playing');
+  } else {
+    isPlaying = true;
+    playBtn.textContent = '■ stop';
+    playBtn.classList.add('playing');
+    await startAudio();
+  }
+});
+
+volSlider.addEventListener('input', () => {
+  volume = parseFloat(volSlider.value);
+  if (gainNode) gainNode.gain.value = volume * computeCompensation();
+});
+
+// ---- init ----
+window.addEventListener('load', () => {
+  initCanvases();
+  // Initialize the freq slider value from the current freqHz (which is set
+  // in linear Hz but displayed via a log scale).
+  freqSlider.value = freqToSlider(freqHz);
+  update();
+});
+window.addEventListener('resize', () => {
+  initCanvases();
+  update();
+});
+</script>
+</body>
+</html>
