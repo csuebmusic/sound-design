@@ -55,6 +55,10 @@ The building block of resonant filtering: `y[n] = g·x[n] + b₁·y[n−1] + b�
 
 The simplest finite impulse response filters: N-tap moving average and N-tap differentiator, two sides of the same structure. The tool toggles between `h[k] = +1/N` (all coefficients positive → lowpass) and `h[k] = (−1)ᵏ/N` (alternating signs → highpass comb), showing that the same N-tap tapped delay line becomes a completely different filter under just a sign flip. Students can watch the zeros march around the unit circle as N grows, see the impulse response equal the coefficient list exactly (the defining property of FIR), hear how "linear phase" sounds on noise, and read the group delay as a single number `(N−1)/2` that applies uniformly to every frequency — the critical contrast with the IIR tools, whose group delay curves bulge at resonance. The frequency response follows the Dirichlet kernel `(1/N)·|sin(Nω/2)/sin(ω/2)|`, whose first null at `SR/N` is the width of the main lobe.
 
+##### [`fir_2_zero.html`](./fir_2_zero.html)
+
+A 3-tap FIR with a complex conjugate zero pair: `y[n] = g·x[n] + a₁·x[n−1] + a₂·x[n−2]`, where `a₁ = −2g·r·cos(ω₀)` and `a₂ = g·r²`. The tool is the FIR counterpart to `two_pole_iir.html` — same geometric vocabulary (angle, radius, unit circle), same z-plane display, but with zeros instead of poles. The key pedagogical distinction is that this filter behaves as a true notch only when `r = 1` (zeros on the unit circle); at `r < 1` the zeros pull inside and the filter combines a partial dip at the zero frequency with a broader spectral tilt whose shape depends on where `r` and `f_zero` sit. Students can sweep radius from 0 to 1 and watch this transition on the frequency response (−200 dB floor, dense sampling around the zero angle), observe the group delay go to −∞ at the notch as `r → 1` (the FIR sign-mirror of the IIR's positive resonance spike), and read a live coefficient substitution showing how `ω₀`, `a₁`, and `a₂` are computed from the human-friendly sliders. Impulse response, z-plane, and white-noise playback via Web Audio complete the picture.
+
 ---
 
 ## Source texts
