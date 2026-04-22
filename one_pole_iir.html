@@ -1421,15 +1421,11 @@ function drawGroupDelay() {
   const yRange = yTop - yBot;
 
   // ---- y-axis grid and labels ----
-  // Tick spacing is keyed to the POSITIVE ceiling (yTop) — see niceCeiling
-  // above. The rule: yStep is chosen so the chart shows 4-7 major gridlines
-  // for any yTop the slider can produce. Driven by the leading digit of yTop:
-  //   yTop ∈ {1, 2, 5}·decade → yStep = 0.2, 0.5, 1·decade  (5 lines)
-  //   yTop = 3·decade         → yStep = 0.5·decade           (6 lines)
-  //   yTop = 7·decade         → yStep = 1·decade             (7 lines)
-  // niceCeiling never produces yTop = 10·decade (that's just 1·(10·decade)),
-  // so pickYStep doesn't need to handle the 10 case explicitly. The final
-  // branch is defensive only.
+  // Tick spacing is keyed to max(yTop, |yBot|) — the chart's actual visual
+  // range. Keying on yTop alone would under-grid the chart if the negative
+  // region were larger than the positive (doesn't happen in practice for
+  // one-pole since negatives are bounded at -0.5, but keeps the function
+  // in sync with the two-pole's, where this case does arise).
   function pickYStep(yt) {
     const decade = Math.pow(10, Math.floor(Math.log10(yt)));
     const norm = yt / decade;
@@ -1440,7 +1436,8 @@ function drawGroupDelay() {
     if (norm <= 7) return 1 * decade;
     return 2 * decade;
   }
-  const yStep = pickYStep(yTop);
+  const effectiveTop = Math.max(yTop, Math.abs(yBot));
+  const yStep = pickYStep(effectiveTop);
 
   ctx.lineWidth = 1;
   ctx.font = "10px 'DM Mono', monospace";
