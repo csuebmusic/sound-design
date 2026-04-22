@@ -746,6 +746,20 @@
     </div>
   </section>
 
+  <!-- GROUP DELAY -->
+  <section>
+    <h2>group delay</h2>
+    <div class="viz-card">
+      <div class="viz-explainer">
+        <p><strong>What is group delay?</strong> The number of samples by which the filter shifts each frequency component in time. For a linear-phase filter (like the FIR moving average) every frequency is delayed by the same amount, and group delay is one number. For an IIR filter, group delay <em>varies with frequency</em> — the curve below is what that variation looks like.</p>
+        <p><strong>For this one-pole filter:</strong> group delay is largest where the filter's magnitude peaks — at DC for positive <em>r</em> (lowpass), at Nyquist for negative <em>r</em> (highpass) — and decreases smoothly as you move away from that peak. The peak height depends on how close the pole sits to the unit circle: at <em>r</em> = 0.9 the peak is about 9 samples; at <em>r</em> = 0.99 it reaches 99 samples. This is exactly the transient smearing that distinguishes IIR from FIR: the bass and treble of a drum hit are delayed by different amounts, so they no longer arrive at the output at the same moment.</p>
+        <p><strong>The negative region</strong> (the curve dips below zero past the cutoff) is real, not a plotting error. For a lowpass setting it appears roughly past <em>f</em> = SR·acos(<em>r</em>)/(2π), and as <em>r</em> approaches 1 it grows to cover most of the spectrum above the peak. The dip is shallow — at most around half a sample — but it's a genuine property of how the filter reshapes wave envelopes, not a violation of cause and effect. This is part of why group delay needed its own name rather than being called "latency."</p>
+      </div>
+      <canvas id="gdelay" width="1000" height="300"></canvas>
+      <div class="viz-caption">y axis · group delay in samples (auto-scaled to peak) · x axis · log frequency from 1 Hz to Nyquist · pink dashed line · cutoff frequency where defined · heavier horizontal line · zero delay</div>
+    </div>
+  </section>
+
   <!-- STATUS -->
   <section>
     <h2>what's happening</h2>
@@ -759,6 +773,10 @@
         <div class="metric">
           <div class="metric-label">cutoff</div>
           <div class="metric-value" id="m-cutoff">…</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">group delay at f<sub>c</sub></div>
+          <div class="metric-value" id="m-gd">…</div>
         </div>
         <div class="metric">
           <div class="metric-label">impulse decay to 1%</div>
@@ -831,6 +849,7 @@
         <li>The impulse response is exactly <code>h[n] = g · rⁿ</code> for n ≥ 0. This is why IIR filters have "infinite" impulse responses: r<sup>n</sup> only reaches zero in the limit, never exactly.</li>
         <li>Two ways to measure the filter's memory: the <strong>time constant</strong> <code>τ = −1 / (SR · ln|r|)</code> seconds is when the impulse decays to 1/e (≈ 37%); the "impulse decay to 1%" metric in the status card above measures the same thing further out, at 1% (≈ −40 dB). Same exponential decay, different cutoff thresholds — pick whichever is more useful for the situation.</li>
         <li>Rolloff: exactly <code>−6 dB/octave</code> beyond the cutoff (equivalently, <code>−20 dB/decade</code>). This is the defining slope of any first-order filter. Cascading two one-poles doubles the rolloff to −12 dB/oct (second-order); cascading four gives −24 dB/oct, the classic Moog ladder slope.</li>
+        <li><strong>Group delay</strong> for a one-pole has the closed form <code>τ(ω) = (r·cos(ω) − r²) / (1 − 2r·cos(ω) + r²)</code>, derived by differentiating the phase response <code>φ(ω) = −arctan(r·sin(ω) / (1 − r·cos(ω)))</code>. Unlike a linear-phase FIR (the moving average's group delay is one number for all frequencies), the IIR's delay <em>varies with frequency</em>: tall near the magnitude peak, near-zero everywhere else, and slightly negative in narrow bands. That frequency-dependent delay is what smears transients — the bass and treble of a percussive sound no longer arrive simultaneously at the output. FIR filters with symmetric coefficients sidestep this entirely (every frequency delayed by exactly <code>(N−1)/2</code> samples), at the cost of needing many more taps for the same sharpness. This trade is why mastering EQs offer "linear phase" modes — they swap the IIR's frequency-dependent smearing for the FIR's bigger latency and pre-ringing.</li>
         <li>The peak gain is <code>g / (1 − |r|)</code>. For positive <em>r</em> this peak sits at DC; for negative <em>r</em> it sits at Nyquist. As <em>|r|</em> approaches 1, the denominator approaches 0 and the peak shoots up — which is exactly the towering peak you see in the frequency response graph at extreme settings (easily +40 dB at <em>|r|</em> ≈ 0.998 with <em>g</em> = 0.2, and higher still as <em>|r|</em> gets closer to 1). Audio filter designs often <em>auto-normalize</em> by setting <code>g = 1 − |r|</code> so the peak stays at 1 (0 dB) regardless of <em>r</em>.</li>
       </ul>
 
@@ -840,7 +859,7 @@
         <li>Compare <code>r = 0.9</code> vs <code>r = −0.9</code>. Same filter <em>strength</em>, opposite spectral character: bass-heavy vs. treble-heavy. Note how the response curve mirrors itself across the spectrum.</li>
         <li>Drag the r slider past ±1 in either direction (into the unstable regions at the far ends). Watch the impulse response (it grows without bound) and the metrics (UNSTABLE). Audio is muted automatically; this is what "outside the unit circle" sounds like in theory.</li>
         <li>Set <code>r = 0.95</code> and read the cutoff in the metrics. Now try <code>r = 0.5</code>. Same filter topology, vastly different cutoff, controlled by a single number.</li>
-        <li>Set <code>g = 0.2</code> and slowly push <code>r</code> from 0.9 → 0.99 → 0.998. Watch the peak of the curve climb above 0 dB toward +40 dB. Push further to 0.9998 and the peak climbs another 20 dB toward +60 — with the new chart headroom, you can see the peak explode smoothly as <em>r</em> approaches 1. Now manually set <code>g = 1 − |r|</code> at each step (≈ 0.1, 0.01, 0.002, 0.0002) and watch the peak snap back to 0 dB. This is auto-normalization, by hand.</li>
+        <li>Set <code>g = 0.2</code> and slowly push <code>r</code> from 0.9 → 0.99 → 0.998. Watch the peak of the curve climb above 0 dB toward +40 dB. Push further to 0.9998 and the peak climbs another 20 dB toward +60 — the chart's +80 dB ceiling lets you see the peak explode smoothly as <em>r</em> approaches 1. Now manually set <code>g = 1 − |r|</code> at each step (≈ 0.1, 0.01, 0.002, 0.0002) and watch the peak snap back to 0 dB. This is auto-normalization, by hand.</li>
       </ol>
     </div>
   </section>
@@ -850,7 +869,7 @@
     <div class="footer-item">Cook, P. (2002). <em>Real Sound Synthesis for Interactive Applications.</em> Ch. 3</div>
     <div class="footer-item">Roads, C. (2023). <em>The Computer Music Tutorial</em> (2nd ed.). Ch. 28</div>
     <div class="footer-affiliation">CSU East Bay Music Composition Department</div>
-    <div class="footer-version">version 1.5 · Spring 2026 · Inés Thiebaut</div>
+    <div class="footer-version">version 1.7 · Spring 2026 · Inés Thiebaut</div>
   </footer>
 
 </div>
@@ -896,6 +915,7 @@ const statusBox = document.getElementById('status-box');
 const statusText = document.getElementById('status-text');
 const mCharacter = document.getElementById('m-character');
 const mCutoff = document.getElementById('m-cutoff');
+const mGD = document.getElementById('m-gd');
 const mDecay = document.getElementById('m-decay');
 const mStable = document.getElementById('m-stable');
 const calcSub = document.getElementById('calc-sub');
@@ -930,11 +950,12 @@ function setupCanvas(id) {
   return { ctx, w: rect.width, h: rect.height };
 }
 
-let zp, ip, fr;
+let zp, ip, fr, gd;
 function initCanvases() {
   zp = setupCanvas('zplane');
   ip = setupCanvas('impulse');
   fr = setupCanvas('freq');
+  gd = setupCanvas('gdelay');
 }
 
 // ============================================================
@@ -1280,6 +1301,277 @@ function drawFrequency() {
 }
 
 // ============================================================
+// GROUP DELAY · closed-form for one-pole
+// ============================================================
+// For H(z) = g / (1 − r·z⁻¹), the magnitude response squared is
+//     |H|² = g² / (1 − 2r·cos(ω) + r²)
+// and the phase response is
+//     φ(ω) = −arctan(r·sin(ω) / (1 − r·cos(ω)))
+// Differentiating φ with respect to ω and applying τ = −dφ/dω gives the
+// closed form used here (see Oppenheim & Schafer, also Cook Ch. 3):
+//     τ(ω) = (r·cos(ω) − r²) / (1 − 2r·cos(ω) + r²)
+//
+// We compute this directly rather than numerically differentiating phase,
+// because numerical derivatives spike spuriously where the phase wraps at
+// ±π. The closed form is well-behaved everywhere stable.
+//
+// Sign note: τ can be negative — typically near Nyquist for a positive-r
+// lowpass, or near DC for a negative-r highpass. This is real and physical;
+// it describes how envelopes (groups of nearby frequencies) shift in time,
+// not when individual events arrive. We display it honestly with a zero
+// line on the plot.
+function groupDelaySamples(omega) {
+  const cosw = Math.cos(omega);
+  const num = r * cosw - r * r;
+  const den = 1 - 2 * r * cosw + r * r;
+  return num / Math.max(1e-10, den);
+}
+
+// ============================================================
+// VIZ 4 · GROUP DELAY (samples vs. log frequency)
+// ============================================================
+// Pairs visually with the magnitude response above: identical x-axis (log
+// frequency, 1 Hz to Nyquist), identical curve color (teal), identical
+// frequency grid. The point of the pairing is that students see "where the
+// peak in magnitude is" and "where the peak in delay is" line up — they're
+// the same frequency for a one-pole.
+function drawGroupDelay() {
+  const { ctx, w, h } = gd;
+  ctx.clearRect(0, 0, w, h);
+
+  const padL = 50, padR = 20, padT = 18, padB = 32;
+  const plotW = w - padL - padR;
+  const plotH = h - padT - padB;
+
+  const stable = Math.abs(r) < 1;
+
+  // ---- x-axis range matches the magnitude chart exactly ----
+  const fMin = Math.log10(1);
+  const fMax = Math.log10(NYQUIST);
+
+  // ---- compute the curve first, so we can pick a sensible y-axis ceiling ----
+  // Sample uniformly in log frequency, plus dense samples near DC and Nyquist
+  // (the two endpoints where one-pole group delay actually peaks). The
+  // endpoint trick mirrors what the magnitude chart does.
+  const NPTS = 500;
+  const samples = []; // {flogN, tau}
+  for (let i = 0; i <= NPTS; i++) {
+    const flogN = fMin + (i / NPTS) * (fMax - fMin);
+    // Endpoint handling: i=0 evaluates at ω=0 (DC), i=NPTS at ω=π (Nyquist),
+    // so the chart edges show the true endpoint values. For very narrow
+    // filters (|r| > 0.99) this matters: the peak at DC or Nyquist sits in
+    // a sub-Hz bandwidth, and the log-frequency leftmost sample at 1 Hz
+    // is already off the peak.
+    const omega = i === 0 ? 0 : (i === NPTS ? Math.PI : 2 * Math.PI * Math.pow(10, flogN) / SR);
+    const tau = stable ? groupDelaySamples(omega) : 0;
+    samples.push({ flogN, tau });
+  }
+
+  // ---- y-axis range: auto-scale, but snap to nice numbers ----
+  // Find min and max of τ. The auto-snap prevents the y-axis from re-ticking
+  // continuously as the user drags r — instead it stays put across a range
+  // of slider values and only re-snaps when crossing a "nice number" boundary.
+  let tauMax = 0, tauMin = 0;
+  for (const s of samples) {
+    if (s.tau > tauMax) tauMax = s.tau;
+    if (s.tau < tauMin) tauMin = s.tau;
+  }
+  // Defensive: if the filter is unstable or τ is essentially zero everywhere,
+  // give us a 1-sample window so axis labels still render.
+  if (!stable || (tauMax < 0.01 && tauMin > -0.01)) {
+    tauMax = 1; tauMin = -1;
+  }
+
+  // niceCeiling: round v up to the next "nice" number (1, 2, 3, 5, 7, 10) in
+  // its decade. The strict-less-than comparison means a peak landing exactly
+  // on a tier bumps up to the next one for breathing room from the top edge,
+  // while a peak slightly below a tier snaps onto it. This is a standard
+  // axis-scaling pattern (matplotlib does similar) and avoids the wasted-
+  // space problem that fixed tier lists hit at boundary values.
+  function niceCeiling(v) {
+    if (v <= 0) return 1;
+    const decade = Math.pow(10, Math.floor(Math.log10(v)));
+    const norm = v / decade;
+    let mult;
+    if (norm < 1) mult = 1;
+    else if (norm < 2) mult = 2;
+    else if (norm < 3) mult = 3;
+    else if (norm < 5) mult = 5;
+    else if (norm < 7) mult = 7;
+    else mult = 10;
+    return mult * decade;
+  }
+
+  const yTop = niceCeiling(tauMax);
+
+  // For the lower bound: one-pole negatives are bounded in [−0.5, 0], so we
+  // use a finer-grained floor list that includes −0.5 to avoid wasting half
+  // the negative region with an over-sized −1 floor.
+  let yBot;
+  if (tauMin < -0.01) {
+    const negFloors = [0.5, 1, 2, 3, 5, 10, 20, 50];
+    let yBotMag = negFloors[negFloors.length - 1];
+    for (const t of negFloors) {
+      if (t >= -tauMin) { yBotMag = t; break; }
+    }
+    yBot = -yBotMag;
+  } else {
+    yBot = 0;
+  }
+  const yRange = yTop - yBot;
+
+  // ---- y-axis grid and labels ----
+  // Tick spacing is keyed to the POSITIVE ceiling (yTop) — see niceCeiling
+  // above. The rule: yStep is chosen so the chart shows 4-7 major gridlines
+  // for any yTop the slider can produce. Driven by the leading digit of yTop:
+  //   yTop ∈ {1, 2, 5}·decade → yStep = 0.2, 0.5, 1·decade  (5 lines)
+  //   yTop = 3·decade         → yStep = 0.5·decade           (6 lines)
+  //   yTop = 7·decade         → yStep = 1·decade             (7 lines)
+  // niceCeiling never produces yTop = 10·decade (that's just 1·(10·decade)),
+  // so pickYStep doesn't need to handle the 10 case explicitly. The final
+  // branch is defensive only.
+  function pickYStep(yt) {
+    const decade = Math.pow(10, Math.floor(Math.log10(yt)));
+    const norm = yt / decade;
+    if (norm <= 1) return 0.2 * decade;
+    if (norm <= 2) return 0.5 * decade;
+    if (norm <= 3) return 0.5 * decade;
+    if (norm <= 5) return 1 * decade;
+    if (norm <= 7) return 1 * decade;
+    return 2 * decade;
+  }
+  const yStep = pickYStep(yTop);
+
+  ctx.lineWidth = 1;
+  ctx.font = "10px 'DM Mono', monospace";
+  // Build the list of tick values from yBot up to yTop, on multiples of yStep.
+  const firstTick = Math.ceil(yBot / yStep) * yStep;
+  const drawnTicks = new Set();
+  for (let v = firstTick; v <= yTop + 1e-9; v += yStep) {
+    const y = padT + ((yTop - v) / yRange) * plotH;
+    // zero line gets stronger styling
+    ctx.strokeStyle = (Math.abs(v) < 1e-9) ? C.borderS : C.border;
+    ctx.lineWidth = (Math.abs(v) < 1e-9) ? 1.2 : 1;
+    ctx.beginPath();
+    ctx.moveTo(padL, y); ctx.lineTo(w - padR, y);
+    ctx.stroke();
+    ctx.fillStyle = (Math.abs(v) < 1e-9) ? C.text : C.muted;
+    ctx.textAlign = 'right';
+    // Format: integers when possible, one decimal otherwise.
+    const lbl = Math.abs(v - Math.round(v)) < 1e-9 ? v.toFixed(0) : v.toFixed(1);
+    ctx.fillText(lbl, padL - 6, y + 3);
+    drawnTicks.add(Math.round(v * 1000) / 1000);
+  }
+  // If the floor yBot itself didn't land on a tick, draw a boundary gridline
+  // at the bottom edge and label it. Keeps the negative region from looking
+  // like it has no anchor at its bottom edge. Only done when yBot < 0 (the
+  // yBot = 0 case always has the zero line drawn above).
+  if (yBot < 0 && !drawnTicks.has(Math.round(yBot * 1000) / 1000)) {
+    const y = padT + plotH;
+    ctx.strokeStyle = C.border;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(padL, y); ctx.lineTo(w - padR, y);
+    ctx.stroke();
+    ctx.fillStyle = C.muted;
+    ctx.textAlign = 'right';
+    const lbl = Math.abs(yBot - Math.round(yBot)) < 1e-9 ? yBot.toFixed(0) : yBot.toFixed(1);
+    ctx.fillText(lbl, padL - 6, y + 3);
+  }
+  ctx.lineWidth = 1;
+  // y-axis caption (samples), top-left of plot area
+  ctx.fillStyle = C.dim;
+  ctx.textAlign = 'left';
+  ctx.fillText('samples', padL + 4, padT + 10);
+
+  // ---- x-axis grid (mirrors the magnitude chart) ----
+  const minorFreqs = [
+    2, 3, 4, 5, 6, 7, 8, 9,
+    20, 30, 40, 50, 60, 70, 80, 90,
+    200, 300, 400, 500, 600, 700, 800, 900,
+    2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000,
+    20000
+  ];
+  ctx.strokeStyle = '#f0ede4';
+  for (const f of minorFreqs) {
+    const x = padL + ((Math.log10(f) - fMin) / (fMax - fMin)) * plotW;
+    ctx.beginPath();
+    ctx.moveTo(x, padT); ctx.lineTo(x, padT + plotH);
+    ctx.stroke();
+  }
+  const majorFreqs = [
+    { f: 1, label: '1' },
+    { f: 10, label: '10' },
+    { f: 100, label: '100' },
+    { f: 1000, label: '1k' },
+    { f: 10000, label: '10k' },
+    { f: NYQUIST, label: 'Nyq' }
+  ];
+  ctx.strokeStyle = C.border;
+  for (const { f, label } of majorFreqs) {
+    const x = padL + ((Math.log10(f) - fMin) / (fMax - fMin)) * plotW;
+    ctx.beginPath();
+    ctx.moveTo(x, padT); ctx.lineTo(x, padT + plotH);
+    ctx.stroke();
+    ctx.fillStyle = C.muted;
+    ctx.textAlign = 'center';
+    ctx.fillText(label, x, h - 14);
+  }
+  ctx.textAlign = 'right';
+  ctx.fillStyle = C.dim;
+  ctx.fillText('Hz', w - padR - 4, h - 4);
+
+  // ---- cutoff marker (when defined) ----
+  // Same dashed-pink language as the two-pole's resonant-freq marker, so the
+  // visual vocabulary stays consistent across the suite. Only drawn when the
+  // cutoff is meaningful (|r| ≥ R_MIN_MEANINGFUL).
+  if (stable && Math.abs(r) >= R_MIN_MEANINGFUL) {
+    const ar = Math.abs(r);
+    const arg = 1 - Math.pow(1 - ar, 2) / (2 * ar);
+    const omega_c = Math.acos(Math.max(-1, Math.min(1, arg)));
+    const baseFc = omega_c * SR / (2 * Math.PI);
+    const fc = r > 0 ? baseFc : (NYQUIST - baseFc);
+    if (fc >= 1 && fc <= NYQUIST) {
+      const fx = padL + ((Math.log10(fc) - fMin) / (fMax - fMin)) * plotW;
+      ctx.strokeStyle = C.pole;
+      ctx.globalAlpha = 0.55;
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.moveTo(fx, padT); ctx.lineTo(fx, padT + plotH);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = C.pole;
+      ctx.font = "10px 'DM Mono', monospace";
+      ctx.textAlign = 'center';
+      ctx.fillText('cutoff', fx, padT - 4);
+    }
+  }
+
+  // ---- the curve ----
+  ctx.strokeStyle = stable ? C.curve : C.warn;
+  ctx.lineWidth = 2.2;
+  ctx.beginPath();
+  for (let idx = 0; idx < samples.length; idx++) {
+    const { flogN, tau } = samples[idx];
+    const x = padL + (flogN - fMin) / (fMax - fMin) * plotW;
+    // Clip τ to the visible y-range so a sub-Hz peak doesn't draw off-canvas.
+    const tauClipped = Math.max(yBot, Math.min(yTop, tau));
+    const y = padT + ((yTop - tauClipped) / yRange) * plotH;
+    if (idx === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+
+  // ---- "unstable" overlay (mirror of the impulse-response treatment) ----
+  if (!stable) {
+    ctx.fillStyle = C.warn;
+    ctx.font = "12px 'DM Mono', monospace";
+    ctx.textAlign = 'center';
+    ctx.fillText('UNSTABLE: group delay has no steady-state meaning', w / 2, padT + 14);
+  }
+}
+
+// ============================================================
 // LIVE STATUS
 // ============================================================
 function updateStatus() {
@@ -1340,6 +1632,36 @@ function updateStatus() {
     cutoffStr = fc < 1000 ? fc.toFixed(0) + ' Hz' : (fc / 1000).toFixed(2) + ' kHz';
   }
   mCutoff.textContent = cutoffStr;
+
+  // Group delay at cutoff. Uses the same closed-form as the curve drawing
+  // (groupDelaySamples), evaluated at the cutoff angular frequency. Skipped
+  // when cutoff is undefined (unstable or too-gentle filter), for the same
+  // reason the cutoff itself is skipped — there's no anchor frequency to
+  // report the delay at. The two-line display (samples on top, ms in muted
+  // smaller text below) mirrors the FIR's group-delay metric.
+  let gdStr = '…';
+  if (!stable) {
+    gdStr = 'n/a (unstable)';
+  } else if (ar < R_MIN_MEANINGFUL) {
+    gdStr = 'n/a (too gentle)';
+  } else {
+    const absR = ar;
+    const arg = 1 - Math.pow(1 - absR, 2) / (2 * absR);
+    const omega_c = Math.acos(Math.max(-1, Math.min(1, arg)));
+    // For negative r the cutoff sits near Nyquist — we evaluate τ at the
+    // mirrored angular frequency (π − ω_c) so the metric tracks the actual
+    // cutoff location, not the lowpass-equivalent angle.
+    const omegaForTau = r > 0 ? omega_c : (Math.PI - omega_c);
+    const tau = groupDelaySamples(omegaForTau);
+    const ms = (tau / SR) * 1000;
+    const sampleStr = Math.abs(tau) >= 10 ? tau.toFixed(1) : tau.toFixed(2);
+    const msStr = Math.abs(ms) < 0.001 ? ms.toExponential(1) + ' ms'
+                : Math.abs(ms) < 1 ? ms.toFixed(3) + ' ms'
+                : ms.toFixed(2) + ' ms';
+    gdStr = sampleStr + ' samples<br><span style="color: var(--muted); font-size: 12px;">(' + msStr + ')</span>';
+  }
+  // innerHTML used because the two-line render uses <br> + a styled span.
+  mGD.innerHTML = gdStr;
 
   // Impulse decay to 1%. With r near 0, decay is essentially instantaneous
   // (one sample); with r near ±1, it stretches to seconds. The middle branch
@@ -1548,6 +1870,7 @@ function update() {
   drawZPlane();
   drawImpulse();
   drawFrequency();
+  drawGroupDelay();
   updateStatus();
   updateLiveEquation();
   // Slider-side numeric displays — kept in sync with the live equation by
