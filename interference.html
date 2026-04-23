@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Phase Interference</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:        #fafaf7;
+    --panel:     #ffffff;
+    --panel-2:   #f4f2ec;
+    --border:    #e2dfd6;
+    --border-s:  #c9c5b8;
+    --text:      #1a1a17;
+    --muted:     #6a6862;
+    --dim:       #a8a59f;
+    --accent:    #b8693a;
+    --teal:      #2c7d6f;
+    --teal-s:    rgba(44,125,111,0.15);
+    --crimson:   #c73862;
+    --crimson-s: rgba(199,56,98,0.12);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: var(--bg); color: var(--text);
+    font-family: 'DM Sans', system-ui, sans-serif;
+    font-size: 15px; line-height: 1.6; -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 40px 28px 80px; }
+
+  header { border-bottom: 1px solid var(--border); padding-bottom: 24px; margin-bottom: 28px; }
+  h1 { font-family: 'DM Mono', monospace; font-weight: 500; font-size: 26px; letter-spacing: -0.01em; margin-bottom: 6px; }
+  h2 { font-family: 'DM Mono', monospace; font-weight: 500; font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 12px; }
+  .subtitle { color: var(--muted); font-size: 14px; margin-bottom: 0; }
+
+  /* SCENARIO CARD */
+  .scenario {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 6px;
+    padding: 20px 24px; margin-bottom: 20px;
+  }
+  .doodle-row {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 24px;
+    max-width: 720px; margin: 0 auto 20px;
+  }
+  .doodle-col { display: flex; flex-direction: column; align-items: center; }
+  .doodle-col svg { width: 100%; height: auto; display: block; max-width: 320px; }
+  .doodle-caption {
+    font-family: 'DM Mono', monospace; font-size: 10px; text-transform: uppercase;
+    letter-spacing: 0.08em; color: var(--muted); margin-top: 8px; text-align: center;
+  }
+  .doodle-caption.bad { color: var(--warn, #c92e1f); }
+  .doodle-caption.good { color: var(--teal); }
+  .scenario-text { padding-top: 18px; border-top: 1px solid var(--border); }
+  .scenario-text h2 { margin-bottom: 10px; }
+  .scenario-text p { font-size: 14px; color: var(--text); margin-bottom: 8px; line-height: 1.55; }
+  .scenario-text p:last-child { margin-bottom: 0; }
+  .scenario-text code { font-family: 'DM Mono', monospace; font-size: 12.5px; color: var(--accent); background: var(--panel-2); padding: 1px 5px; border-radius: 3px; }
+
+  /* CONTROLS */
+  .controls {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 6px; padding: 18px 22px; margin-bottom: 20px;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 16px 32px;
+  }
+  .ctrl-group-label {
+    font-family: 'DM Mono', monospace; font-size: 10px; text-transform: uppercase;
+    letter-spacing: 0.08em; color: var(--dim); margin-bottom: 10px;
+    padding-bottom: 6px; border-bottom: 2px solid; grid-column: 1 / -1;
+  }
+  .ctrl-group-label.w1 { border-color: var(--teal); color: var(--teal); }
+  .ctrl-group-label.w2 { border-color: var(--crimson); color: var(--crimson); }
+  .ctrl-group-label.shared { border-color: var(--accent); color: var(--accent); }
+  .ctrl { display: flex; align-items: center; gap: 12px; }
+  .ctrl label { font-family: 'DM Mono', monospace; font-size: 13px; color: var(--muted); white-space: nowrap; min-width: 80px; }
+  input[type="range"] { -webkit-appearance: none; height: 4px; background: var(--border-s); border-radius: 2px; outline: none; flex: 1; }
+  input[type="range"].s1::-webkit-slider-thumb { -webkit-appearance: none; width: 15px; height: 15px; border-radius: 50%; background: var(--teal); cursor: pointer; border: none; }
+  input[type="range"].s1::-moz-range-thumb { width: 15px; height: 15px; border-radius: 50%; background: var(--teal); cursor: pointer; border: none; }
+  input[type="range"].s2::-webkit-slider-thumb { -webkit-appearance: none; width: 15px; height: 15px; border-radius: 50%; background: var(--crimson); cursor: pointer; border: none; }
+  input[type="range"].s2::-moz-range-thumb { width: 15px; height: 15px; border-radius: 50%; background: var(--crimson); cursor: pointer; border: none; }
+  input[type="range"].sa::-webkit-slider-thumb { -webkit-appearance: none; width: 15px; height: 15px; border-radius: 50%; background: var(--accent); cursor: pointer; border: none; }
+  input[type="range"].sa::-moz-range-thumb { width: 15px; height: 15px; border-radius: 50%; background: var(--accent); cursor: pointer; border: none; }
+  .val { font-family: 'DM Mono', monospace; font-size: 13px; color: var(--accent); min-width: 60px; text-align: right; }
+  .val.v1 { color: var(--teal); }
+  .val.v2 { color: var(--crimson); }
+
+  /* STATUS CARD */
+  .status-card {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 6px;
+    padding: 16px 22px; margin-bottom: 20px;
+    display: flex; align-items: center; gap: 24px; flex-wrap: wrap;
+  }
+  .status-badge {
+    font-family: 'DM Mono', monospace; font-size: 13px; font-weight: 500;
+    padding: 6px 16px; border-radius: 20px; border: 1.5px solid; white-space: nowrap;
+  }
+  .status-badge.constructive { color: var(--teal);    border-color: var(--teal);    background: var(--teal-s); }
+  .status-badge.destructive  { color: var(--crimson); border-color: var(--crimson); background: var(--crimson-s); }
+  .status-badge.partial      { color: var(--accent);  border-color: var(--accent);  background: rgba(184,105,58,0.1); }
+  .status-metric { font-family: 'DM Mono', monospace; font-size: 13px; color: var(--muted); }
+  .status-metric span { color: var(--text); font-weight: 500; }
+  .status-metric .r-val  { color: var(--accent); }
+  .status-metric .psi-val { color: var(--dim); }
+
+  /* PHASOR DIAGRAM */
+  #cphasor { width: 100%; aspect-ratio: 1 / 1; height: auto; max-width: 280px; margin: 0 auto; }
+  #cwaves  { width: 100%; aspect-ratio: 1040 / 380; height: auto; }
+  .viz-row { display: grid; grid-template-columns: 280px 1fr; gap: 16px; margin-bottom: 20px; }
+  .viz-card {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 6px; padding: 16px 18px;
+  }
+  .viz-card h2 { margin-bottom: 10px; }
+  canvas { display: block; width: 100%; height: auto; }
+
+  /* WAVE PANEL */
+  .wave-panel {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 6px; overflow: hidden; margin-bottom: 20px;
+  }
+  .wave-panel-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 18px; border-bottom: 1px solid var(--border); background: var(--panel-2);
+  }
+  .wave-panel-title { font-family: 'DM Mono', monospace; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+  .wave-panel-btns { display: flex; gap: 8px; }
+  .btn { background: var(--accent); color: #fff; border: none; padding: 5px 13px; font-family: 'DM Mono', monospace; font-size: 12px; font-weight: 500; border-radius: 3px; cursor: pointer; transition: opacity 0.15s; }
+  .btn:hover { opacity: 0.85; }
+  .btn.stop { background: var(--crimson); }
+  .btn.rst  { background: var(--teal); }
+  .wave-panel-body { padding: 14px 16px 12px; }
+
+  .legend { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); margin-top: 10px; display: flex; gap: 18px; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .legend-dot  { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .legend-line { width: 18px; height: 2px; flex-shrink: 0; }
+
+  /* NOTES */
+  .note { font-size: 13.5px; color: var(--muted); padding: 12px 18px 14px; border-top: 1px solid var(--border); background: var(--panel-2); line-height: 1.55; }
+  .note strong { color: var(--text); }
+  .note code { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--accent); background: var(--border); padding: 1px 5px; border-radius: 3px; }
+
+  /* KEY MOMENTS */
+  .key-moments {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 6px;
+    padding: 18px 22px; margin-bottom: 20px;
+  }
+  .moments-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 12px; }
+  .moment {
+    padding: 12px 14px; border-radius: 4px; border: 1px solid var(--border);
+    background: var(--panel-2); text-align: center;
+  }
+  .moment-angle { font-family: 'DM Mono', monospace; font-size: 18px; font-weight: 500; color: var(--accent); margin-bottom: 4px; }
+  .moment-label { font-size: 12px; color: var(--text); font-weight: 500; margin-bottom: 3px; }
+  .moment-desc  { font-size: 11.5px; color: var(--muted); line-height: 1.4; }
+
+  footer { margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--border); font-family: 'DM Mono', monospace; font-size: 11px; color: var(--dim); }
+
+  @media (max-width: 720px) {
+    .doodle-row { grid-template-columns: 1fr; }
+    .controls { grid-template-columns: 1fr; }
+    .viz-row { grid-template-columns: 1fr; }
+    .moments-grid { grid-template-columns: repeat(2,1fr); }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>phase interference</h1>
+  <p class="subtitle">Two sine waves, same frequency, independent amplitudes — drag the phase offset and watch constructive and destructive interference emerge.</p>
+</header>
+
+<!-- SCENARIO -->
+<div class="scenario">
+  <div class="doodle-row">
+
+    <!-- LEFT: WRONG PLACEMENT -->
+    <div class="doodle-col">
+      <svg viewBox="0 0 340 230" xmlns="http://www.w3.org/2000/svg" font-family="DM Mono, monospace">
+        <defs>
+          <marker id="arr-teal" viewBox="0 0 8 8" refX="4" refY="4" markerWidth="5" markerHeight="5" orient="auto">
+            <path d="M 0 0 L 8 4 L 0 8 z" fill="#2c7d6f"/>
+          </marker>
+          <marker id="arr-teal-r" viewBox="0 0 8 8" refX="4" refY="4" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+            <path d="M 0 0 L 8 4 L 0 8 z" fill="#2c7d6f"/>
+          </marker>
+          <marker id="arr-crim" viewBox="0 0 8 8" refX="4" refY="4" markerWidth="5" markerHeight="5" orient="auto">
+            <path d="M 0 0 L 8 4 L 0 8 z" fill="#c73862"/>
+          </marker>
+          <marker id="arr-crim-r" viewBox="0 0 8 8" refX="4" refY="4" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+            <path d="M 0 0 L 8 4 L 0 8 z" fill="#c73862"/>
+          </marker>
+        </defs>
+
+        <!-- warning banner moved up to y=10 -->
+        <rect x="80" y="6" width="180" height="22" rx="3" fill="#c92e1f14" stroke="#c92e1f55" stroke-width="1"/>
+        <text x="170" y="21" text-anchor="middle" font-size="11" fill="#c92e1f" font-weight="500">⚠ wrong mic placement</text>
+
+        <!-- floor -->
+        <rect x="0" y="190" width="340" height="40" fill="#f4f2ec"/>
+        <line x1="0" y1="190" x2="340" y2="190" stroke="#e2dfd6" stroke-width="1.5"/>
+
+        <!-- source: speaker/voice (lowered so banner has space) -->
+        <ellipse cx="170" cy="125" rx="18" ry="22" fill="white" stroke="#1a1a17" stroke-width="1.8"/>
+        <ellipse cx="170" cy="125" rx="8" ry="10" fill="#f4f2ec" stroke="#6a6862" stroke-width="1.2"/>
+        <line x1="162" y1="121" x2="178" y2="121" stroke="#6a6862" stroke-width="1.2" stroke-linecap="round"/>
+        <line x1="164" y1="126" x2="176" y2="126" stroke="#6a6862" stroke-width="1.2" stroke-linecap="round"/>
+        <line x1="163" y1="131" x2="177" y2="131" stroke="#6a6862" stroke-width="1.2" stroke-linecap="round"/>
+        <text x="170" y="158" text-anchor="middle" font-size="10" fill="#6a6862">source</text>
+
+        <!-- sound waves -->
+        <path d="M 148 103 Q 132 125 148 147" fill="none" stroke="#c9c5b8" stroke-width="1.2" stroke-dasharray="3,3"/>
+        <path d="M 138 93  Q 114 125 138 157" fill="none" stroke="#c9c5b8" stroke-width="1.2" stroke-dasharray="3,3"/>
+        <path d="M 192 103 Q 208 125 192 147" fill="none" stroke="#c9c5b8" stroke-width="1.2" stroke-dasharray="3,3"/>
+        <path d="M 202 93  Q 226 125 202 157" fill="none" stroke="#c9c5b8" stroke-width="1.2" stroke-dasharray="3,3"/>
+
+        <!-- MIC 1 (close, teal) -->
+        <rect x="60" y="101" width="14" height="34" rx="7" fill="white" stroke="#2c7d6f" stroke-width="2"/>
+        <rect x="63" y="107" width="8" height="16" rx="4" fill="#2c7d6f" opacity="0.15"/>
+        <line x1="67" y1="135" x2="67" y2="185" stroke="#2c7d6f" stroke-width="1.5"/>
+        <line x1="52" y1="185" x2="82" y2="185" stroke="#2c7d6f" stroke-width="2"/>
+        <text x="67" y="205" text-anchor="middle" font-size="10" fill="#2c7d6f" font-weight="500">mic 1</text>
+        <text x="67" y="217" text-anchor="middle" font-size="9" fill="#2c7d6f">close</text>
+
+        <!-- MIC 2 (slightly farther, crimson) -->
+        <rect x="266" y="85" width="14" height="34" rx="7" fill="white" stroke="#c73862" stroke-width="2"/>
+        <rect x="269" y="91" width="8" height="16" rx="4" fill="#c73862" opacity="0.15"/>
+        <line x1="273" y1="119" x2="273" y2="185" stroke="#c73862" stroke-width="1.5"/>
+        <line x1="258" y1="185" x2="288" y2="185" stroke="#c73862" stroke-width="2"/>
+        <text x="273" y="205" text-anchor="middle" font-size="10" fill="#c73862" font-weight="500">mic 2</text>
+        <text x="273" y="217" text-anchor="middle" font-size="9" fill="#c73862">a bit farther</text>
+
+        <!-- distance markers -->
+        <line x1="170" y1="170" x2="67" y2="170" stroke="#2c7d6f" stroke-width="1" stroke-dasharray="2,3" marker-end="url(#arr-teal)" marker-start="url(#arr-teal-r)"/>
+        <text x="118" y="165" text-anchor="middle" font-size="9" fill="#2c7d6f">d₁</text>
+        <line x1="170" y1="180" x2="273" y2="180" stroke="#c73862" stroke-width="1" stroke-dasharray="2,3" marker-end="url(#arr-crim)" marker-start="url(#arr-crim-r)"/>
+        <text x="222" y="175" text-anchor="middle" font-size="9" fill="#c73862">d₂ ≈ d₁</text>
+      </svg>
+      <div class="doodle-caption bad">d₂ similar to d₁ → phase issues</div>
+    </div>
+
+    <!-- RIGHT: 3:1 FIX -->
+    <div class="doodle-col">
+      <svg viewBox="0 0 340 230" xmlns="http://www.w3.org/2000/svg" font-family="DM Mono, monospace">
+        <defs>
+          <marker id="arr-teal-2" viewBox="0 0 8 8" refX="4" refY="4" markerWidth="5" markerHeight="5" orient="auto">
+            <path d="M 0 0 L 8 4 L 0 8 z" fill="#2c7d6f"/>
+          </marker>
+          <marker id="arr-teal-2-r" viewBox="0 0 8 8" refX="4" refY="4" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+            <path d="M 0 0 L 8 4 L 0 8 z" fill="#2c7d6f"/>
+          </marker>
+          <marker id="arr-crim-2" viewBox="0 0 8 8" refX="4" refY="4" markerWidth="5" markerHeight="5" orient="auto">
+            <path d="M 0 0 L 8 4 L 0 8 z" fill="#c73862"/>
+          </marker>
+          <marker id="arr-crim-2-r" viewBox="0 0 8 8" refX="4" refY="4" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+            <path d="M 0 0 L 8 4 L 0 8 z" fill="#c73862"/>
+          </marker>
+        </defs>
+        <!-- success banner -->
+        <rect x="100" y="6" width="140" height="22" rx="3" fill="#2c7d6f18" stroke="#2c7d6f55" stroke-width="1"/>
+        <text x="170" y="21" text-anchor="middle" font-size="11" fill="#2c7d6f" font-weight="500">✓ 3:1 rule applied</text>
+
+        <!-- floor -->
+        <rect x="0" y="190" width="340" height="40" fill="#f4f2ec"/>
+        <line x1="0" y1="190" x2="340" y2="190" stroke="#e2dfd6" stroke-width="1.5"/>
+
+        <!-- source: positioned LEFT-of-center so we have room for d₂ = 3·d₁ -->
+        <ellipse cx="90" cy="125" rx="18" ry="22" fill="white" stroke="#1a1a17" stroke-width="1.8"/>
+        <ellipse cx="90" cy="125" rx="8" ry="10" fill="#f4f2ec" stroke="#6a6862" stroke-width="1.2"/>
+        <line x1="82" y1="121" x2="98" y2="121" stroke="#6a6862" stroke-width="1.2" stroke-linecap="round"/>
+        <line x1="84" y1="126" x2="96" y2="126" stroke="#6a6862" stroke-width="1.2" stroke-linecap="round"/>
+        <line x1="83" y1="131" x2="97" y2="131" stroke="#6a6862" stroke-width="1.2" stroke-linecap="round"/>
+        <text x="90" y="158" text-anchor="middle" font-size="10" fill="#6a6862">source</text>
+
+        <!-- sound waves (right side only since mics are right) -->
+        <path d="M 112 103 Q 128 125 112 147" fill="none" stroke="#c9c5b8" stroke-width="1.2" stroke-dasharray="3,3"/>
+        <path d="M 122 93  Q 146 125 122 157" fill="none" stroke="#c9c5b8" stroke-width="1.2" stroke-dasharray="3,3"/>
+
+        <!-- MIC 1: 30 px from source center (close) -->
+        <rect x="125" y="108" width="14" height="34" rx="7" fill="white" stroke="#2c7d6f" stroke-width="2"/>
+        <rect x="128" y="114" width="8" height="16" rx="4" fill="#2c7d6f" opacity="0.15"/>
+        <line x1="132" y1="142" x2="132" y2="185" stroke="#2c7d6f" stroke-width="1.5"/>
+        <line x1="117" y1="185" x2="147" y2="185" stroke="#2c7d6f" stroke-width="2"/>
+        <text x="132" y="205" text-anchor="middle" font-size="10" fill="#2c7d6f" font-weight="500">mic 1</text>
+        <text x="132" y="217" text-anchor="middle" font-size="9" fill="#2c7d6f">close</text>
+
+        <!-- MIC 2: 3× as far (90 + 3*42 = ~216, but use 90+126=216 → at x=216-7=209) -->
+        <!-- d₁ = 132 - 90 = 42 px; d₂ = 3*42 = 126 px → mic2 center = 90+126 = 216 -->
+        <rect x="299" y="108" width="14" height="34" rx="7" fill="white" stroke="#c73862" stroke-width="2"/>
+        <rect x="302" y="114" width="8" height="16" rx="4" fill="#c73862" opacity="0.15"/>
+        <line x1="306" y1="142" x2="306" y2="185" stroke="#c73862" stroke-width="1.5"/>
+        <line x1="291" y1="185" x2="321" y2="185" stroke="#c73862" stroke-width="2"/>
+        <text x="306" y="205" text-anchor="middle" font-size="10" fill="#c73862" font-weight="500">mic 2</text>
+        <text x="306" y="217" text-anchor="middle" font-size="9" fill="#c73862">3× farther</text>
+
+        <!-- distance markers showing 3:1 ratio -->
+        <line x1="90" y1="170" x2="132" y2="170" stroke="#2c7d6f" stroke-width="1" stroke-dasharray="2,3" marker-end="url(#arr-teal-2)" marker-start="url(#arr-teal-2-r)"/>
+        <text x="111" y="165" text-anchor="middle" font-size="9" fill="#2c7d6f">d₁</text>
+        <line x1="90" y1="180" x2="306" y2="180" stroke="#c73862" stroke-width="1" stroke-dasharray="2,3" marker-end="url(#arr-crim-2)" marker-start="url(#arr-crim-2-r)"/>
+        <text x="200" y="175" text-anchor="middle" font-size="9" fill="#c73862">d₂ = 3·d₁</text>
+      </svg>
+      <div class="doodle-caption good">d₂ ≥ 3·d₁ → bleed too quiet to interfere</div>
+    </div>
+
+  </div>
+  <div class="scenario-text">
+    <h2>real-world context</h2>
+    <p>Two microphones on the same source at different distances. The farther mic receives the same sound slightly later — a time delay that translates directly into a phase offset at any given frequency.</p>
+    <p>When the two signals are mixed together, the phase offset causes <strong>comb filtering</strong>: some frequencies add constructively, others cancel destructively. The result is a hollow, colored sound with notches at regular frequency intervals.</p>
+    <p>The <strong>3:1 rule</strong> is the standard fix: place the second mic at least three times further from the source than the first. This keeps the phase relationships benign across the audible spectrum.</p>
+    <p>The phase slider below is a stand-in for that path length difference. At 0° the mics are effectively at the same distance. At 180° they are half a wavelength apart — complete cancellation at that frequency.</p>
+  </div>
+</div>
+
+<!-- CONTROLS -->
+<div class="controls">
+  <div class="ctrl-group-label" style="grid-column:1/-1; border-color:var(--accent); color:var(--accent)">independent amplitudes</div>
+  <div class="ctrl">
+    <label style="color:var(--teal)">A₁ · mic 1</label>
+    <input type="range" class="s1" id="a1-slider" min="0.05" max="1" step="0.01" value="0.8">
+    <span class="val v1" id="a1-val">0.80</span>
+  </div>
+  <div class="ctrl">
+    <label style="color:var(--crimson)">A₂ · mic 2</label>
+    <input type="range" class="s2" id="a2-slider" min="0.05" max="1" step="0.01" value="0.8">
+    <span class="val v2" id="a2-val">0.80</span>
+  </div>
+
+  <div class="ctrl-group-label shared" style="grid-column:1/-1">shared parameters</div>
+  <div class="ctrl">
+    <label>frequency</label>
+    <input type="range" class="sa" id="freq-slider" min="0.3" max="4" step="0.05" value="1">
+    <span class="val" id="freq-val">1.00 Hz</span>
+  </div>
+  <div class="ctrl">
+    <label>phase offset φ</label>
+    <input type="range" class="sa" id="phase-slider" min="0" max="360" step="1" value="0">
+    <span class="val" id="phase-val">0°</span>
+  </div>
+</div>
+
+<!-- STATUS -->
+<div class="status-card">
+  <span class="status-badge" id="status-badge">constructive</span>
+  <div class="status-metric">resultant amplitude R = <span class="r-val" id="r-val">1.600</span></div>
+  <div class="status-metric">resultant phase ψ = <span class="psi-val" id="psi-val">0.0°</span></div>
+  <div class="status-metric">max possible = <span id="max-val">1.600</span></div>
+  <div class="status-metric">min possible = <span id="min-val">0.000</span></div>
+</div>
+
+<!-- VIZ ROW: phasor diagram + wave canvas -->
+<div class="viz-row">
+  <!-- PHASOR DIAGRAM -->
+  <div class="viz-card">
+    <h2>phasor addition</h2>
+    <canvas id="cphasor"></canvas>
+    <div class="note" style="border-top:none;padding:10px 0 0;background:transparent;font-size:12.5px;">Two phasor arrows tip-to-tail. The resultant (terra-cotta) is R. When they point the same direction (φ = 0°) R = A₁ + A₂. When they point opposite (φ = 180°) R = |A₁ − A₂|.</div>
+  </div>
+
+  <!-- WAVE CANVAS -->
+  <div class="viz-card" style="padding:0;overflow:hidden;">
+    <div class="wave-panel-header">
+      <span class="wave-panel-title">wave 1 · wave 2 · sum</span>
+      <div class="wave-panel-btns">
+        <button class="btn" id="play-btn">▶ play</button>
+        <button class="btn rst" id="reset-btn">↺ reset</button>
+      </div>
+    </div>
+    <div class="wave-panel-body">
+      <canvas id="cwaves" width="1040" height="380"></canvas>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-line" style="background:#2c7d6f;height:2.5px;border-radius:2px"></div><span>wave 1 · A₁·sin(θ)</span></div>
+        <div class="legend-item"><div class="legend-line" style="background:#c73862;height:2.5px;border-radius:2px"></div><span>wave 2 · A₂·sin(θ+φ)</span></div>
+        <div class="legend-item"><div class="legend-line" style="background:#b8693a;height:3px;border-radius:2px"></div><span>sum · R·sin(θ+ψ)</span></div>
+        <div class="legend-item"><div class="legend-line" style="background:#a8a59f;height:1px"></div><span>amplitude guide ±R</span></div>
+      </div>
+    </div>
+    <div class="note">
+      <strong>Drag the phase slider.</strong> At 0° the waves align and the sum reaches A₁ + A₂. At 180° they cancel to |A₁ − A₂|. With equal amplitudes, 180° produces complete silence. With unequal amplitudes, the quieter wave is subtracted from the louder — the difference survives. The resultant amplitude R = √(A₁² + A₂² + 2·A₁·A₂·cos(φ)).
+    </div>
+  </div>
+</div>
+
+<!-- KEY MOMENTS -->
+<div class="key-moments">
+  <h2>key phase positions</h2>
+  <div class="moments-grid">
+    <div class="moment">
+      <div class="moment-angle">0°</div>
+      <div class="moment-label">full constructive</div>
+      <div class="moment-desc">waves in phase · R = A₁ + A₂ · maximum amplitude</div>
+    </div>
+    <div class="moment">
+      <div class="moment-angle">90°</div>
+      <div class="moment-label">quadrature</div>
+      <div class="moment-desc">R = √(A₁² + A₂²) · the phasor tool's case · sum is 45° shifted</div>
+    </div>
+    <div class="moment">
+      <div class="moment-angle">180°</div>
+      <div class="moment-label">full destructive</div>
+      <div class="moment-desc">waves opposed · R = |A₁ − A₂| · silence if equal amplitudes</div>
+    </div>
+    <div class="moment">
+      <div class="moment-angle">360°</div>
+      <div class="moment-label">full constructive</div>
+      <div class="moment-desc">one full cycle of offset · identical to 0° · the pattern repeats</div>
+    </div>
+  </div>
+</div>
+
+<footer>CSU East Bay Music · sound-design teaching tools</footer>
+
+</div>
+<script>
+// =============================================================
+// PHASE INTERFERENCE
+// A1·sin(θ) + A2·sin(θ + φ) = R·sin(θ + ψ)
+// R   = √(A1² + A2² + 2·A1·A2·cos(φ))
+// ψ   = atan2(A2·sin(φ), A1 + A2·cos(φ))
+// =============================================================
+
+let A1 = 0.8, A2 = 0.8, freq = 1.0, phi = 0.0; // phi in radians
+let t = 0, running = false, animId = null, lastTs = null;
+
+const C = {
+  bg:'#ffffff', border:'#e2dfd6', borderS:'#c9c5b8',
+  muted:'#6a6862', dim:'#a8a59f', text:'#1a1a17',
+  teal:'#2c7d6f',    tealS:'rgba(44,125,111,0.15)',
+  crimson:'#c73862', crimsonS:'rgba(199,56,98,0.12)',
+  accent:'#b8693a',  accentS:'rgba(184,105,58,0.15)',
+};
+
+// ---- canvases ----
+const cphasor = document.getElementById('cphasor');
+const cwaves  = document.getElementById('cwaves');
+const xp = cphasor.getContext('2d');
+const xw = cwaves.getContext('2d');
+let WP, HP, WW, HW;
+
+function setupCanvas(cv, ctx) {
+  const dpr = window.devicePixelRatio || 1;
+  const r   = cv.getBoundingClientRect();
+  cv.width  = r.width  * dpr;
+  cv.height = r.height * dpr;
+  ctx.scale(dpr, dpr);
+  return { w: r.width, h: r.height };
+}
+function initCanvases() {
+  ({ w:WP, h:HP } = setupCanvas(cphasor, xp));
+  ({ w:WW, h:HW } = setupCanvas(cwaves,  xw));
+}
+
+// ---- math ----
+function resultant() {
+  const R   = Math.sqrt(A1*A1 + A2*A2 + 2*A1*A2*Math.cos(phi));
+  const psi = Math.atan2(A2*Math.sin(phi), A1 + A2*Math.cos(phi));
+  return { R, psi };
+}
+
+// ---- status ----
+const badge   = document.getElementById('status-badge');
+const rVal    = document.getElementById('r-val');
+const psiVal  = document.getElementById('psi-val');
+const maxVal  = document.getElementById('max-val');
+const minVal  = document.getElementById('min-val');
+
+function updateStatus() {
+  const { R, psi } = resultant();
+  rVal.textContent   = R.toFixed(3);
+  psiVal.textContent = (psi * 180 / Math.PI).toFixed(1) + '°';
+  maxVal.textContent = (A1 + A2).toFixed(3);
+  minVal.textContent = Math.abs(A1 - A2).toFixed(3);
+
+  const phiDeg = phi * 180 / Math.PI;
+  const norm   = ((phiDeg % 360) + 360) % 360;
+  let label, cls;
+  if (norm < 30 || norm > 330) {
+    label = 'constructive'; cls = 'constructive';
+  } else if (norm > 150 && norm < 210) {
+    label = 'destructive'; cls = 'destructive';
+  } else {
+    label = 'partial interference'; cls = 'partial';
+  }
+  badge.textContent = label;
+  badge.className = 'status-badge ' + cls;
+}
+
+// =============================================================
+// PHASOR DIAGRAM
+// Two arrows tip-to-tail, resultant
+// =============================================================
+function drawPhasor() {
+  xp.clearRect(0, 0, WP, HP);
+  xp.fillStyle = C.bg; xp.fillRect(0, 0, WP, HP);
+
+  const cx = WP / 2, cy = HP / 2;
+  // scale must accommodate the maximum possible tip excursion = A1 + A2 (when in phase)
+  const maxReach = Math.max(A1 + A2, 0.5);
+  const scale = (Math.min(WP, HP) * 0.42) / maxReach;
+
+  // draw circle guide
+  xp.strokeStyle = C.border; xp.lineWidth = 1; xp.setLineDash([3,4]);
+  xp.beginPath(); xp.arc(cx, cy, scale, 0, Math.PI*2); xp.stroke();
+  xp.setLineDash([]);
+
+  // axes
+  xp.strokeStyle = C.border; xp.lineWidth = 1;
+  xp.beginPath();
+  xp.moveTo(cx-scale-12,cy); xp.lineTo(cx+scale+12,cy);
+  xp.moveTo(cx,cy-scale-12); xp.lineTo(cx,cy+scale+12);
+  xp.stroke();
+  xp.fillStyle = C.dim; xp.font = "9px 'DM Mono',monospace"; xp.textAlign='left';
+  xp.fillText('Re', cx+scale+4, cy+10);
+  xp.textAlign='center'; xp.fillText('Im', cx, cy-scale-4);
+
+  // current animation angle for the reference phasor (wave 1)
+  const theta = 2*Math.PI*freq*t;
+
+  // phasor 1: A1 at angle theta (reference)
+  const p1x = cx + A1*scale*Math.cos(theta);
+  const p1y = cy - A1*scale*Math.sin(theta);
+
+  // phasor 2: A2 at angle theta+phi (tip-to-tail from p1)
+  const p2x = p1x + A2*scale*Math.cos(theta + phi);
+  const p2y = p1y - A2*scale*Math.sin(theta + phi);
+
+  function arrow(ctx, x1,y1,x2,y2,color,lw) {
+    ctx.strokeStyle = color; ctx.lineWidth = lw;
+    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+    const ang = Math.atan2(y2-y1, x2-x1);
+    const d = 9;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(x2, y2);
+    ctx.lineTo(x2 - d*Math.cos(ang-0.35), y2 - d*Math.sin(ang-0.35));
+    ctx.lineTo(x2 - d*Math.cos(ang+0.35), y2 - d*Math.sin(ang+0.35));
+    ctx.closePath(); ctx.fill();
+  }
+
+  // resultant: cx,cy → p2x,p2y (terra-cotta, drawn first so it's behind)
+  xp.globalAlpha = 0.35;
+  arrow(xp, cx, cy, p2x, p2y, C.accent, 2.5);
+  xp.globalAlpha = 1;
+
+  // wave 1 phasor (teal)
+  arrow(xp, cx, cy, p1x, p1y, C.teal, 2.5);
+  // wave 2 phasor tip-to-tail (crimson)
+  arrow(xp, p1x, p1y, p2x, p2y, C.crimson, 2.5);
+  // resultant bold
+  arrow(xp, cx, cy, p2x, p2y, C.accent, 2);
+
+  // dots
+  function dot(x,y,col,rs) {
+    xp.fillStyle = rs; xp.beginPath(); xp.arc(x,y,11,0,Math.PI*2); xp.fill();
+    xp.fillStyle = col; xp.beginPath(); xp.arc(x,y,4.5,0,Math.PI*2); xp.fill();
+  }
+  dot(p1x, p1y, C.teal, C.tealS);
+  dot(p2x, p2y, C.accent, C.accentS);
+}
+
+// =============================================================
+// WAVE CANVAS
+// =============================================================
+function drawWaves() {
+  xw.clearRect(0, 0, WW, HW);
+  xw.fillStyle = C.bg; xw.fillRect(0, 0, WW, HW);
+
+  const padL=50, padR=20, padT=24, padB=28;
+  const plotW = WW-padL-padR, plotH = HW-padT-padB;
+  const cy    = padT + plotH/2;
+
+  const showSec = Math.max(2, 2/freq);
+  const { R } = resultant();
+  const peakAll = Math.max(A1+A2, R) * 1.15;
+  const yScale  = (plotH/2) / peakAll;
+
+  // zero axis
+  xw.strokeStyle = C.borderS; xw.lineWidth = 1.2;
+  xw.beginPath(); xw.moveTo(padL,cy); xw.lineTo(WW-padR,cy); xw.stroke();
+
+  // R amplitude guide
+  xw.strokeStyle = C.border; xw.setLineDash([3,4]); xw.lineWidth=1;
+  xw.beginPath();
+  xw.moveTo(padL, cy-R*yScale); xw.lineTo(WW-padR, cy-R*yScale);
+  xw.moveTo(padL, cy+R*yScale); xw.lineTo(WW-padR, cy+R*yScale);
+  xw.stroke(); xw.setLineDash([]);
+
+  // time labels
+  const cycleW = plotW/(showSec*freq);
+  xw.font="10px 'DM Mono',monospace"; xw.textAlign='center';
+  for (let c=0; c*cycleW<=plotW+1; c++) {
+    const cx_ = (WW-padR) - c*cycleW; if (cx_<padL) break;
+    xw.fillStyle=C.dim; xw.fillText(c===0?'now':`-${c}T`, cx_, HW-8);
+    xw.strokeStyle=C.border; xw.lineWidth=1;
+    xw.beginPath(); xw.moveTo(cx_,cy-3); xw.lineTo(cx_,cy+3); xw.stroke();
+  }
+
+  // y axis labels
+  xw.textAlign='right'; xw.fillStyle=C.muted; xw.font="10px 'DM Mono',monospace";
+  xw.fillText('+R', padL-6, cy-R*yScale+4);
+  xw.fillText('0',  padL-6, cy+4);
+  xw.fillText('−R', padL-6, cy+R*yScale+4);
+
+  const N = 600;
+
+  function curve(color, lw, alpha, fn) {
+    xw.strokeStyle=color; xw.lineWidth=lw; xw.globalAlpha=alpha;
+    xw.beginPath();
+    for (let i=0; i<=N; i++) {
+      const frac = i/N;
+      const sT   = t - showSec + frac*showSec;
+      const th   = 2*Math.PI*freq*sT;
+      const sy   = cy - fn(th)*yScale;
+      const sx   = padL + frac*plotW;
+      i===0 ? xw.moveTo(sx,sy) : xw.lineTo(sx,sy);
+    }
+    xw.stroke(); xw.globalAlpha=1;
+  }
+
+  // wave 1: A1·sin(θ)
+  curve(C.teal,    2,   0.7, th => A1*Math.sin(th));
+  // wave 2: A2·sin(θ+φ)
+  curve(C.crimson, 2,   0.7, th => A2*Math.sin(th+phi));
+  // sum: A1·sin(θ) + A2·sin(θ+φ)
+  curve(C.accent,  3,   1.0, th => A1*Math.sin(th) + A2*Math.sin(th+phi));
+
+  // current dots at right edge
+  const theta = 2*Math.PI*freq*t;
+  function dot2(x,y,col,colS) {
+    xw.fillStyle=colS; xw.beginPath(); xw.arc(x,y,9,0,Math.PI*2); xw.fill();
+    xw.fillStyle=col;  xw.beginPath(); xw.arc(x,y,3.5,0,Math.PI*2); xw.fill();
+  }
+  dot2(WW-padR, cy - A1*Math.sin(theta)*yScale, C.teal, C.tealS);
+  dot2(WW-padR, cy - A2*Math.sin(theta+phi)*yScale, C.crimson, C.crimsonS);
+  dot2(WW-padR, cy - (A1*Math.sin(theta)+A2*Math.sin(theta+phi))*yScale, C.accent, C.accentS);
+}
+
+// =============================================================
+// ANIMATION
+// =============================================================
+function draw(ts) {
+  if (!lastTs) lastTs = ts;
+  if (running) t += (ts-lastTs)/1000;
+  lastTs = ts;
+  drawPhasor();
+  drawWaves();
+  updateStatus();
+  if (running) animId = requestAnimationFrame(draw);
+}
+
+// =============================================================
+// CONTROLS
+// =============================================================
+const playBtn   = document.getElementById('play-btn');
+const resetBtn  = document.getElementById('reset-btn');
+const a1Slider  = document.getElementById('a1-slider');
+const a2Slider  = document.getElementById('a2-slider');
+const freqSlider= document.getElementById('freq-slider');
+const phaseSldr = document.getElementById('phase-slider');
+const a1Val     = document.getElementById('a1-val');
+const a2Val     = document.getElementById('a2-val');
+const freqVal   = document.getElementById('freq-val');
+const phaseVal  = document.getElementById('phase-val');
+
+playBtn.addEventListener('click', () => {
+  running = !running;
+  if (running) {
+    playBtn.textContent='■ pause'; playBtn.classList.add('stop');
+    lastTs=null; animId=requestAnimationFrame(draw);
+  } else {
+    playBtn.textContent='▶ play'; playBtn.classList.remove('stop');
+    if (animId) cancelAnimationFrame(animId);
+  }
+});
+
+resetBtn.addEventListener('click', () => {
+  if (running) { running=false; if(animId) cancelAnimationFrame(animId); playBtn.textContent='▶ play'; playBtn.classList.remove('stop'); }
+  t=0; lastTs=null;
+  requestAnimationFrame(draw);
+});
+
+function refresh() { if (!running) requestAnimationFrame(draw); }
+
+a1Slider.addEventListener('input',   () => { A1=parseFloat(a1Slider.value);   a1Val.textContent=A1.toFixed(2); refresh(); });
+a2Slider.addEventListener('input',   () => { A2=parseFloat(a2Slider.value);   a2Val.textContent=A2.toFixed(2); refresh(); });
+freqSlider.addEventListener('input', () => { freq=parseFloat(freqSlider.value); freqVal.textContent=freq.toFixed(2)+' Hz'; refresh(); });
+phaseSldr.addEventListener('input',  () => { const d=parseFloat(phaseSldr.value); phi=d*Math.PI/180; phaseVal.textContent=d+'°'; refresh(); });
+
+window.addEventListener('load',   () => { requestAnimationFrame(() => { initCanvases(); updateStatus(); requestAnimationFrame(draw); }); });
+window.addEventListener('resize', () => { initCanvases(); if(!running) requestAnimationFrame(draw); });
+</script>
+</body>
+</html>
