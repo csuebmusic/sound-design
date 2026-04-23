@@ -407,98 +407,71 @@
         <!-- ⊕₁ summer -->
         <circle cx="210" cy="68" r="18" fill="white" stroke="#1a1a17" stroke-width="1.8"/>
         <text x="210" y="75" text-anchor="middle" font-size="20" fill="#1a1a17">+</text>
-        <text x="175" y="58" text-anchor="middle" font-size="10" fill="#1a1a17">⊕₁</text>
 
-        <!-- ⊕₁ → center column tap (w(n)) -->
+        <!-- ⊕₁ → center tap → ⊕₂ (top bus) -->
         <line x1="228" y1="68" x2="406" y2="68" stroke="#6a6862" stroke-width="1.5"/>
-        <!-- center tap dot (w(n)) -->
         <circle cx="410" cy="68" r="3.5" fill="#6a6862"/>
-        <!-- w(n) label -->
-        <text x="410" y="58" text-anchor="middle" font-size="10" fill="#6a6862">w(n)</text>
-        <!-- center → ⊕₂ (direct through, scale=1, represents the h₀=1 path) -->
         <line x1="410" y1="68" x2="590" y2="68" stroke="#6a6862" stroke-width="1.5" marker-end="url(#arr-n)"/>
         <!-- ⊕₂ summer -->
         <circle cx="608" cy="68" r="18" fill="white" stroke="#1a1a17" stroke-width="1.8"/>
         <text x="608" y="75" text-anchor="middle" font-size="20" fill="#1a1a17">+</text>
-        <text x="643" y="58" text-anchor="middle" font-size="10" fill="#1a1a17">⊕₂</text>
         <!-- ⊕₂ → y(n) -->
         <line x1="626" y1="68" x2="786" y2="68" stroke="#6a6862" stroke-width="1.5" marker-end="url(#arr)"/>
-        <!-- y(n) label -->
         <text x="792" y="74" text-anchor="start" font-size="13" fill="#1a1a17">y(n)</text>
 
         <!-- ===== SHARED DELAY CHAIN (center column x=410) ===== -->
 
-        <!-- w(n) → z⁻¹ #1 -->
+        <!-- tap → z⁻¹ #1 -->
         <line x1="410" y1="68" x2="410" y2="118" stroke="#6a6862" stroke-width="1.5"/>
-        <!-- z⁻¹ box #1 -->
         <rect x="380" y="118" width="60" height="28" rx="2" fill="white" stroke="#6a6862" stroke-width="1.5"/>
         <text x="410" y="137" text-anchor="middle" font-size="13" fill="#6a6862">z⁻¹</text>
-        <!-- z⁻¹ #1 → tap₁ (w(n−1)) -->
+        <!-- z⁻¹ #1 → tap₁ -->
         <line x1="410" y1="146" x2="410" y2="183" stroke="#6a6862" stroke-width="1.5"/>
-        <!-- tap₁ dot -->
         <circle cx="410" cy="185" r="3.5" fill="#6a6862"/>
-        <!-- w(n−1) label -->
-        <text x="428" y="182" text-anchor="start" font-size="10" fill="#6a6862">w(n−1)</text>
 
         <!-- tap₁ → z⁻¹ #2 -->
         <line x1="410" y1="185" x2="410" y2="218" stroke="#6a6862" stroke-width="1.5"/>
-        <!-- z⁻¹ box #2 -->
         <rect x="380" y="218" width="60" height="28" rx="2" fill="white" stroke="#6a6862" stroke-width="1.5"/>
         <text x="410" y="237" text-anchor="middle" font-size="13" fill="#6a6862">z⁻¹</text>
-        <!-- z⁻¹ #2 → tap₂ (w(n−2)) -->
+        <!-- z⁻¹ #2 → tap₂ -->
         <line x1="410" y1="246" x2="410" y2="283" stroke="#6a6862" stroke-width="1.5"/>
-        <!-- tap₂ dot -->
         <circle cx="410" cy="285" r="3.5" fill="#6a6862"/>
-        <!-- w(n−2) label -->
-        <text x="428" y="282" text-anchor="start" font-size="10" fill="#6a6862">w(n−2)</text>
 
-        <!-- ===== LEFT BRANCHES (feedback → ⊕₁): b₁ from tap₁, b₂ from tap₂ ===== -->
+        <!-- ===== LEFT BRANCHES (feedback → ⊕₁) ===== -->
 
-        <!-- tap₁ → LEFT → b₁ multiplier → ⊕₁ -->
+        <!-- tap₁ → b₁ → ⊕₁ -->
         <line x1="410" y1="185" x2="310" y2="185" stroke="#c73862" stroke-width="1.5"/>
-        <!-- b₁ triangle (points left toward ⊕₁) -->
         <path d="M 308 172 L 308 198 L 273 185 z" fill="white" stroke="#c73862" stroke-width="1.5" stroke-linejoin="round"/>
         <text x="290" y="215" text-anchor="middle" font-size="13" fill="#c73862" font-weight="500">b₁</text>
-        <!-- b₁ → ⊕₁ (route up via left column) -->
+        <!-- b₁ output → up to ⊕₁ bottom (cy=68, r=18, bottom=86) -->
         <line x1="271" y1="185" x2="210" y2="185" stroke="#c73862" stroke-width="1.5"/>
-        <line x1="210" y1="185" x2="210" y2="88" stroke="#c73862" stroke-width="1.5" marker-end="url(#arr-p)"/>
-        <!-- + label entering ⊕₁ from below -->
-        <text x="222" y="105" font-size="10" fill="#c73862">+</text>
+        <line x1="210" y1="185" x2="210" y2="86" stroke="#c73862" stroke-width="1.5" marker-end="url(#arr-p)"/>
 
-        <!-- tap₂ → LEFT → b₂ multiplier → ⊕₁ -->
+        <!-- tap₂ → b₂ → ⊕₁ -->
         <line x1="410" y1="285" x2="310" y2="285" stroke="#c73862" stroke-width="1.5"/>
-        <!-- b₂ triangle (points left) -->
         <path d="M 308 272 L 308 298 L 273 285 z" fill="white" stroke="#c73862" stroke-width="1.5" stroke-linejoin="round"/>
         <text x="290" y="315" text-anchor="middle" font-size="13" fill="#c73862" font-weight="500">b₂</text>
-        <!-- b₂ → ⊕₁ (route left then up, column x=155) -->
+        <!-- b₂ output → left to col x=155 → up to ⊕₁ bottom -->
         <line x1="271" y1="285" x2="155" y2="285" stroke="#c73862" stroke-width="1.5"/>
-        <line x1="155" y1="285" x2="155" y2="88" stroke="#c73862" stroke-width="1.5" marker-end="url(#arr-p)"/>
-        <!-- − label entering ⊕₁ from below-left -->
-        <text x="167" y="105" font-size="10" fill="#c73862">−</text>
+        <line x1="155" y1="285" x2="155" y2="86" stroke="#c73862" stroke-width="1.5" marker-end="url(#arr-p)"/>
 
-        <!-- ===== RIGHT BRANCHES (feedforward → ⊕₂): a₁ from tap₁, a₂ from tap₂ ===== -->
+        <!-- ===== RIGHT BRANCHES (feedforward → ⊕₂) ===== -->
 
-        <!-- tap₁ → RIGHT → a₁ multiplier → ⊕₂ -->
+        <!-- tap₁ → a₁ → ⊕₂ -->
         <line x1="410" y1="185" x2="510" y2="185" stroke="#2c7d6f" stroke-width="1.5"/>
-        <!-- a₁ triangle (points right toward ⊕₂) -->
         <path d="M 512 172 L 512 198 L 547 185 z" fill="white" stroke="#2c7d6f" stroke-width="1.5" stroke-linejoin="round"/>
         <text x="529" y="215" text-anchor="middle" font-size="13" fill="#2c7d6f" font-weight="500">a₁</text>
-        <!-- a₁ → ⊕₂ (route up) -->
+        <!-- a₁ output → up to ⊕₂ bottom (cx=608, cy=68, bottom=86) -->
         <line x1="549" y1="185" x2="608" y2="185" stroke="#2c7d6f" stroke-width="1.5"/>
-        <line x1="608" y1="185" x2="608" y2="88" stroke="#2c7d6f" stroke-width="1.5" marker-end="url(#arr-z)"/>
-        <!-- + label entering ⊕₂ from below -->
-        <text x="620" y="105" font-size="10" fill="#2c7d6f">+</text>
+        <line x1="608" y1="185" x2="608" y2="86" stroke="#2c7d6f" stroke-width="1.5" marker-end="url(#arr-z)"/>
 
-        <!-- tap₂ → RIGHT → a₂ multiplier → ⊕₂ -->
+        <!-- tap₂ → a₂ → ⊕₂ -->
         <line x1="410" y1="285" x2="510" y2="285" stroke="#2c7d6f" stroke-width="1.5"/>
-        <!-- a₂ triangle (points right) -->
         <path d="M 512 272 L 512 298 L 547 285 z" fill="white" stroke="#2c7d6f" stroke-width="1.5" stroke-linejoin="round"/>
         <text x="529" y="315" text-anchor="middle" font-size="13" fill="#2c7d6f" font-weight="500">a₂</text>
-        <!-- a₂ → ⊕₂ (route right then up, column x=665) -->
+        <!-- a₂ output → right to col x=665 → up to ⊕₂ bottom -->
         <line x1="549" y1="285" x2="665" y2="285" stroke="#2c7d6f" stroke-width="1.5"/>
-        <line x1="665" y1="285" x2="665" y2="88" stroke="#2c7d6f" stroke-width="1.5" marker-end="url(#arr-z)"/>
-        <!-- + label entering ⊕₂ from below-right -->
-        <text x="677" y="105" font-size="10" fill="#2c7d6f">+</text>
+        <line x1="665" y1="285" x2="665" y2="86" stroke="#2c7d6f" stroke-width="1.5" marker-end="url(#arr-z)"/>
 
       </svg>
       <div class="block-diagram-legend">
