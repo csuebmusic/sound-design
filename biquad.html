@@ -550,7 +550,7 @@
         <div class="slider-row">
           <label>freq_z</label>
           <div>
-            <input type="range" class="zero-slider" id="freqz-slider" min="0" max="1" step="0.001" value="0.6">
+            <input type="range" class="zero-slider" id="freqz-slider" min="0" max="1" step="0.001" value="0.747">
             <div class="desc">zero frequency · log scale 10 Hz – 24 kHz · angle of the zero pair</div>
           </div>
           <div class="value zero" id="freqz-value">2000 Hz</div>
@@ -569,7 +569,7 @@
         <div class="slider-row">
           <label>freq_p</label>
           <div>
-            <input type="range" class="pole-slider" id="freqp-slider" min="0" max="1" step="0.001" value="0.4">
+            <input type="range" class="pole-slider" id="freqp-slider" min="0" max="1" step="0.001" value="0.623">
             <div class="desc">pole frequency · log scale 10 Hz – 24 kHz · angle of the pole pair</div>
           </div>
           <div class="value pole" id="freqp-value">500 Hz</div>
@@ -577,7 +577,7 @@
         <div class="slider-row">
           <label>rp</label>
           <div>
-            <input type="range" class="pole-slider" id="rp-slider" min="0" max="0.999" step="0.001" value="0.95">
+            <input type="range" class="pole-slider" id="rp-slider" min="0" max="0.999" step="0.001" value="0.99">
             <div class="desc">pole radius · must stay below 1 for stability · higher = sharper resonance</div>
           </div>
           <div class="value pole" id="rp-value">0.900</div>
@@ -588,7 +588,7 @@
         <div class="slider-row">
           <label>g</label>
           <div>
-            <input type="range" class="gain-slider" id="g-slider" min="0" max="2" step="0.01" value="0.1">
+            <input type="range" class="gain-slider" id="g-slider" min="0" max="2" step="0.01" value="0.05">
             <div class="desc">overall gain · factored outside feedforward sum (Cook Eq. 3.11)</div>
           </div>
           <div class="value" id="g-value">0.10</div>
@@ -623,7 +623,7 @@
       </div>
     </div>
     <div class="viz-caption">
-      White noise through the BiQuad. With default settings (zero at 2 kHz, pole at 500 Hz) you hear the resonance peak at 500 Hz and the notch at 2 kHz simultaneously, the two sections shaping the same spectrum independently.
+      White noise through the BiQuad. With default settings (zero at 4 kHz, pole at 1 kHz) you hear a sharp resonance peak at 1 kHz and a true notch at 4 kHz simultaneously, the two sections shaping the same spectrum independently.
     </div>
     <div class="viz-caption" id="audio-rate">audio · not yet started · visualizations use SR = 48000 Hz</div>
   </section>
@@ -798,11 +798,11 @@ const C = {
 };
 
 // ---- state ----
-let freqHz_z = 2000;
+let freqHz_z = 4000;
 let rz = 1.0;
-let freqHz_p = 500;
-let rp = 0.95;
-let g = 0.1;
+let freqHz_p = 1000;
+let rp = 0.99;
+let g = 0.05;
 
 // derived coefficients
 let a1, a2, b1, b2, omega_z, omega_p;
@@ -1510,8 +1510,12 @@ volSlider.addEventListener('input', () => {
 });
 
 window.addEventListener('load', () => {
+  // Sync all sliders from JS state
   freqzSlider.value = freqToSlider(freqHz_z);
   freqpSlider.value = freqToSlider(freqHz_p);
+  rzSlider.value = rz;
+  rpSlider.value = rp;
+  gSlider.value = g;
   requestAnimationFrame(() => {
     initCanvases();
     update();
