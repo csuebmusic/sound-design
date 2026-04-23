@@ -553,7 +553,7 @@
             <input type="range" class="zero-slider" id="freqz-slider" min="0" max="1" step="0.001" value="0.747">
             <div class="desc">zero frequency · log scale 10 Hz – 24 kHz · angle of the zero pair</div>
           </div>
-          <div class="value zero" id="freqz-value">2000 Hz</div>
+          <div class="value zero" id="freqz-value">4.00 kHz</div>
         </div>
         <div class="slider-row">
           <label>rz</label>
@@ -572,7 +572,7 @@
             <input type="range" class="pole-slider" id="freqp-slider" min="0" max="1" step="0.001" value="0.623">
             <div class="desc">pole frequency · log scale 10 Hz – 24 kHz · angle of the pole pair</div>
           </div>
-          <div class="value pole" id="freqp-value">500 Hz</div>
+          <div class="value pole" id="freqp-value">1.00 kHz</div>
         </div>
         <div class="slider-row">
           <label>rp</label>
@@ -580,7 +580,7 @@
             <input type="range" class="pole-slider" id="rp-slider" min="0" max="0.999" step="0.001" value="0.99">
             <div class="desc">pole radius · must stay below 1 for stability · higher = sharper resonance</div>
           </div>
-          <div class="value pole" id="rp-value">0.900</div>
+          <div class="value pole" id="rp-value">0.990</div>
         </div>
       </div>
       <div class="controls-group">
@@ -591,7 +591,7 @@
             <input type="range" class="gain-slider" id="g-slider" min="0" max="2" step="0.01" value="0.05">
             <div class="desc">overall gain · factored outside feedforward sum (Cook Eq. 3.11)</div>
           </div>
-          <div class="value" id="g-value">0.10</div>
+          <div class="value" id="g-value">0.05</div>
         </div>
       </div>
 
@@ -600,12 +600,12 @@
         <div class="live-equation-label">live equation · current coefficients</div>
         <div class="live-equation-body" id="live-eq">
           <span class="var">y</span>(n) <span class="op">=</span>
-          <span class="num-g" id="live-g">0.10</span><span class="op">·(</span><span class="var">x</span>(n)
-          <span class="op" id="live-a1-sign">−</span> <span class="num-zero" id="live-a1">1.6180</span><span class="op">·</span><span class="var">x</span>(n<span class="op">−</span>1)
+          <span class="num-g" id="live-g">0.05</span><span class="op">·(</span><span class="var">x</span>(n)
+          <span class="op" id="live-a1-sign">−</span> <span class="num-zero" id="live-a1">1.7321</span><span class="op">·</span><span class="var">x</span>(n<span class="op">−</span>1)
           <span class="op">+</span> <span class="num-zero" id="live-a2">1.0000</span><span class="op">·</span><span class="var">x</span>(n<span class="op">−</span>2)<span class="op">)</span>
           <br>
-          <span class="op" style="padding-left:4.2em" id="live-b1-sign">+</span> <span class="num-pole" id="live-b1">1.6043</span><span class="op">·</span><span class="var">y</span>(n<span class="op">−</span>1)
-          <span class="op">−</span> <span class="num-pole" id="live-b2">0.8100</span><span class="op">·</span><span class="var">y</span>(n<span class="op">−</span>2)
+          <span class="op" style="padding-left:4.2em" id="live-b1-sign">+</span> <span class="num-pole" id="live-b1">1.9427</span><span class="op">·</span><span class="var">y</span>(n<span class="op">−</span>1)
+          <span class="op">−</span> <span class="num-pole" id="live-b2">0.9801</span><span class="op">·</span><span class="var">y</span>(n<span class="op">−</span>2)
         </div>
       </div>
     </div>
@@ -737,7 +737,7 @@
     <div class="notes">
       <h2>in more depth</h2>
       <ul>
-        <li>The transfer function is <code>H(z) = g·(1 + a₁·z⁻¹ + a₂·z⁻²) / (1 − b₁·z⁻¹ + b₂·z⁻²)</code> (Cook Eq. 3.12). The numerator is the 2-zero FIR; the denominator is the two-pole IIR. Together they let zeros and poles be placed anywhere in the z-plane (subject to conjugate-pair constraints for real coefficients). The BiQuad is the most compact second-order filter that can realize both resonance and anti-resonance simultaneously.</li>
+        <li>The transfer function is <code>H(z) = g·(1 + a₁·z⁻¹ + a₂·z⁻²) / (1 − b₁·z⁻¹ + b₂·z⁻²)</code> (Cook Eq. 3.11). The numerator is the 2-zero FIR; the denominator is the two-pole IIR. Together they let zeros and poles be placed anywhere in the z-plane (subject to conjugate-pair constraints for real coefficients). The BiQuad is the most compact second-order filter that can realize both resonance and anti-resonance simultaneously.</li>
         <li>The frequency response magnitude is <code>|H(e^jω)| = g · |numerator(ω)| / |denominator(ω)|</code>. Geometrically, this is the product of distances from e^jω to each zero, divided by the product of distances to each pole, scaled by g. This geometric picture (poles push the response up, zeros pull it down) is the foundation for understanding any LTI filter.</li>
         <li><strong>When freq_z = freq_p:</strong> the zero and pole are at the same angle. If rz = rp, the numerator and denominator are identical and H(z) = g, perfectly flat response. If rz &gt; rp, the zero wins (notch at that frequency). If rz &lt; rp, the pole wins (peak). This is parametric EQ in its mathematical essence: a bump or dip at a chosen frequency, controlled by the radius ratio.</li>
         <li><strong>Setting rz = 0 and rp = 0</strong> collapses the BiQuad to a simple gain stage (a₁ = a₂ = b₁ = b₂ = 0, output = g·x(n)). Setting rz = 0 gives a pure two-pole IIR. Setting rp = 0 gives a pure 2-zero FIR. The BiQuad is the most general second-order case that contains all of these as special cases.</li>
