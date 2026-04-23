@@ -59,6 +59,12 @@ The simplest finite impulse response filters: N-tap moving average and N-tap dif
 
 A 3-tap FIR with a complex conjugate zero pair: `y[n] = g·(x[n] + a₁·x[n−1] + a₂·x[n−2])` (Cook Eq. 3.11), where `a₁ = −2r·cos(ω₀)` and `a₂ = r²` (Cook Eq. 3.14 — g factors outside, matching the BiQuad numerator exactly). The tool is the FIR counterpart to `two_pole_iir.html` — same geometric vocabulary (angle, radius, unit circle), same z-plane display, but with zeros instead of poles. The key pedagogical distinction is that this filter behaves as a true notch only when `r = 1` (zeros on the unit circle); at `r < 1` the zeros pull inside and the filter combines a partial dip at the zero frequency with a broader spectral tilt whose shape depends on where `r` and `f_zero` sit. Students can sweep radius from 0 to 1 and watch this transition on the frequency response (−200 dB floor, dense sampling around the zero angle), observe the group delay go to −∞ at the notch as `r → 1` (the FIR sign-mirror of the IIR's positive resonance spike), and read a live coefficient substitution showing how `ω₀`, `a₁`, and `a₂` are computed from the human-friendly sliders. Impulse response, z-plane, and white-noise playback via Web Audio complete the picture.
 
+#### IIR + FIR
+
+##### [`biquad.html`](./biquad.html)
+
+The second-order pole/zero filter (Cook Eq. 3.11/3.14): `y(n) = g·(x(n) + a₁·x(n−1) + a₂·x(n−2)) + b₁·y(n−1) − b₂·y(n−2)`. Two poles and two zeros, independently tunable, in a single structure — the direct combination of the two-pole IIR and the 2-zero FIR that precede it in the suite. Coefficients follow Cook Eq. 3.14: `a₁ = −2rz·cos(ω_z)`, `a₂ = rz²` (zero pair), `b₁ = 2rp·cos(ω_p)`, `b₂ = rp²` (pole pair). The block diagram shows the direct-form II topology: a single shared delay chain with each tap firing left (feedback via b₁, b₂ to summer ⊕₁) and right (feedforward via a₁, a₂ to summer ⊕₂). The z-plane shows poles (crimson ×) and zeros (teal ○) simultaneously — the first tool in the suite where both appear at once — and the frequency response, group delay, and impulse response all update together as the five sliders move. The key special case: when `freq_z = freq_p`, the zero and pole sit at the same angle; if `rz = rp` they cancel exactly (flat response), if `rz < rp` the pole wins (peak), if `rz > rp` the zero wins (notch). This is the core of parametric EQ, visible directly on the z-plane.
+
 ---
 
 ## Source texts
