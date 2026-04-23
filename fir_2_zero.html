@@ -555,9 +555,9 @@
 
   <header>
     <h1>2-zero FIR filter</h1>
-    <p class="subtitle">A non-recursive filter with three feedforward taps, producing a complex conjugate zero pair on the z-plane. At <em>r</em> = 1 the zeros sit on the unit circle and the filter becomes a pure notch; at <em>r</em> &lt; 1 the zeros sit inside and the filter combines a partial dip at <em>f_zero</em> with a broader spectral tilt.</p>
+    <p class="subtitle">A non-recursive filter with three feedforward taps and a complex conjugate zero pair. Follows Cook Eq. 3.11: g factors over the entire feedforward sum, with a₁ = −2r·cos(ω₀) and a₂ = r². At <em>r</em> = 1 the zeros sit on the unit circle and the filter is a pure notch; at <em>r</em> &lt; 1 the zeros sit inside and the filter combines a partial dip at <em>f_zero</em> with a broader spectral tilt.</p>
     <div class="equation">
-      <span class="var">y</span>[n] <span class="op">=</span> <span class="var">g</span> · <span class="var">x</span>[n] <span class="op">+</span> <span class="var">a₁</span> · <span class="var">x</span>[n−1] <span class="op">+</span> <span class="var">a₂</span> · <span class="var">x</span>[n−2]
+      <span class="var">y</span>[n] <span class="op">=</span> <span class="var">g</span> · <span class="op">(</span><span class="var">x</span>[n] <span class="op">+</span> <span class="var">a₁</span> · <span class="var">x</span>[n−1] <span class="op">+</span> <span class="var">a₂</span> · <span class="var">x</span>[n−2]<span class="op">)</span>
     </div>
 
     <div class="block-diagram">
@@ -569,36 +569,39 @@
           </marker>
         </defs>
 
-        <!-- ===== TOP ROW: x[n] → tap → [g] → ⊕ → y[n] =====
-             Standard textbook direct-form FIR. The tap sits right after x[n],
-             the delay chain drops from there carrying unscaled x[n], and the
-             g multiplier sits on the h₀ branch between the tap and summer. -->
+        <!-- ===== TOP ROW: x[n] → [g] → tap → ⊕ → y[n] =====
+             Cook direct-form FIR (Eq. 3.11, Fig. 3.11). g sits before the tap
+             so it scales the signal entering the delay chain — matching Cook's
+             block diagram exactly. The factored equation is
+             y(n) = g·(x(n) + a₁·x(n−1) + a₂·x(n−2)). -->
 
         <!-- x[n] label -->
         <text x="35" y="76" text-anchor="middle" font-size="14" fill="#1a1a17">x[n]</text>
 
-        <!-- x[n] → tap -->
-        <line x1="60" y1="70" x2="178" y2="70"
-              stroke="#6a6862" stroke-width="1.5"
-              marker-end="url(#arrow-fir2)"/>
 
-        <!-- tap at (190, 70): h₀ branch continues right through g to summer;
-             delay chain drops down carrying unscaled x[n] -->
+
+        <!-- tap at (190, 70): signal here is already g·x[n]. Both the
+             direct summer path and the delay chain carry g·x[n] — matching
+             the factored Cook equation y(n) = g·(x(n) + a₁·x(n−1) + a₂·x(n−2)). -->
         <circle cx="190" cy="70" r="3.5" fill="#6a6862"/>
 
-        <!-- tap → g multiplier -->
-        <line x1="190" y1="70" x2="238" y2="70"
+        <!-- x[n] → g multiplier (before the tap, per Cook Fig. 3.11) -->
+        <line x1="60" y1="70" x2="98" y2="70"
               stroke="#6a6862" stroke-width="1.5"/>
 
-        <!-- g multiplier (right-facing triangle) on the h₀ branch -->
-        <path d="M 240 55 L 240 85 L 275 70 z"
+        <!-- g multiplier (right-facing triangle), before the tap -->
+        <path d="M 100 55 L 100 85 L 135 70 z"
               fill="white" stroke="#1a1a17" stroke-width="1.5"
               stroke-linejoin="round"/>
-        <text x="257" y="103" text-anchor="middle" font-size="14"
+        <text x="117" y="103" text-anchor="middle" font-size="14"
               fill="#b8693a" font-weight="500">g</text>
 
-        <!-- g → summer -->
-        <line x1="277" y1="70" x2="402" y2="70"
+        <!-- g → tap -->
+        <line x1="137" y1="70" x2="188" y2="70"
+              stroke="#6a6862" stroke-width="1.5"/>
+
+        <!-- tap → summer (straight through, no multiplier on h₀ branch) -->
+        <line x1="190" y1="70" x2="402" y2="70"
               stroke="#6a6862" stroke-width="1.5"
               marker-end="url(#arrow-fir2)"/>
 
@@ -616,9 +619,10 @@
         <text x="540" y="76" text-anchor="middle" font-size="14" fill="#1a1a17">y[n]</text>
 
         <!-- ===== DELAY CHAIN (left column, x=190) =====
-             Drops from the tap carrying unscaled x[n]. Standard direct-form:
-             the main column is never scaled, only the branches that peel off
-             to feed the summer get multiplied by their coefficients. -->
+             Drops from the tap carrying g·x[n] (already scaled by g).
+             Cook direct-form: a₁ and a₂ multiply the delayed g·x values,
+             yielding g·a₁·x[n−1] and g·a₂·x[n−2] at the summer — which
+             equals g·(x[n] + a₁·x[n−1] + a₂·x[n−2]) when summed. -->
 
         <!-- drop from input tap to delay 1 -->
         <line x1="190" y1="70" x2="190" y2="140"
@@ -734,15 +738,15 @@
         <p class="term-def">Three numbers that define the filter completely. All <em>feedforward</em>: each multiplies a delayed copy of the input. Each plays a distinct role:</p>
         <div class="term-sub">
           <div class="term-sub-name"><span class="symbol">g</span> current-sample coefficient</div>
-          <p class="term-sub-def">Scales the most recent input <em>x[n]</em>. In the IIR tools <em>g</em> sat in front of the whole recurrence as an overall gain; here it's also the first tap of the FIR, so it's part of what shapes the filter, not just a level control. Sliding <em>g</em> affects the DC gain, the Nyquist gain, and (mildly) the zero locations.</p>
+          <p class="term-sub-def">Scales the most recent input <em>x[n]</em>. In Cook's formulation (Eq. 3.11) g sits before the tap and distributes over the entire feedforward sum: <em>y(n) = g·(x(n) + a₁x(n−1) + a₂x(n−2))</em>. It is a true gain factor — scaling all three terms equally, without affecting the zero locations. Sliding g scales the overall amplitude of the output.</p>
         </div>
         <div class="term-sub">
           <div class="term-sub-name"><span class="symbol">a₁</span> first delay coefficient</div>
-          <p class="term-sub-def">Scales the one-sample-delayed input <em>x[n−1]</em>. Computed from the zero frequency and radius as <code>a₁ = −2r·g·cos(ω₀)</code>. The negative sign comes from the polynomial-root identity: to place zeros at <em>z = r·e^(±jω₀)</em> the coefficient of <em>z⁻¹</em> has to be <em>−(sum of the zeros)</em>. Students often see <em>a₁</em> as negative for low zero frequencies and positive for high ones (past SR/4).</p>
+          <p class="term-sub-def">Scales the one-sample-delayed input <em>x[n−1]</em>. Computed from the zero frequency and radius as <code>a₁ = −2r·cos(ω₀)</code> (Cook Eq. 3.14). No g factor — g is applied before the tap and distributes across all terms in the factored equation. The negative sign comes from the polynomial-root identity: to place zeros at <em>z = r·e^(±jω₀)</em> the coefficient of <em>z⁻¹</em> has to be <em>−(sum of the zeros)</em>. Students often see <em>a₁</em> as negative for low zero frequencies and positive for high ones (past SR/4).</p>
         </div>
         <div class="term-sub">
           <div class="term-sub-name"><span class="symbol">a₂</span> second delay coefficient</div>
-          <p class="term-sub-def">Scales the two-sample-delayed input <em>x[n−2]</em>. Computed as <code>a₂ = g·r²</code>; always the same sign as <em>g</em>, always smaller in magnitude for <em>r</em> &lt; 1. At <em>r</em> = 1 we get <em>a₂ = g</em> exactly, making the coefficient sequence symmetric (<em>g, a₁, g</em>), which turns the filter into a pure-notch linear-phase filter.</p>
+          <p class="term-sub-def">Scales the two-sample-delayed input <em>x[n−2]</em>. Computed as <code>a₂ = r²</code> (Cook Eq. 3.14). Always positive, always less than 1 for r &lt; 1. At <em>r</em> = 1 we get <em>a₂ = g</em> exactly, making the coefficient sequence symmetric (<em>g, a₁, g</em>), which turns the filter into a pure-notch linear-phase filter.</p>
         </div>
       </div>
 
@@ -793,7 +797,7 @@
         <label>g</label>
         <div>
           <input type="range" id="g-slider" min="0" max="2" step="0.01" value="1.00">
-          <div class="desc">current-sample coefficient · first tap of the FIR · also scales a₁ and a₂ (both are proportional to g)</div>
+          <div class="desc">overall gain · factored outside the feedforward sum (Cook Eq. 3.11) · scales output without affecting zero locations</div>
         </div>
         <div class="value" id="g-value">1.00</div>
       </div>
@@ -806,11 +810,11 @@
         <div class="live-equation-label">live equation · current coefficients</div>
         <div class="live-equation-body" id="live-equation-body">
           <span class="var">y</span>[n] <span class="op">=</span>
-          <span class="num" id="live-g">1.00</span> <span class="op">·</span> <span class="var">x</span>[n]
+          <span class="num" id="live-g">1.00</span> <span class="op">·</span> <span class="op">(</span><span class="var">x</span>[n]
           <span class="op" id="live-a1-sign">−</span>
           <span class="num" id="live-a1">1.7846</span> <span class="op">·</span> <span class="var">x</span>[n−1]
           <span class="op" id="live-a2-sign">+</span>
-          <span class="num" id="live-a2">0.8100</span> <span class="op">·</span> <span class="var">x</span>[n−2]
+          <span class="num" id="live-a2">0.8100</span> <span class="op">·</span> <span class="var">x</span>[n−2]<span class="op">)</span>
         </div>
       </div>
     </div>
@@ -880,19 +884,19 @@
         </div>
       </div>
       <div class="calc-block">
-        <div class="calc-label">how zero angle and coefficients are computed</div>
+        <div class="calc-label">how zero angle and coefficients are computed (Cook Eq. 3.14)</div>
         <div class="calc-symbolic">
           <span class="eq-line">ω₀ = 2π · f<sub>zero</sub> / SR</span>
-          <span class="eq-line">a₁ = −2g · r · cos(ω₀)</span>
-          <span class="eq-line">a₂ = g · r²</span>
+          <span class="eq-line">a₁ = −2r · cos(ω₀)</span>
+          <span class="eq-line">a₂ = r²</span>
         </div>
         <div class="calc-legend">
           <div class="legend-row"><span class="legend-sym">ω₀</span><span class="legend-def">zero angle, in radians per sample (subscript <em>0</em> = the zero center). In general, ω = 2π · f / SR.</span></div>
           <div class="legend-row"><span class="legend-sym">f<sub>zero</sub></span><span class="legend-def">zero frequency, in Hz (from the slider above): the frequency where the filter notches or dips</span></div>
           <div class="legend-row"><span class="legend-sym">r</span><span class="legend-def">zero radius (from the slider above): distance of the zero pair from the origin; 1 produces a perfect null, less than 1 produces a partial dip</span></div>
           <div class="legend-row"><span class="legend-sym">g</span><span class="legend-def">current-sample coefficient / first tap (from the slider above): scales the whole transfer function</span></div>
-          <div class="legend-row"><span class="legend-sym">a₁</span><span class="legend-def">one-sample-delay coefficient, scales <em>x[n−1]</em></span></div>
-          <div class="legend-row"><span class="legend-sym">a₂</span><span class="legend-def">two-sample-delay coefficient, scales <em>x[n−2]</em>; same sign as <em>g</em> for this parameterization</span></div>
+          <div class="legend-row"><span class="legend-sym">a₁</span><span class="legend-def">one-sample-delay coefficient = −2r·cos(ω₀), scales <em>x[n−1]</em></span></div>
+          <div class="legend-row"><span class="legend-sym">a₂</span><span class="legend-def">two-sample-delay coefficient = r², scales <em>x[n−2]</em>; always positive</span></div>
           <div class="legend-row"><span class="legend-sym">SR</span><span class="legend-def">sample rate (48000 Hz here)</span></div>
           <div class="legend-row"><span class="legend-sym">cos</span><span class="legend-def">cosine: projects the zero's angle onto the real axis, scaled by −2g·r to give a₁</span></div>
         </div>
@@ -938,13 +942,13 @@
     <div class="notes">
       <h2>in more depth</h2>
       <ul>
-        <li>The transfer function in the z-domain is <code>H(z) = g + a₁·z⁻¹ + a₂·z⁻²</code>, a polynomial in <em>z⁻¹</em>. This is the recurrence <code>y[n] = g·x[n] + a₁·x[n−1] + a₂·x[n−2]</code> rewritten in the language of the z-transform. Since there's no feedback, there's no denominator: all three coefficients appear directly in the numerator. The zeros of the filter are the roots of that polynomial: the two values of <em>z</em> where H(z) = 0; those roots encode the filter's entire spectral behavior.</li>
-        <li>The coefficients are computed from radius <em>r</em>, zero frequency <em>f₀</em>, and gain <em>g</em> as: <code>a₁ = −2g·r·cos(ω₀)</code> and <code>a₂ = g·r²</code>, where <code>ω₀ = 2π·f₀ / SR</code>. This comes from factoring H(z) as <code>g · (1 − r·e^(jω₀)·z⁻¹)(1 − r·e^(−jω₀)·z⁻¹)</code>, which places the two zeros at <em>z = r·e^(±jω₀)</em>. Expanding and collecting: the <em>z⁰</em> term is <em>g</em>, the <em>z⁻¹</em> term is <em>−g(r·e^(jω₀) + r·e^(−jω₀)) = −2g·r·cos(ω₀)</em>, and the <em>z⁻²</em> term is <em>g·r·e^(jω₀)·r·e^(−jω₀) = g·r²</em>. The cancellation of imaginary parts is exactly what the conjugate-pair structure guarantees, which is why we use a pair of zeros (not a single complex zero) to keep the coefficients real.</li>
+        <li>The transfer function in the z-domain is <code>H(z) = g·(1 + a₁·z⁻¹ + a₂·z⁻²)</code> (Cook Eq. 3.11). This is the factored recurrence <code>y[n] = g·(x[n] + a₁·x[n−1] + a₂·x[n−2])</code> rewritten in the language of the z-transform. Since there's no feedback, there's no denominator. The zeros of the filter are the roots of that polynomial: the two values of <em>z</em> where H(z) = 0; those roots encode the filter's entire spectral behavior.</li>
+        <li>The coefficients are computed from radius <em>r</em> and zero frequency <em>f₀</em> as: <code>a₁ = −2r·cos(ω₀)</code> and <code>a₂ = r²</code>, where <code>ω₀ = 2π·f₀ / SR</code> (Cook Eq. 3.14). This comes from factoring the numerator polynomial as <code>(1 − r·e^(jω₀)·z⁻¹)(1 − r·e^(−jω₀)·z⁻¹)</code>, placing zeros at <em>z = r·e^(±jω₀)</em>. Expanding: the <em>z⁻¹</em> term is <em>−(r·e^(jω₀) + r·e^(−jω₀)) = −2r·cos(ω₀)</em>, and the <em>z⁻²</em> term is <em>r²</em>. The g factor is outside the polynomial entirely — it scales the whole output without affecting zero placement.</li>
         <li><strong>The impulse response IS the coefficient list.</strong> Hit this filter with a single <em>x[0] = 1</em>, and the outputs are <em>y[0] = g</em>, <em>y[1] = a₁</em>, <em>y[2] = a₂</em>, then zero. The filter retains nothing past N−1 = 2 samples. Compare with the two-pole IIR, whose impulse response is an exponentially-decaying sinusoid; feedback keeps the output alive for hundreds or thousands of samples.</li>
         <li><strong>DC gain and Nyquist gain</strong> have simple closed forms. At DC (ω = 0), <em>e⁻ʲʷ = 1</em>, so <code>H(1) = g + a₁ + a₂</code>. At Nyquist (ω = π), <em>e⁻ʲπ = −1</em> so <em>e⁻ʲ²π = 1</em>, giving <code>H(−1) = g − a₁ + a₂</code>. Since all coefficients are real, both gains are real numbers (not just magnitudes) and can even be negative, which corresponds to phase inversion at that frequency. At <em>f_zero</em> = 12 kHz (= SR/4) DC and Nyquist gain are equal; move the zero away from there and they diverge.</li>
         <li><strong>Notch depth</strong> at the zero frequency has the closed form <code>|H(ω₀)| = g · (1 − r) · |1 − r·e^(−j2ω₀)|</code>. The <em>(1 − r)</em> factor is the dominant one: it drives the dip depth toward zero as <em>r</em> → 1, which is why r controls the slider's "how deep" behavior so cleanly. The second factor depends on where <em>f_zero</em> sits in the spectrum. At <em>ω₀ = π/2</em> (f_zero = SR/4 = 12 kHz) the second factor equals <em>1 + r</em>, giving notch depth <code>g · (1 − r²)</code>; at extreme frequencies (near DC or Nyquist) the second factor approaches <em>(1 − r)</em>, giving depth <code>g · (1 − r)²</code>, deeper by a factor of <em>(1 + r)/(1 − r)</em>. This is why the notch-depth metric varies strongly with <em>f_zero</em> at fixed <em>r</em>.</li>
         <li><strong>This FIR is unconditionally stable.</strong> With no feedback, the output at every sample is bounded by three multiplies of the current input — zeros can sit anywhere in the z-plane without risk. The trade-off is sharpness: a BiQuad (poles + zeros together) can achieve a much narrower notch for the same coefficient count, because its poles amplify the effect of its zeros.</li>
-        <li><strong>Linear phase happens only at <em>r</em> = 1.</strong> For a symmetric coefficient sequence <em>(h[0], h[1], h[0])</em> the filter has exactly linear phase, with group delay <em>(N−1)/2 = 1</em> sample at every frequency. Our coefficients are <em>(g, a₁, g·r²)</em>, symmetric only when <em>g = g·r²</em>, which forces <em>r = 1</em>. At <em>r</em> &lt; 1 the sequence is asymmetric and the filter is non-linear-phase in general. Interestingly, this deviation is concentrated in a narrow band around the notch: everywhere else on the spectrum group delay sits near <em>τ = 1</em>. So the filter is "almost" linear phase except in the neighborhood of the feature it's actually creating.</li>
+        <li><strong>Linear phase happens only at <em>r</em> = 1.</strong> For a symmetric coefficient sequence <em>(h[0], h[1], h[0])</em> the filter has exactly linear phase, with group delay <em>(N−1)/2 = 1</em> sample at every frequency. The inner coefficients are <em>(1, a₁, r²)</em>, symmetric only when <em>r² = 1</em>, which forces <em>r = 1</em>. At <em>r</em> &lt; 1 the sequence is asymmetric and the filter is non-linear-phase in general. Interestingly, this deviation is concentrated in a narrow band around the notch: everywhere else on the spectrum group delay sits near <em>τ = 1</em>. So the filter is "almost" linear phase except in the neighborhood of the feature it's actually creating.</li>
         <li><strong>Group delay</strong> has the closed form <code>τ(ω) = Re[N(ω)/D(ω)]</code> where <em>N(ω) = a₁·e⁻ʲʷ + 2·a₂·e⁻ʲ²ʷ</em> and <em>D(ω) = g + a₁·e⁻ʲʷ + a₂·e⁻ʲ²ʷ = H(e^jω)</em>. The negative spike at <em>ω = ω₀</em> is driven by <em>D(ω)</em> getting small in a narrow band, the same narrow band where the magnitude dip lives. This is the timing mirror of the two-pole IIR's positive spike at its resonance: both arise from |H| being small in a narrow region, but with opposite signs because zeros subtract phase where poles add it.</li>
         <li><strong>Practical use</strong>: notch filters. Setting <em>r</em> close to 1 and <em>f_zero</em> = 60 Hz removes power-line hum from a recording. Setting <em>f_zero</em> = 50 Hz does the same in Europe. More generally, any time you need to kill a single narrow-band interfering frequency without disturbing much else in the spectrum, a 2-zero FIR with <em>r</em> ≈ 0.97–0.99 is a first-choice building block.</li>
         <li><strong>Building toward the BiQuad.</strong> This filter is the numerator of the general second-order IIR: <code>H(z) = (g + a₁·z⁻¹ + a₂·z⁻²) / (1 − b₁·z⁻¹ − b₂·z⁻²)</code>. Combining our 2-zero FIR feedforward with the two-pole IIR's feedback gives the BiQuad, the most important single second-order filter in audio DSP, because with free choice of zeros and poles it can realize any lowpass, highpass, bandpass, notch, peaking, or shelving response. The BiQuad is the natural next step after these three tools.</li>
@@ -976,8 +980,8 @@
 <script>
 // ============================================================
 // 2-ZERO FIR FILTER · pedagogical tool
-// y[n] = g·x[n] + a₁·x[n−1] + a₂·x[n−2]
-// where a₁ = −2g·r·cos(ω₀), a₂ = g·r²
+// y[n] = g·(x[n] + a₁·x[n−1] + a₂·x[n−2])  (Cook Eq. 3.11)
+// where a₁ = −2r·cos(ω₀), a₂ = r²              (Cook Eq. 3.14)
 // ============================================================
 
 const SR = 48000;
@@ -1004,17 +1008,15 @@ let radius = 0.9;
 let g = 1.00;
 
 // derived coefficients
-// FIR 2-zero: H(z) = g + a1·z⁻¹ + a2·z⁻²
+// FIR 2-zero (Cook Eq. 3.11): H(z) = g·(1 + a1·z⁻¹ + a2·z⁻²)
 //   = g · (1 − r·e^(jω₀)·z⁻¹) · (1 − r·e^(−jω₀)·z⁻¹)
-// Expanding: a1 = −2·g·r·cos(ω₀), a2 = g·r²
-// Sign convention as stated in the equation: y[n] = g·x[n] + a1·x[n−1] + a2·x[n−2]
-// — no unary minus baked in, so a1 will display as negative when ω₀ < π/2 (i.e. when
-// the zero frequency is below SR/4) and positive when above it.
+// Expanding: a1 = −2r·cos(ω₀), a2 = r²  (no g factor — g is factored outside)
+// a1 is negative for f_zero < SR/4 and positive above it.
 let a1, a2, omega0;
 function recomputeCoeffs() {
   omega0 = 2 * Math.PI * freqHz / SR;
-  a1 = -2 * g * radius * Math.cos(omega0);
-  a2 = g * radius * radius;
+  a1 = -2 * radius * Math.cos(omega0);
+  a2 = radius * radius;
 }
 recomputeCoeffs();
 
@@ -1045,11 +1047,10 @@ const volSlider = document.getElementById('vol-slider');
 
 // live-equation DOM refs: these spans show the current coefficients inside
 // y[n] = g·x[n] + a₁·x[n−1] + a₂·x[n−2].
-// — a₁ = −2g·r·cos(ω₀) is negative when ω₀ < π/2 (f_zero < SR/4 = 12 kHz),
+// — a₁ = −2r·cos(ω₀) is negative when ω₀ < π/2 (f_zero < SR/4 = 12 kHz),
 //   positive when ω₀ > π/2. The sign span flips between "−" and "+" accordingly
 //   and we display |a₁|.
-// — a₂ = g·r² has the same sign as g (always nonnegative at our slider ranges
-//   where g ≥ 0). The sign span is hardcoded "+" in the markup and we display a₂.
+// — a₂ = r² is always nonnegative. Sign span hardcoded "+" in the markup.
 const liveEqBody = document.getElementById('live-equation-body');
 const liveG = document.getElementById('live-g');
 const liveA1 = document.getElementById('live-a1');
@@ -1475,9 +1476,10 @@ function drawFrequency() {
     const w_ = 2 * Math.PI * f / SR;
     // |H(ω)|² = |g + a1·e^(−jω) + a2·e^(−j2ω)|²
     //         = (g + a1·cos(ω) + a2·cos(2ω))² + (a1·sin(ω) + a2·sin(2ω))²
-    const re = g + a1 * Math.cos(w_) + a2 * Math.cos(2 * w_);
+    // H(ω) = g·(1 + a1·e^(-jω) + a2·e^(-j2ω))  [Cook Eq. 3.11]
+    const re = 1 + a1 * Math.cos(w_) + a2 * Math.cos(2 * w_);
     const im = -(a1 * Math.sin(w_) + a2 * Math.sin(2 * w_));
-    const mag = Math.sqrt(re * re + im * im);
+    const mag = g * Math.sqrt(re * re + im * im);
     const db = 20 * Math.log10(Math.max(1e-10, mag));
     const dbClipped = Math.max(dbMin, Math.min(dbMax, db));
     const x = padL + ((flogN - fMin) / (fMax - fMin)) * plotW;
@@ -1519,8 +1521,8 @@ function groupDelaySamples(omega) {
   // N(ω) = a1·e⁻ʲʷ + 2·a2·e⁻ʲ²ʷ
   const N_re = a1 * cosw + 2 * a2 * cos2w;
   const N_im = -(a1 * sinw + 2 * a2 * sin2w);
-  // D(ω) = g + a1·e⁻ʲʷ + a2·e⁻ʲ²ʷ
-  const D_re = g + a1 * cosw + a2 * cos2w;
+  // D(ω) = 1 + a1·e⁻ʲʷ + a2·e⁻ʲ²ʷ  (inner polynomial; g cancels in Re[N/D])
+  const D_re = 1 + a1 * cosw + a2 * cos2w;
   const D_im = -(a1 * sinw + a2 * sin2w);
   // Re[N/D] = (N_re·D_re + N_im·D_im) / (D_re² + D_im²)
   const denom = D_re * D_re + D_im * D_im;
@@ -1788,9 +1790,10 @@ function updateStatus() {
   // reaches about −38 dB; at r = 0 it's near 0 dB (no attenuation).
   const cosw0 = Math.cos(omega0), sinw0 = Math.sin(omega0);
   const cos2w0 = Math.cos(2 * omega0), sin2w0 = Math.sin(2 * omega0);
-  const H_re = g + a1 * cosw0 + a2 * cos2w0;
+  // H(ω₀) = g·(1 + a1·e^(-jω₀) + a2·e^(-j2ω₀))  [Cook Eq. 3.11]
+  const H_re = 1 + a1 * cosw0 + a2 * cos2w0;
   const H_im = -(a1 * sinw0 + a2 * sin2w0);
-  const Hmag = Math.sqrt(H_re * H_re + H_im * H_im);
+  const Hmag = g * Math.sqrt(H_re * H_re + H_im * H_im);
   const notchDb = 20 * Math.log10(Math.max(1e-10, Hmag));
   if (notchDb < -200) {
     mNotch.textContent = '< −200 dB';
@@ -1812,7 +1815,7 @@ function updateStatus() {
 
   // Metric: Nyquist gain = |H(π)| = |g - a1 + a2|. Also real; report value
   // with sign.
-  const nyqVal = g - a1 + a2;
+  const nyqVal = g * (1 - a1 + a2);
   const nyqDb = 20 * Math.log10(Math.max(1e-10, Math.abs(nyqVal)));
   mNyq.innerHTML = nyqVal.toFixed(3) + '<br><span style="color: var(--muted); font-size: 12px;">(' +
                    nyqDb.toFixed(1) + ' dB' + ')</span>';
@@ -1826,11 +1829,11 @@ function updateStatus() {
     `<span class="eq-line">ω₀ <span class="op">=</span> 2π · ${freqHz.toFixed(0)} / ${SR}</span>` +
     `<span class="eq-line">   <span class="op">=</span> <span class="num">${omega0.toFixed(5)}</span> rad    (zero angle = <span class="num">${omegaDeg}°</span>)</span>` +
     `<span class="eq-line"> </span>` +
-    `<span class="eq-line">a₁ <span class="op">=</span> −2 · ${g.toFixed(3)} · ${radius.toFixed(3)} · cos(${omega0.toFixed(4)})</span>` +
-    `<span class="eq-line">   <span class="op">=</span> −2 · ${g.toFixed(3)} · ${radius.toFixed(3)} · ${cosw0.toFixed(5)}</span>` +
+    `<span class="eq-line">a₁ <span class="op">=</span> −2 · ${radius.toFixed(3)} · cos(${omega0.toFixed(4)})</span>` +
+    `<span class="eq-line">   <span class="op">=</span> −2 · ${radius.toFixed(3)} · ${cosw0.toFixed(5)}</span>` +
     `<span class="eq-line">   <span class="op">=</span> <span class="num">${a1.toFixed(4)}</span></span>` +
     `<span class="eq-line"> </span>` +
-    `<span class="eq-line">a₂ <span class="op">=</span> ${g.toFixed(3)} · (${radius.toFixed(3)})²</span>` +
+    `<span class="eq-line">a₂ <span class="op">=</span> (${radius.toFixed(3)})²</span>` +
     `<span class="eq-line">   <span class="op">=</span> <span class="num">${a2.toFixed(4)}</span></span>`;
   calcSub.innerHTML = calcHTML;
 }
@@ -1898,12 +1901,14 @@ function makeFilterNode() {
   // Web Audio's createIIRFilter takes (feedforward, feedback).
   // For an FIR, feedforward is the tap coefficients and feedback is [1]
   // (normalization only — no actual feedback).
-  return audioCtx.createIIRFilter([g, a1, a2], [1]);
+  // Cook form: y(n) = g·(x + a1·x[n-1] + a2·x[n-2])
+  // Web Audio feedforward = [g, g*a1, g*a2]
+  return audioCtx.createIIRFilter([g, g * a1, g * a2], [1]);
 }
 
-// Output compensation. For this FIR the peak frequency-response gain is
-// bounded above by |g| + |a1| + |a2| = g · (1 + 2r + r²) = g·(1+r)², which
-// at the slider extremes (g=2, r=0.99) reaches about 7.9 ≈ +18 dB. Not
+// Output compensation. For this FIR the peak gain is
+// g · max|1 + a1·e^(-jω) + a2·e^(-j2ω)| ≤ g · (1 + |a1| + |a2|) = g·(1+r)²,
+// which at slider extremes (g=2, r=0.99) reaches about 7.9 ≈ +18 dB. Not
 // catastrophic — the volume slider handles this range comfortably — so
 // unlike the IIR version no active compensation is needed. This function
 // exists as a no-op for structural parity with the other tools.

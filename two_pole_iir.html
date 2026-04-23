@@ -568,7 +568,7 @@
     <h1>two-pole IIR filter</h1>
     <p class="subtitle">A recursive filter with two feedback paths, a complex conjugate pole pair on the z-plane that creates resonance.</p>
     <div class="equation">
-      <span class="var">y</span>[n] <span class="op">=</span> <span class="var">g</span> · <span class="var">x</span>[n] <span class="op">+</span> <span class="var">b₁</span> · <span class="var">y</span>[n−1] <span class="op">+</span> <span class="var">b₂</span> · <span class="var">y</span>[n−2]
+      <span class="var">y</span>[n] <span class="op">=</span> <span class="var">g</span> · <span class="var">x</span>[n] <span class="op">+</span> <span class="var">b₁</span> · <span class="var">y</span>[n−1] <span class="op">−</span> <span class="var">b₂</span> · <span class="var">y</span>[n−2]
     </div>
 
     <div class="block-diagram">
@@ -729,7 +729,7 @@
         </div>
         <div class="term-sub">
           <div class="term-sub-name"><span class="symbol">b₂</span> second feedback coefficient</div>
-          <p class="term-sub-def">Scales the older previous output <em>y[n−2]</em>. Always negative for a resonator (specifically <code>b₂ = −r²</code>), which is what creates the oscillating, ringing behavior rather than a simple lowpass. The second feedback path is what allows complex poles to exist.</p>
+          <p class="term-sub-def">Scales the older previous output <em>y[n−2]</em>. Always positive: <code>b₂ = r²</code> (Cook Eq. 3.14). It is subtracted in the difference equation — that combination of adding b₁·y[n−1] and subtracting b₂·y[n−2] is what creates the oscillating, ringing behavior. The second feedback path is what allows complex poles to exist.</p>
         </div>
       </div>
 
@@ -871,14 +871,14 @@
         <div class="calc-symbolic">
           <span class="eq-line">ω₀ = 2π · f<sub>res</sub> / SR</span>
           <span class="eq-line">b₁ = 2r · cos(ω₀)</span>
-          <span class="eq-line">b₂ = −r²</span>
+          <span class="eq-line">b₂ = r²</span>
         </div>
         <div class="calc-legend">
           <div class="legend-row"><span class="legend-sym">ω₀</span><span class="legend-def">pole angle, in radians per sample (subscript <em>0</em> = the resonance center). In general, ω = 2π · f / SR.</span></div>
           <div class="legend-row"><span class="legend-sym">f<sub>res</sub></span><span class="legend-def">resonant frequency, in Hz (from the slider above)</span></div>
           <div class="legend-row"><span class="legend-sym">r</span><span class="legend-def">pole radius (from the slider above) — distance of the pole pair from the origin</span></div>
           <div class="legend-row"><span class="legend-sym">b₁</span><span class="legend-def">first feedback coefficient — scales <em>y[n−1]</em></span></div>
-          <div class="legend-row"><span class="legend-sym">b₂</span><span class="legend-def">second feedback coefficient — scales <em>y[n−2]</em>; always negative for a resonator</span></div>
+          <div class="legend-row"><span class="legend-sym">b₂</span><span class="legend-def">second feedback coefficient — r², always positive; subtracted in the equation (Cook convention)</span></div>
           <div class="legend-row"><span class="legend-sym">SR</span><span class="legend-def">sample rate (48000 Hz here)</span></div>
           <div class="legend-row"><span class="legend-sym">cos</span><span class="legend-def">cosine — projects the pole's angle onto the real axis, scaled by 2r to give b₁</span></div>
         </div>
@@ -924,8 +924,8 @@
     <div class="notes">
       <h2>in more depth</h2>
       <ul>
-        <li>The transfer function in the z-domain is <code>H(z) = g / (1 − b₁·z⁻¹ − b₂·z⁻²)</code>. This is the recurrence <code>y[n] = g·x[n] + b₁·y[n−1] + b₂·y[n−2]</code> rewritten in the language of the z-transform. <code>X(z)</code> and <code>Y(z)</code> are the z-transforms of the input and output signals (a way of representing entire signals as a single function instead of one sample at a time); the feedback terms <code>b₁·y[n−1]</code> and <code>b₂·y[n−2]</code> become <code>b₁·z⁻¹·Y(z)</code> and <code>b₂·z⁻²·Y(z)</code> on the right side, then we solve for <code>H(z) = Y(z)/X(z)</code>. The denominator factors as <code>(1 − r·e^(jω₀)·z⁻¹)(1 − r·e^(−jω₀)·z⁻¹)</code>, making the two complex-conjugate poles explicit.</li>
-        <li>The coefficients are computed from radius <em>r</em> and resonant frequency <em>f₀</em> as: <code>b₁ = 2r·cos(ω₀)</code> and <code>b₂ = −r²</code>, where <code>ω₀ = 2π·f₀ / SR</code>. This places the two poles at <code>z = r·e^(±jω₀)</code> — same magnitude <em>r</em>, opposite angles ±ω₀. That symmetric placement is what guarantees the coefficients are real numbers (no imaginary part), so the filter can run on real-valued audio samples.</li>
+        <li>The transfer function in the z-domain is <code>H(z) = g / (1 − b₁·z⁻¹ + b₂·z⁻²)</code> (Cook Eq. 3.14). This is the recurrence <code>y[n] = g·x[n] + b₁·y[n−1] − b₂·y[n−2]</code> rewritten in the language of the z-transform. <code>X(z)</code> and <code>Y(z)</code> are the z-transforms of the input and output signals (a way of representing entire signals as a single function instead of one sample at a time); the feedback terms <code>b₁·y[n−1]</code> and <code>b₂·y[n−2]</code> become <code>b₁·z⁻¹·Y(z)</code> and <code>b₂·z⁻²·Y(z)</code> on the right side, then we solve for <code>H(z) = Y(z)/X(z)</code>. The denominator factors as <code>(1 − r·e^(jω₀)·z⁻¹)(1 − r·e^(−jω₀)·z⁻¹)</code>, making the two complex-conjugate poles explicit.</li>
+        <li>The coefficients are computed from radius <em>r</em> and resonant frequency <em>f₀</em> as: <code>b₁ = 2r·cos(ω₀)</code> and <code>b₂ = r²</code> (Cook Eq. 3.14; b₂ is subtracted in the equation), where <code>ω₀ = 2π·f₀ / SR</code>. This places the two poles at <code>z = r·e^(±jω₀)</code> — same magnitude <em>r</em>, opposite angles ±ω₀. That symmetric placement is what guarantees the coefficients are real numbers (no imaginary part), so the filter can run on real-valued audio samples.</li>
         <li>The impulse response is <code>h[n] = (g/sin(ω₀)) · rⁿ · sin((n+1)·ω₀)</code>, an exponentially-decaying sinusoid. The <em>rⁿ</em> term is the envelope; the <em>sin</em> term is the ring. This is the same form as a struck bell, a plucked string in its decay phase, or any damped harmonic oscillator — a deep connection to physical systems.</li>
         <li>Two ways to measure how long the filter rings: the <strong>time constant</strong> <code>τ = −1 / (SR · ln(r))</code> seconds is when the envelope decays to 1/e (≈ 37%); the "impulse decay to 1%" metric in the status card above measures the same exponential decay further out, at 1% (≈ −40 dB). Same envelope, two thresholds. The 1% measure correlates well with how long the ring is audible to a listener.</li>
         <li><strong>Group delay</strong> for a two-pole is the sum of the two complex poles' contributions, since the denominator factors as <code>(1 − r·e^(jω₀)·z⁻¹)(1 − r·e^(−jω₀)·z⁻¹)</code> and the log of a product is a sum (so phase contributions add, and so do their derivatives). In the plotted frequency range [0, π] only the <em>+ω₀</em> pole produces a visible spike — centered at the resonant frequency — while the <em>−ω₀</em> pole contributes a shallow mostly-negative baseline. The observed peak height at <em>ω = ω₀</em> grows roughly as <code>1/(1−r)</code>, comparable to how the magnitude peak grows. This frequency-dependent delay is the timing side of resonance: a short percussive input gets stretched in time at the resonant frequency, which is how a struck wineglass turns a quick tap into a long-ringing tone. FIR filters with symmetric coefficients sidestep this entirely (every frequency delayed by exactly <code>(N−1)/2</code> samples), at the cost of needing many more taps.</li>
@@ -961,8 +961,8 @@
 <script>
 // ============================================================
 // TWO-POLE IIR FILTER · pedagogical tool
-// y[n] = g·x[n] + b₁·y[n−1] + b₂·y[n−2]
-// where b₁ = 2r·cos(ω₀), b₂ = −r²
+// y[n] = g·x[n] + b₁·y[n−1] − b₂·y[n−2]  (Cook Eq. 3.14)
+// where b₁ = 2r·cos(ω₀), b₂ = r²
 // ============================================================
 
 const SR = 48000;
@@ -994,7 +994,7 @@ let b1, b2, omega0;
 function recomputeCoeffs() {
   omega0 = 2 * Math.PI * freqHz / SR;
   b1 = 2 * radius * Math.cos(omega0);
-  b2 = -(radius * radius);
+  b2 = radius * radius;  // Cook: b₂ = rₚ² (subtracted explicitly in the equation)
 }
 recomputeCoeffs();
 
@@ -1025,9 +1025,9 @@ const playBtn = document.getElementById('play-btn');
 const volSlider = document.getElementById('vol-slider');
 
 // live-equation DOM refs: these spans show the current coefficients inside
-// y[n] = g·x[n] + b₁·y[n−1] + b₂·y[n−2]. b₁ flips sign when freqHz > SR/4
+// y[n] = g·x[n] + b₁·y[n−1] − b₂·y[n−2]  (Cook Eq. 3.14). b₁ flips sign when freqHz > SR/4
 // (12 kHz at SR=48 kHz), because cos(ω₀) goes negative once ω₀ passes π/2;
-// b₂ = −r² is always negative for a resonator, so its sign is hardcoded as
+// b₂ = r² is always positive (Cook convention); sign is hardcoded as "−" in
 // "−" in the markup and we display |b₂|.
 const liveEqBody = document.getElementById('live-equation-body');
 const liveG = document.getElementById('live-g');
@@ -1212,7 +1212,7 @@ function drawImpulse() {
   let blewUp = false;
   for (let n = 0; n < N; n++) {
     const x = (n === 0) ? 1 : 0;
-    const y = g * x + b1 * y1 + b2 * y2;
+    const y = g * x + b1 * y1 - b2 * y2;  // Cook: y = g·x + b₁·y[n-1] − b₂·y[n-2]
     samples.push(y);
     y2 = y1;
     y1 = y;
@@ -1443,7 +1443,7 @@ function drawFrequency() {
   // response curve
   const safe_r = stable ? radius : Math.min(radius, 0.999);
   const safe_b1 = 2 * safe_r * Math.cos(omega0);
-  const safe_b2 = -(safe_r * safe_r);
+  const safe_b2 = safe_r * safe_r;
 
   ctx.strokeStyle = stable ? C.curve : C.warn;
   ctx.lineWidth = 2.2;
@@ -1487,8 +1487,9 @@ function drawFrequency() {
     const f = Math.pow(10, flogN);
     const w_ = 2 * Math.PI * f / SR;
     // |H|² = g² / |1 − b1·e^(−jw) − b2·e^(−j2w)|²
-    const re = 1 - safe_b1 * Math.cos(w_) - safe_b2 * Math.cos(2 * w_);
-    const im = safe_b1 * Math.sin(w_) + safe_b2 * Math.sin(2 * w_);
+    // Denominator of H(z) = g/(1 − b₁z⁻¹ + b₂z⁻²); Cook b₂ = r² (positive)
+    const re = 1 - safe_b1 * Math.cos(w_) + safe_b2 * Math.cos(2 * w_);
+    const im = safe_b1 * Math.sin(w_) - safe_b2 * Math.sin(2 * w_);
     const denomMag = Math.sqrt(re * re + im * im);
     const mag = g / Math.max(1e-10, denomMag);
     const db = 20 * Math.log10(Math.max(1e-10, mag));
@@ -1874,7 +1875,7 @@ function updateStatus() {
       `<span class="eq-line"> </span>` +
       `<span class="eq-line">ω₀ <span class="op">=</span> 2π · ${freqHz.toFixed(0)} / ${SR}  <span class="op">=</span>  <span class="num">${omega0.toFixed(5)}</span> rad</span>` +
       `<span class="eq-line">b₁ <span class="op">=</span> 2 · ${radius.toFixed(3)} · cos(${omega0.toFixed(4)})  <span class="op">=</span>  <span class="num">${b1.toFixed(4)}</span></span>` +
-      `<span class="eq-line">b₂ <span class="op">=</span> −(${radius.toFixed(3)})²  <span class="op">=</span>  <span class="num">${b2.toFixed(4)}</span></span>` +
+      `<span class="eq-line">b₂ <span class="op">=</span> (${radius.toFixed(3)})²  <span class="op">=</span>  <span class="num">${b2.toFixed(4)}</span></span>` +
       `<span class="eq-line"> </span>` +
       `<span class="eq-line" style="color: var(--muted);">Coefficients are computed correctly, but the resulting peak is</span>` +
       `<span class="eq-line" style="color: var(--muted);">too shallow to call a resonance. Try radius ≥ 0.3.</span>`;
@@ -1962,7 +1963,9 @@ function makeFilterNode() {
   // IIRFilterNode form: a[0]·y[n] = sum(b·x) − sum(a·y)
   // → feedforward = [g], feedback = [1, −b₁, −b₂]
   if (radius >= 1) return null;
-  return audioCtx.createIIRFilter([g], [1, -b1, -b2]);
+  // Cook: y[n] = g·x[n] + b₁·y[n−1] − b₂·y[n−2]
+  // Web Audio denominator [1, -b1, b2] gives: y = g·x[n] + b1·y[n-1] - b2·y[n-2] ✓
+  return audioCtx.createIIRFilter([g], [1, -b1, b2]);
 }
 
 // Output compensation: for a two-pole resonator, peak gain at the resonant
@@ -2023,7 +2026,7 @@ async function rebuildAudio() {
 // LIVE EQUATION
 // ============================================================
 // Writes the current coefficients into the displayed recurrence
-// y[n] = g·x[n] + b₁·y[n−1] + b₂·y[n−2]. b₁ flips sign with frequency
+// y[n] = g·x[n] + b₁·y[n−1] − b₂·y[n−2]  (Cook Eq. 3.14). b₁ flips sign with frequency
 // (cos(ω₀) goes negative above Nyquist/2, i.e. f > 12 kHz at 48 kHz SR);
 // b₂ is always negative for a resonator, so its sign is hardcoded as "−"
 // in the markup and we display |b₂|. When the filter is unstable, the
@@ -2034,7 +2037,7 @@ function updateLiveEquation() {
   // carried by the operator between terms.
   liveB1.textContent = Math.abs(b1).toFixed(4);
   liveB1Sign.textContent = b1 < 0 ? '−' : '+';
-  // b₂ = −r² is always negative (or zero); show |b₂|, sign is fixed as "−".
+  // b₂ = r² is always positive (Cook convention); display as-is, sign fixed as "−".
   liveB2.textContent = Math.abs(b2).toFixed(4);
   liveEqBody.classList.toggle('unstable', radius >= 1);
 }
