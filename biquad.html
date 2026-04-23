@@ -577,7 +577,7 @@
         <div class="slider-row">
           <label>rp</label>
           <div>
-            <input type="range" class="pole-slider" id="rp-slider" min="0" max="0.999" step="0.001" value="0.9">
+            <input type="range" class="pole-slider" id="rp-slider" min="0" max="0.999" step="0.001" value="0.95">
             <div class="desc">pole radius · must stay below 1 for stability · higher = sharper resonance</div>
           </div>
           <div class="value pole" id="rp-value">0.900</div>
@@ -801,7 +801,7 @@ const C = {
 let freqHz_z = 2000;
 let rz = 1.0;
 let freqHz_p = 500;
-let rp = 0.9;
+let rp = 0.95;
 let g = 0.1;
 
 // derived coefficients
@@ -1510,10 +1510,12 @@ volSlider.addEventListener('input', () => {
 });
 
 window.addEventListener('load', () => {
-  initCanvases();
   freqzSlider.value = freqToSlider(freqHz_z);
   freqpSlider.value = freqToSlider(freqHz_p);
-  update();
+  requestAnimationFrame(() => {
+    initCanvases();
+    update();
+  });
 });
 window.addEventListener('resize', () => { initCanvases(); update(); });
 </script>
