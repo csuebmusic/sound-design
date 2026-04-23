@@ -691,8 +691,8 @@
       <div class="slider-row">
         <label>r</label>
         <div>
-          <input type="range" id="r-slider" min="-1.05" max="1.05" step="0.001" value="0.8">
-          <div class="desc">pole position on the real axis · stability requires |r| &lt; 1</div>
+          <input type="range" id="r-slider" min="-1" max="1" step="0.001" value="0.8">
+          <div class="desc">pole position on the real axis · |r| &lt; 1 is stable · r = ±1 puts the pole on the unit circle (infinite gain at DC or Nyquist)</div>
         </div>
         <div class="value" id="r-value">0.800</div>
       </div>
@@ -859,7 +859,7 @@
         <li>Compare <code>r = 0.9</code> vs <code>r = −0.9</code>. Same filter <em>strength</em>, opposite spectral character: bass-heavy vs. treble-heavy. Note how the response curve mirrors itself across the spectrum.</li>
         <li>Drag the r slider past ±1 in either direction (into the unstable regions at the far ends). Watch the impulse response (it grows without bound) and the metrics (UNSTABLE). Audio is muted automatically; this is what "outside the unit circle" sounds like in theory.</li>
         <li>Set <code>r = 0.95</code> and read the cutoff in the metrics. Now try <code>r = 0.5</code>. Same filter topology, vastly different cutoff, controlled by a single number.</li>
-        <li>Set <code>g = 0.2</code> and slowly push <code>r</code> from 0.9 → 0.99 → 0.998. Watch the peak of the curve climb above 0 dB toward +40 dB. Push further to 0.9998 and the peak climbs another 20 dB toward +60 — the chart's +80 dB ceiling lets you see the peak explode smoothly as <em>r</em> approaches 1. Now manually set <code>g = 1 − |r|</code> at each step (≈ 0.1, 0.01, 0.002, 0.0002) and watch the peak snap back to 0 dB. This is auto-normalization, by hand.</li>
+        <li>Set <code>g = 0.2</code> and slowly push <code>r</code> from 0.9 → 0.99 → 0.998. Watch the peak of the curve climb above 0 dB toward +40 dB. Push further to 0.999 and the peak climbs toward +60 dB, and at r = 1 the pole lands on the unit circle — infinite gain at DC, shown as the curve pinned to the chart ceiling — the chart's +80 dB ceiling lets you see the peak explode smoothly as <em>r</em> approaches 1. Now manually set <code>g = 1 − |r|</code> at each step (≈ 0.1, 0.01, 0.002, 0.0002) and watch the peak snap back to 0 dB. This is auto-normalization, by hand.</li>
       </ol>
     </div>
   </section>
@@ -1268,9 +1268,10 @@ function drawFrequency() {
   // "what's happening" card below, leaving the graph as the pure magnitude
   // curve.)
 
-  // response curve
-  const stable = Math.abs(r) < 1;
-  const safe_r = stable ? r : Math.sign(r) * 0.999;
+  // response curve — draw with actual r (slider now caps at ±1)
+  // At r=±1 the pole sits on the unit circle: denom→0 at the pole frequency,
+  // mag→+inf, clips to dbMax — shows the curve pinned to the chart ceiling.
+  const stable = Math.abs(r) <= 1;
 
   ctx.strokeStyle = stable ? C.curve : C.warn;
   ctx.lineWidth = 2.2;
@@ -1289,8 +1290,8 @@ function drawFrequency() {
     // the true DC and Nyquist magnitudes, and for wide filters this agrees
     // with the log-scale value to within rounding anyway.
     const omega = i === 0 ? 0 : (i === NPTS ? Math.PI : 2 * Math.PI * Math.pow(10, flogN) / SR);
-    const denom = Math.sqrt(1 - 2 * safe_r * Math.cos(omega) + safe_r * safe_r);
-    const mag = g / denom;
+    const denom = Math.sqrt(Math.max(0, 1 - 2 * r * Math.cos(omega) + r * r));
+    const mag = g / Math.max(1e-10, denom);  // r=1 at DC: denom→0, mag→+inf, clips to dbMax
     const db = 20 * Math.log10(Math.max(1e-10, mag));
     const dbClipped = Math.max(dbMin, Math.min(dbMax, db));
     const x = padL + (i / NPTS) * plotW;

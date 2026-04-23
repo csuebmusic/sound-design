@@ -767,8 +767,8 @@
       <div class="slider-row">
         <label>radius</label>
         <div>
-          <input type="range" id="radius-slider" min="0" max="1.02" step="0.001" value="0.9">
-          <div class="desc">pole distance from origin · stability requires radius &lt; 1</div>
+          <input type="range" id="radius-slider" min="0" max="1" step="0.001" value="0.9">
+          <div class="desc">pole distance from origin · |r| &lt; 1 is stable · r = 1 puts poles on unit circle (infinite resonance peak)</div>
         </div>
         <div class="value" id="radius-value">0.900</div>
       </div>
@@ -942,7 +942,7 @@
         <li>With frequency set to the middle of the audible band (around 1 kHz), compare radius = 0.5, 0.9, 0.99, 0.999. Very different character: gentle spectral tilt → emerging bump → clearly pitched resonance → near-pure oscillator. At low radius the poles' effect smears across a broad region; at high radius it concentrates into a sharp peak. This is the Q sweep — the same control sweep that defines the analog synth filter sound.</li>
         <li>Set frequency = 850 Hz, radius = 0.97 (a crude vowel "ah" formant). Then jump to frequency = 2700 Hz, radius = 0.97 (closer to "ee"). You're hearing single-formant approximations of how the human vocal tract shapes sound — real vowels need 3+ formants summed together.</li>
         <li>Watch the z-plane while you drag the frequency slider: the two poles rotate around the origin together, always mirroring across the real axis. Now drag radius: they slide toward or away from the unit circle while staying at the same angle.</li>
-        <li>Drag the radius slider above 1 (into the unstable region). The poles cross outside the unit circle and the filter explodes — audio mutes, impulse response grows unbounded. Same lesson as one-pole, just with a pair of poles instead of one.</li>
+        <li>Push radius to 1.0: the poles land exactly on the unit circle. The resonance peak becomes infinite — the curve pins to the chart ceiling at the resonant frequency. Audio mutes at r=1 since the output would grow without bound.</li>
         <li>Set <code>radius = 0.9</code>, then sweep frequency across the full slider range. Watch the peak height in the frequency response graph as you sweep. It changes! The peak is highest near the middle of the audible band and grows dramatically at the extremes (near DC or Nyquist). This is the second factor in the peak-gain formula — the <em>|1 − r·e^(−j2ω₀)|</em> term — which depends on frequency. Two-pole peak gain isn't constant the way one-pole is.</li>
       </ol>
     </div>
@@ -1441,7 +1441,7 @@ function drawFrequency() {
   }
 
   // response curve
-  const safe_r = stable ? radius : Math.min(radius, 0.999);
+  const safe_r = radius;  // slider capped at 1; denom guard handles r=1 singularity
   const safe_b1 = 2 * safe_r * Math.cos(omega0);
   const safe_b2 = safe_r * safe_r;
 
