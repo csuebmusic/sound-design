@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Phasor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:        #fafaf7;
+    --panel:     #ffffff;
+    --panel-2:   #f4f2ec;
+    --border:    #e2dfd6;
+    --border-s:  #c9c5b8;
+    --text:      #1a1a17;
+    --muted:     #6a6862;
+    --dim:       #a8a59f;
+    --accent:    #b8693a;
+    --teal:      #2c7d6f;
+    --teal-s:    rgba(44,125,111,0.15);
+    --crimson:   #c73862;
+    --crimson-s: rgba(199,56,98,0.12);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: var(--bg); color: var(--text);
+    font-family: 'DM Sans', system-ui, sans-serif;
+    font-size: 15px; line-height: 1.6; -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 40px 28px 80px; }
+
+  header { border-bottom: 1px solid var(--border); padding-bottom: 24px; margin-bottom: 28px; }
+  h1 { font-family: 'DM Mono', monospace; font-weight: 500; font-size: 26px; letter-spacing: -0.01em; margin-bottom: 6px; }
+  h2 { font-family: 'DM Mono', monospace; font-weight: 500; font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 12px; }
+  .subtitle { color: var(--muted); font-size: 14px; margin-bottom: 18px; }
+
+  /* EQUATIONS */
+  .equations { display: flex; flex-wrap: wrap; gap: 12px; }
+  .eq-wrap { display: flex; flex-direction: column; }
+  .eq-label { font-family: 'DM Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--dim); margin-bottom: 5px; }
+  .equation {
+    font-family: 'DM Mono', monospace; font-size: 17px; color: var(--accent);
+    background: var(--panel); padding: 11px 17px; border-radius: 4px;
+    border: 1px solid var(--border); display: inline-block; line-height: 1.7;
+  }
+  .equation .var { color: var(--text); }
+  .equation .op  { color: var(--muted); }
+  .equation .cc  { color: var(--crimson); }
+  .equation .sc  { color: var(--teal); }
+
+  /* TERMINOLOGY */
+  .terms { margin-top: 16px; background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 16px 20px; }
+  .term { display: grid; grid-template-columns: 36px 1fr; gap: 0 14px; padding: 8px 0; align-items: baseline; border-bottom: 1px dashed var(--border); }
+  .term:last-child { border-bottom: none; padding-bottom: 0; }
+  .term:first-child { padding-top: 0; }
+  .term-sym { font-family: 'DM Mono', monospace; font-size: 15px; font-weight: 500; color: var(--accent); text-align: center; }
+  .term-def { font-size: 13.5px; color: var(--text); line-height: 1.5; }
+
+  /* GLOBAL CONTROLS */
+  .global-controls {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 6px; padding: 16px 20px; margin-bottom: 24px;
+    display: flex; flex-wrap: wrap; gap: 18px; align-items: center;
+  }
+  .ctrl { display: flex; align-items: center; gap: 10px; }
+  .ctrl label { font-family: 'DM Mono', monospace; font-size: 13px; color: var(--muted); white-space: nowrap; }
+  input[type="range"] { -webkit-appearance: none; height: 4px; background: var(--border-s); border-radius: 2px; outline: none; width: 130px; }
+  input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 15px; height: 15px; border-radius: 50%; background: var(--accent); cursor: pointer; border: none; }
+  input[type="range"]::-moz-range-thumb { width: 15px; height: 15px; border-radius: 50%; background: var(--accent); cursor: pointer; border: none; }
+  .ctrl .val { font-family: 'DM Mono', monospace; font-size: 13px; color: var(--accent); min-width: 52px; text-align: right; }
+  .global-label { font-family: 'DM Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--dim); width: 100%; }
+
+  /* PANEL */
+  .panel {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 6px; margin-bottom: 20px; overflow: hidden;
+  }
+  .panel-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 18px; border-bottom: 1px solid var(--border);
+    background: var(--panel-2);
+  }
+  .panel-title {
+    font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 500;
+    text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted);
+  }
+  .panel-controls { display: flex; gap: 8px; }
+  .btn {
+    background: var(--accent); color: #fff; border: none;
+    padding: 6px 14px; font-family: 'DM Mono', monospace; font-size: 12px;
+    font-weight: 500; border-radius: 3px; cursor: pointer; transition: opacity 0.15s;
+  }
+  .btn:hover { opacity: 0.85; }
+  .btn.stop  { background: var(--crimson); }
+  .btn.reset { background: var(--teal); }
+
+  .panel-body { padding: 16px 18px 14px; }
+  canvas { display: block; width: 100%; height: auto; }
+  .legend {
+    font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted);
+    margin-top: 10px; display: flex; gap: 18px; flex-wrap: wrap;
+  }
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .legend-dot  { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .legend-line { width: 18px; height: 2px; flex-shrink: 0; }
+
+  /* EXPLAINER */
+  .explainer { background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 20px 24px; margin-top: 4px; }
+  .explainer p { font-size: 14px; color: var(--text); margin-bottom: 10px; }
+  .explainer p:last-child { margin-bottom: 0; }
+  .explainer code { font-family: 'DM Mono', monospace; font-size: 13px; color: var(--accent); background: var(--panel-2); padding: 1px 5px; border-radius: 3px; }
+  .tag-cos { color: var(--crimson); font-family: 'DM Mono', monospace; font-size: 13px; background: var(--crimson-s); padding: 1px 5px; border-radius: 3px; }
+  .tag-sin { color: var(--teal);    font-family: 'DM Mono', monospace; font-size: 13px; background: var(--teal-s);    padding: 1px 5px; border-radius: 3px; }
+  .tag-sum { color: var(--accent);  font-family: 'DM Mono', monospace; font-size: 13px; background: rgba(184,105,58,0.12); padding: 1px 5px; border-radius: 3px; }
+  .panel-note { font-size: 13.5px; color: var(--muted); padding: 12px 18px 14px; border-top: 1px solid var(--border); line-height: 1.55; background: var(--panel-2); }
+  .panel-note strong { color: var(--text); }
+
+  footer { margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--border); font-family: 'DM Mono', monospace; font-size: 11px; color: var(--dim); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>phasor</h1>
+  <p class="subtitle">A point rotating on a circle, tracing waves through its projections.</p>
+
+  <div class="equations">
+    <div class="eq-wrap">
+      <div class="eq-label">sine · vertical projection</div>
+      <div class="equation"><span class="var">A</span><span class="op">·</span><span class="sc">sin</span><span class="op">(</span><span class="var">2πft + φ</span><span class="op">)</span></div>
+    </div>
+    <div class="eq-wrap">
+      <div class="eq-label">cosine · horizontal projection</div>
+      <div class="equation"><span class="var">A</span><span class="op">·</span><span class="cc">cos</span><span class="op">(</span><span class="var">2πft + φ</span><span class="op">)</span></div>
+    </div>
+    <div class="eq-wrap">
+      <div class="eq-label">complex exponential · both</div>
+      <div class="equation"><span class="var">A·e</span><span class="op">^(</span><span class="var">jθ</span><span class="op">) = A·(</span><span class="cc">cos</span><span class="op">(</span><span class="var">θ</span><span class="op">) + j·</span><span class="sc">sin</span><span class="op">(</span><span class="var">θ</span><span class="op">))</span></div>
+    </div>
+  </div>
+
+  <div class="terms">
+    <div class="term"><span class="term-sym">A</span><span class="term-def"><strong>Amplitude.</strong> The radius of the circle and the peak height of the wave. A larger A means the phasor arm is longer and the wave swings further from zero. In audio, amplitude corresponds to loudness.</span></div>
+    <div class="term"><span class="term-sym">2π</span><span class="term-def"><strong>One full revolution</strong> in radians (= 360°). The factor 2π converts frequency in cycles per second into angular velocity in radians per second, so the phasor completes exactly f full turns every second.</span></div>
+    <div class="term"><span class="term-sym">f</span><span class="term-def"><strong>Frequency</strong> in Hz. Sets how fast the phasor spins. At f = 1 Hz the phasor completes one revolution per second, producing one wave cycle per second. Doubling f doubles the rotation speed and halves the wave period.</span></div>
+    <div class="term"><span class="term-sym">t</span><span class="term-def"><strong>Time</strong> in seconds. The product 2π·f·t is the accumulated angle — how far around the circle the phasor has traveled. As t grows, the wave unfolds to the right.</span></div>
+    <div class="term"><span class="term-sym">φ</span><span class="term-def"><strong>Phase</strong> in degrees. Sets the starting angle at t = 0. At φ = 0° the tip starts at the rightmost point (sin = 0, cos = 1). At φ = 90° it starts at the top (sin = 1, cos = 0). Drag the phase slider and watch all three panels shift simultaneously — sin and cos always remain 90° apart.</span></div>
+    <div class="term"><span class="term-sym">j</span><span class="term-def"><strong>The imaginary unit</strong> (√−1). In the complex exponential e^(jθ), the horizontal (real) axis carries the cosine and the vertical (imaginary) axis carries the sine. A rotating phasor encodes both projections simultaneously — this is why sine and cosine always travel in pairs throughout signal processing.</span></div>
+  </div>
+</header>
+
+<!-- GLOBAL CONTROLS -->
+<div class="global-controls">
+  <div class="global-label">shared parameters — affect all three panels</div>
+  <div class="ctrl">
+    <label>frequency</label>
+    <input type="range" id="freq-slider" min="0.2" max="4" step="0.05" value="1">
+    <span class="val" id="freq-val">1.00 Hz</span>
+  </div>
+  <div class="ctrl">
+    <label>amplitude</label>
+    <input type="range" id="amp-slider" min="0.1" max="1" step="0.01" value="0.8">
+    <span class="val" id="amp-val">0.80</span>
+  </div>
+  <div class="ctrl">
+    <label>phase φ</label>
+    <input type="range" id="phase-slider" min="0" max="360" step="1" value="0">
+    <span class="val" id="phase-val">0°</span>
+  </div>
+</div>
+
+<!-- PANEL 1: SINE -->
+<div class="panel">
+  <div class="panel-header">
+    <span class="panel-title">sine · vertical projection</span>
+    <div class="panel-controls">
+      <button class="btn" id="p1-play">▶ play</button>
+      <button class="btn reset" id="p1-reset">↺</button>
+    </div>
+  </div>
+  <div class="panel-body">
+    <canvas id="c1" width="1040" height="360"></canvas>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#c73862"></div><span>phasor tip</span></div>
+      <div class="legend-item"><div class="legend-line" style="background:#c73862;opacity:0.4"></div><span>radius (A)</span></div>
+      <div class="legend-item"><div class="legend-line" style="background:#2c7d6f;height:3px;border-radius:2px"></div><span>sin(θ)</span></div>
+      <div class="legend-item"><div class="legend-line" style="background:#a8a59f;height:1px"></div><span>projection guide</span></div>
+    </div>
+  </div>
+  <div class="panel-note">The phasor tip circles at constant speed. Its <strong>vertical distance</strong> from the horizontal axis is sin(θ). The dashed line connects the tip to the wave's current position at the right edge, making the projection explicit at every frame.</div>
+</div>
+
+<!-- PANEL 2: COSINE -->
+<div class="panel">
+  <div class="panel-header">
+    <span class="panel-title">cosine · horizontal projection</span>
+    <div class="panel-controls">
+      <button class="btn" id="p2-play">▶ play</button>
+      <button class="btn reset" id="p2-reset">↺</button>
+    </div>
+  </div>
+  <div class="panel-body">
+    <canvas id="c2" width="1040" height="360"></canvas>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#c73862"></div><span>phasor tip</span></div>
+      <div class="legend-item"><div class="legend-line" style="background:#c73862;height:3px;border-radius:2px"></div><span>cos(θ)</span></div>
+      <div class="legend-item"><div class="legend-line" style="background:#a8a59f;height:1px"></div><span>projection guide</span></div>
+    </div>
+  </div>
+  <div class="panel-note">Same phasor, different projection. The <strong>horizontal distance</strong> from the vertical axis is cos(θ). The cosine starts at its peak because at angle 0 the tip is at the rightmost point — maximum horizontal extent. Sine and cosine are the same wave, 90° apart: <code style="font-family:'DM Mono',monospace;font-size:12px;color:#b8693a;background:#f4f2ec;padding:1px 5px;border-radius:3px">cos(θ) = sin(θ + π/2)</code>. Set phase to 90° and watch the sine in panel 1 slide left until it matches this cosine exactly.</div>
+</div>
+
+<!-- PANEL 3: COMPLEX -->
+<div class="panel">
+  <div class="panel-header">
+    <span class="panel-title">cosine + sine · both projections · A·e^(jθ) = A·(cos(θ) + j·sin(θ))</span>
+    <div class="panel-controls">
+      <button class="btn" id="p3-play">▶ play</button>
+      <button class="btn reset" id="p3-reset">↺</button>
+    </div>
+  </div>
+  <div class="panel-body">
+    <canvas id="c3" width="1040" height="460"></canvas>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#c73862"></div><span>phasor tip</span></div>
+      <div class="legend-item"><div class="legend-line" style="background:#c73862;height:3px;border-radius:2px"></div><span>cos(θ) · real</span></div>
+      <div class="legend-item"><div class="legend-line" style="background:#2c7d6f;height:3px;border-radius:2px"></div><span>sin(θ) · imaginary</span></div>
+    </div>
+  </div>
+  <div class="panel-note"><code style="font-family:'DM Mono',monospace;font-size:12px;color:#b8693a;background:#f4f2ec;padding:1px 5px;border-radius:3px">A·e^(jθ) = A·(cos(θ) + j·sin(θ))</code> — both projections on one circle. The real axis (horizontal) feeds the cosine track; the imaginary axis (vertical) feeds the sine track. In digital signal processing — z-transforms, filter poles and zeros, Fourier analysis — every calculation lives in this plane. Conjugate pole pairs exist because real-valued audio signals force the cosine and sine components to be symmetric: you cannot have one without the other.</div>
+</div>
+
+<!-- PANEL 4: SUM -->
+<div class="panel">
+  <div class="panel-header">
+    <span class="panel-title">sin + cos · time domain · the resulting sinusoid</span>
+    <div class="panel-controls">
+      <button class="btn" id="p4-play">▶ play</button>
+      <button class="btn reset" id="p4-reset">↺</button>
+    </div>
+  </div>
+  <div class="panel-body">
+    <canvas id="c4" width="1040" height="300"></canvas>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-line" style="background:#2c7d6f;height:2px;opacity:0.5"></div><span>sin(θ)</span></div>
+      <div class="legend-item"><div class="legend-line" style="background:#c73862;height:2px;opacity:0.5"></div><span>cos(θ)</span></div>
+      <div class="legend-item"><div class="legend-line" style="background:#b8693a;height:3px;border-radius:2px"></div><span>sin(θ) + cos(θ) · the sum</span></div>
+    </div>
+  </div>
+  <div class="panel-note"><strong>A·sin(θ) + A·cos(θ)</strong> is itself a sinusoid at the same frequency, with amplitude A√2 and phase shifted by 45°. Adding two sinusoids of equal frequency always yields another sinusoid — the frequency never changes, only the amplitude and phase. This is the principle behind phasor addition and why the z-plane and Fourier analysis work: complex exponentials are closed under addition. Vary the phase slider and watch the sum (terra-cotta) shift and its peak amplitude remain A√2 regardless of phase.</div>
+</div>
+
+
+
+<footer>CSU East Bay Music · sound-design teaching tools</footer>
+
+</div>
+<script>
+// =============================================================
+// PHASOR — three independent panels, shared parameters
+// =============================================================
+
+// ---- shared parameters ----
+let freq = 1.0, amp = 0.8, phase = 0.0;
+
+// ---- per-panel state ----
+// Each panel has its own time, running flag, animId, canvas, ctx
+const panels = [
+  { id:1, canvasId:'c1', playId:'p1-play', resetId:'p1-reset', t:0, running:false, animId:null, W:0, H:0, fn:'sine'    },
+  { id:2, canvasId:'c2', playId:'p2-play', resetId:'p2-reset', t:0, running:false, animId:null, W:0, H:0, fn:'cosine'  },
+  { id:3, canvasId:'c3', playId:'p3-play', resetId:'p3-reset', t:0, running:false, animId:null, W:0, H:0, fn:'complex' },
+  { id:4, canvasId:'c4', playId:'p4-play', resetId:'p4-reset', t:0, running:false, animId:null, W:0, H:0, fn:'sum'     },
+];
+
+// attach canvas and context
+panels.forEach(p => {
+  p.canvas = document.getElementById(p.canvasId);
+  p.ctx    = p.canvas.getContext('2d');
+  p.lastTs = null;
+});
+
+// ---- colours ----
+const C = {
+  bg:'#ffffff', border:'#e2dfd6', borderS:'#c9c5b8',
+  muted:'#6a6862', dim:'#a8a59f', accent:'#b8693a',
+  teal:'#2c7d6f',    tealS:'rgba(44,125,111,0.15)',
+  crimson:'#c73862', crimsonS:'rgba(199,56,98,0.12)',
+};
+
+// ---- canvas setup ----
+function setupCanvas(p) {
+  const dpr = window.devicePixelRatio || 1;
+  const r   = p.canvas.getBoundingClientRect();
+  p.canvas.width  = r.width  * dpr;
+  p.canvas.height = r.height * dpr;
+  p.ctx.scale(dpr, dpr);
+  p.W = r.width; p.H = r.height;
+}
+function initCanvases() { panels.forEach(setupCanvas); }
+
+// ---- shared layout helper ----
+function L(W, H) {
+  const pad   = 20;
+  const circR = Math.min(H * 0.36, W * 0.19);
+  const circX = pad + circR + 14;
+  const waveL = circX + circR + 48;
+  const waveR = W - pad;
+  const showSec = Math.max(2, 2 / freq);
+  return { pad, circR, circX, waveL, waveR, waveW: waveR - waveL, showSec };
+}
+
+// ---- draw primitives ----
+function drawCircle(ctx, cx, cy, r, fillColor) {
+  ctx.fillStyle = fillColor;
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fill();
+  ctx.strokeStyle = C.border; ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(cx-r-8,cy); ctx.lineTo(cx+r+8,cy);
+  ctx.moveTo(cx,cy-r-8); ctx.lineTo(cx,cy+r+8);
+  ctx.stroke();
+  ctx.strokeStyle = C.borderS; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.stroke();
+}
+
+function drawAngleLabels(ctx, cx, cy, r) {
+  ctx.fillStyle = C.dim; ctx.font = "10px 'DM Mono',monospace";
+  ctx.textAlign='center'; ctx.fillText('π/2', cx, cy-r-11);
+  ctx.fillText('3π/2', cx, cy+r+17);
+  ctx.textAlign='left';  ctx.fillText('0', cx+r+8, cy+13);
+  ctx.textAlign='right'; ctx.fillText('π', cx-r-6, cy+13);
+}
+
+function drawArm(ctx, cx, cy, px, py) {
+  ctx.strokeStyle = C.crimson; ctx.lineWidth = 2; ctx.globalAlpha = 0.5;
+  ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(px,py); ctx.stroke();
+  ctx.globalAlpha = 1;
+}
+
+function drawDot(ctx, color, colorS, x, y) {
+  ctx.fillStyle = colorS; ctx.beginPath(); ctx.arc(x,y,13,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle = color;  ctx.beginPath(); ctx.arc(x,y,5,0,Math.PI*2);  ctx.fill();
+}
+
+function drawWave(ctx, color, wL, wR, cy, circR, showSec, t_panel, projFn) {
+  const N = 600; ctx.strokeStyle = color; ctx.lineWidth = 2.5; ctx.beginPath();
+  for (let i=0; i<=N; i++) {
+    const frac = i/N;
+    const th   = 2*Math.PI*freq*(t_panel - showSec + frac*showSec) + phase;
+    const sy   = cy - amp*circR*projFn(th);
+    const sx   = wL + frac*(wR-wL);
+    i===0 ? ctx.moveTo(sx,sy) : ctx.lineTo(sx,sy);
+  }
+  ctx.stroke();
+}
+
+function drawAxis(ctx, wL, wR, y) {
+  ctx.strokeStyle = C.border; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(wL,y); ctx.lineTo(wR,y); ctx.stroke();
+}
+
+function drawAmpGuides(ctx, wL, wR, cy, circR) {
+  ctx.strokeStyle = C.border; ctx.setLineDash([3,4]); ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(wL,cy-amp*circR); ctx.lineTo(wR,cy-amp*circR);
+  ctx.moveTo(wL,cy+amp*circR); ctx.lineTo(wR,cy+amp*circR);
+  ctx.stroke(); ctx.setLineDash([]);
+}
+
+function drawSeparator(ctx, x, H) {
+  ctx.strokeStyle = C.border; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke();
+}
+
+function drawTimeLabels(ctx, wL, wR, wW, axisY, bottomY, showSec) {
+  const cW = wW/(showSec*freq);
+  ctx.font = "10px 'DM Mono',monospace"; ctx.textAlign='center';
+  for (let c=0; c*cW<=wW+1; c++) {
+    const cx = wR - c*cW; if (cx < wL) break;
+    ctx.fillStyle = C.dim; ctx.fillText(c===0?'now':`-${c}T`, cx, bottomY);
+    ctx.strokeStyle=C.border; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(cx,axisY-3); ctx.lineTo(cx,axisY+3); ctx.stroke();
+  }
+}
+
+// =============================================================
+// PANEL DRAW FUNCTIONS
+// =============================================================
+function drawSine(p) {
+  const {ctx,W,H,t} = p;
+  ctx.clearRect(0,0,W,H); ctx.fillStyle=C.bg; ctx.fillRect(0,0,W,H);
+  const {circR,circX,waveL,waveR,waveW,showSec} = L(W,H);
+  const circY = H/2;
+  const theta = 2*Math.PI*freq*t + phase;
+  const px = circX + amp*circR*Math.cos(theta);
+  const py = circY - amp*circR*Math.sin(theta);
+
+  drawCircle(ctx, circX, circY, circR, C.crimsonS);
+  drawAngleLabels(ctx, circX, circY, circR);
+  drawArm(ctx, circX, circY, px, py);
+  drawSeparator(ctx, waveL-18, H);
+  drawAxis(ctx, waveL, waveR, circY);
+  drawAmpGuides(ctx, waveL, waveR, circY, circR);
+  drawWave(ctx, C.teal, waveL, waveR, circY, circR, showSec, t, Math.sin);
+
+  // projection: horizontal dashed line from phasor tip to current wave point
+  const nowY = circY - amp*circR*Math.sin(theta);
+  ctx.strokeStyle=C.dim; ctx.setLineDash([4,5]); ctx.lineWidth=1.2;
+  ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(waveR, nowY);
+  ctx.stroke(); ctx.setLineDash([]);
+
+  // vertical component bar on circle
+  ctx.strokeStyle=C.teal; ctx.lineWidth=2; ctx.globalAlpha=0.6;
+  ctx.beginPath(); ctx.moveTo(px,circY); ctx.lineTo(px,py); ctx.stroke();
+  ctx.globalAlpha=1;
+
+  drawDot(ctx, C.teal, C.tealS, waveR, nowY);
+  drawDot(ctx, C.crimson, C.crimsonS, px, py);
+  drawTimeLabels(ctx, waveL, waveR, waveW, circY, H-6, showSec);
+
+}
+
+function drawCosine(p) {
+  const {ctx,W,H,t} = p;
+  ctx.clearRect(0,0,W,H); ctx.fillStyle=C.bg; ctx.fillRect(0,0,W,H);
+  const {circR,circX,waveL,waveR,waveW,showSec} = L(W,H);
+  const circY = H/2;
+  const theta = 2*Math.PI*freq*t + phase;
+  const px = circX + amp*circR*Math.cos(theta);
+  const py = circY - amp*circR*Math.sin(theta);
+
+  drawCircle(ctx, circX, circY, circR, C.crimsonS);
+  drawAngleLabels(ctx, circX, circY, circR);
+  drawArm(ctx, circX, circY, px, py);
+  drawSeparator(ctx, waveL-18, H);
+  drawAxis(ctx, waveL, waveR, circY);
+  drawAmpGuides(ctx, waveL, waveR, circY, circR);
+  drawWave(ctx, C.crimson, waveL, waveR, circY, circR, showSec, t, Math.cos);
+
+  // projection: dashed line from phasor tip to current wave point
+  const nowY = circY - amp*circR*Math.cos(theta);
+  ctx.strokeStyle=C.dim; ctx.setLineDash([4,5]); ctx.lineWidth=1.2;
+  ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(waveR, nowY);
+  ctx.stroke(); ctx.setLineDash([]);
+
+  // horizontal component bar on circle
+  ctx.strokeStyle=C.crimson; ctx.lineWidth=2; ctx.globalAlpha=0.6;
+  ctx.beginPath(); ctx.moveTo(circX,py); ctx.lineTo(px,py); ctx.stroke();
+  ctx.globalAlpha=1;
+
+  drawDot(ctx, C.crimson, C.crimsonS, waveR, nowY);
+  drawDot(ctx, C.crimson, C.crimsonS, px, py);
+  drawTimeLabels(ctx, waveL, waveR, waveW, circY, H-6, showSec);
+
+}
+
+function drawComplex(p) {
+  const {ctx,W,H,t} = p;
+  ctx.clearRect(0,0,W,H); ctx.fillStyle=C.bg; ctx.fillRect(0,0,W,H);
+  // Use H/2 as effective height so circR fits within each half-height track
+  const {circR,circX,waveL,waveR,waveW,showSec} = L(W, H/2);
+  const circY = H/2;
+  const cosY  = H*0.25;
+  const sinY  = H*0.75;
+  const theta = 2*Math.PI*freq*t + phase;
+  const px = circX + amp*circR*Math.cos(theta);
+  const py = circY - amp*circR*Math.sin(theta);
+
+  // track divider
+  ctx.strokeStyle=C.border; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(0,H/2); ctx.lineTo(W,H/2); ctx.stroke();
+
+  // track labels
+  ctx.font="10px 'DM Mono',monospace"; ctx.textAlign='left';
+  ctx.fillStyle=C.crimson; ctx.fillText('cos(θ) · Re', waveL+6, cosY-amp*circR-6);
+  ctx.fillStyle=C.teal;    ctx.fillText('sin(θ) · Im', waveL+6, sinY-amp*circR-6);
+
+  // circle with Re/Im labels
+  drawCircle(ctx, circX, circY, circR, C.crimsonS);
+  ctx.fillStyle=C.crimson; ctx.font="10px 'DM Mono',monospace";
+  ctx.textAlign='left';  ctx.fillText('Re', circX+circR+8, circY-4);
+  ctx.fillStyle=C.teal;
+  ctx.textAlign='center'; ctx.fillText('Im', circX, circY-circR-11);
+  ctx.fillStyle=C.dim;
+  ctx.fillText('−Im', circX, circY+circR+17);
+  ctx.textAlign='right'; ctx.fillText('π', circX-circR-6, circY+13);
+  ctx.textAlign='left';  ctx.fillText('0', circX+circR+8, circY+13);
+
+  drawArm(ctx, circX, circY, px, py);
+  drawSeparator(ctx, waveL-18, H);
+
+  // cosine track (top)
+  drawAxis(ctx, waveL, waveR, cosY);
+  drawAmpGuides(ctx, waveL, waveR, cosY, circR);
+  drawWave(ctx, C.crimson, waveL, waveR, cosY, circR, showSec, t, Math.cos);
+
+  // sine track (bottom)
+  drawAxis(ctx, waveL, waveR, sinY);
+  drawAmpGuides(ctx, waveL, waveR, sinY, circR);
+  drawWave(ctx, C.teal, waveL, waveR, sinY, circR, showSec, t, Math.sin);
+
+  const cosNowY = cosY - amp*circR*Math.cos(theta);
+  const sinNowY = sinY - amp*circR*Math.sin(theta);
+
+  // cosine projection: horizontal bar on circle + dashed from circle right edge to cos track
+  ctx.strokeStyle=C.crimson; ctx.lineWidth=2; ctx.globalAlpha=0.55;
+  ctx.beginPath(); ctx.moveTo(circX,py); ctx.lineTo(px,py); ctx.stroke();
+  ctx.globalAlpha=1;
+  ctx.strokeStyle=C.crimson; ctx.setLineDash([4,5]); ctx.lineWidth=1.2; ctx.globalAlpha=0.65;
+  ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(waveR, cosNowY);
+  ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha=1;
+
+  // sine projection: vertical bar on circle + dashed from circle right edge to sin track
+  ctx.strokeStyle=C.teal; ctx.lineWidth=2; ctx.globalAlpha=0.55;
+  ctx.beginPath(); ctx.moveTo(px,circY); ctx.lineTo(px,py); ctx.stroke();
+  ctx.globalAlpha=1;
+  ctx.strokeStyle=C.teal; ctx.setLineDash([4,5]); ctx.lineWidth=1.2; ctx.globalAlpha=0.65;
+  ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(waveR, sinNowY);
+  ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha=1;
+
+  drawDot(ctx, C.crimson, C.crimsonS, waveR, cosNowY);
+  drawDot(ctx, C.teal,    C.tealS,    waveR, sinNowY);
+  drawDot(ctx, C.crimson, C.crimsonS, px, py);
+  drawTimeLabels(ctx, waveL, waveR, waveW, cosY, H/2-6, showSec);
+
+}
+
+// =============================================================
+// PANEL SUM — sin + cos time domain view
+// =============================================================
+function drawSum(p) {
+  const {ctx,W,H,t} = p;
+  ctx.clearRect(0,0,W,H); ctx.fillStyle=C.bg; ctx.fillRect(0,0,W,H);
+
+  const padL=50, padR=20, padT=24, padB=28;
+  const plotW = W-padL-padR, plotH = H-padT-padB;
+  const cy = padT + plotH/2;
+
+  const showSec = Math.max(2, 2/freq);
+  // peak of sum = A*sqrt(2), add 10% margin
+  const peakSum = amp * Math.SQRT2 * 1.1;
+  const yScale  = (plotH/2) / peakSum;
+
+  // grid
+  ctx.strokeStyle = C.border; ctx.lineWidth = 1;
+  // zero axis
+  ctx.strokeStyle = C.borderS; ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.moveTo(padL, cy); ctx.lineTo(W-padR, cy); ctx.stroke();
+  // amplitude guides at ±A and ±A√2
+  for (const [level, color, dash] of [
+    [amp,          C.border,  [3,4]],
+    [amp*Math.SQRT2, C.dim,   [2,3]],
+  ]) {
+    ctx.strokeStyle = color; ctx.setLineDash(dash); ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(padL, cy - level*yScale); ctx.lineTo(W-padR, cy - level*yScale);
+    ctx.moveTo(padL, cy + level*yScale); ctx.lineTo(W-padR, cy + level*yScale);
+    ctx.stroke();
+  }
+  ctx.setLineDash([]);
+
+  // time tick marks
+  const cycleW = plotW / (showSec * freq);
+  ctx.font = "10px 'DM Mono',monospace"; ctx.textAlign='center';
+  for (let c=0; c*cycleW<=plotW+1; c++) {
+    const cx = (W-padR) - c*cycleW; if (cx < padL) break;
+    ctx.fillStyle = C.dim; ctx.fillText(c===0?'now':`-${c}T`, cx, H-8);
+    ctx.strokeStyle = C.border; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(cx,cy-3); ctx.lineTo(cx,cy+3); ctx.stroke();
+  }
+
+  // y-axis labels
+  ctx.textAlign='right'; ctx.fillStyle=C.muted; ctx.font="10px 'DM Mono',monospace";
+  ctx.fillText('+A√2', padL-6, cy - amp*Math.SQRT2*yScale + 4);
+  ctx.fillText('+A',   padL-6, cy - amp*yScale + 4);
+  ctx.fillText('0',    padL-6, cy + 4);
+  ctx.fillText('−A',   padL-6, cy + amp*yScale + 4);
+  ctx.fillText('−A√2', padL-6, cy + amp*Math.SQRT2*yScale + 4);
+
+  const N = 600;
+
+  // draw sin (teal, faint)
+  ctx.strokeStyle = C.teal; ctx.lineWidth = 1.5; ctx.globalAlpha = 0.45;
+  ctx.beginPath();
+  for (let i=0; i<=N; i++) {
+    const frac = i/N;
+    const th   = 2*Math.PI*freq*(t - showSec + frac*showSec) + phase;
+    const sy   = cy - amp * Math.sin(th) * yScale;
+    const sx   = padL + frac*plotW;
+    i===0 ? ctx.moveTo(sx,sy) : ctx.lineTo(sx,sy);
+  }
+  ctx.stroke(); ctx.globalAlpha=1;
+
+  // draw cos (crimson, faint)
+  ctx.strokeStyle = C.crimson; ctx.lineWidth = 1.5; ctx.globalAlpha = 0.45;
+  ctx.beginPath();
+  for (let i=0; i<=N; i++) {
+    const frac = i/N;
+    const th   = 2*Math.PI*freq*(t - showSec + frac*showSec) + phase;
+    const sy   = cy - amp * Math.cos(th) * yScale;
+    const sx   = padL + frac*plotW;
+    i===0 ? ctx.moveTo(sx,sy) : ctx.lineTo(sx,sy);
+  }
+  ctx.stroke(); ctx.globalAlpha=1;
+
+  // draw sum (accent, bold)
+  ctx.strokeStyle = C.accent; ctx.lineWidth = 2.8;
+  ctx.beginPath();
+  for (let i=0; i<=N; i++) {
+    const frac = i/N;
+    const th   = 2*Math.PI*freq*(t - showSec + frac*showSec) + phase;
+    const sy   = cy - amp * (Math.sin(th) + Math.cos(th)) * yScale;
+    const sx   = padL + frac*plotW;
+    i===0 ? ctx.moveTo(sx,sy) : ctx.lineTo(sx,sy);
+  }
+  ctx.stroke();
+
+  // current value dots at right edge
+  const theta = 2*Math.PI*freq*t + phase;
+  drawDot(ctx, C.teal,    C.tealS,    W-padR, cy - amp*Math.sin(theta)*yScale);
+  drawDot(ctx, C.crimson, C.crimsonS, W-padR, cy - amp*Math.cos(theta)*yScale);
+  drawDot(ctx, C.accent,  'rgba(184,105,58,0.15)', W-padR, cy - amp*(Math.sin(theta)+Math.cos(theta))*yScale);
+}
+
+// ---- per-panel render dispatch ----
+const drawFns = { sine: drawSine, cosine: drawCosine, sum: drawSum, complex: drawComplex };
+
+function renderPanel(p) {
+  drawFns[p.fn](p);
+}
+
+// ---- animation loop (per panel) ----
+function makeLoop(p) {
+  return function loop(ts) {
+    if (!p.lastTs) p.lastTs = ts;
+    p.t += (ts - p.lastTs) / 1000;
+    p.lastTs = ts;
+    renderPanel(p);
+    if (p.running) p.animId = requestAnimationFrame(loop);
+  };
+}
+
+// ---- play / reset wiring ----
+panels.forEach(p => {
+  const playBtn  = document.getElementById(p.playId);
+  const resetBtn = document.getElementById(p.resetId);
+  const loop = makeLoop(p);
+
+  playBtn.addEventListener('click', () => {
+    p.running = !p.running;
+    if (p.running) {
+      playBtn.textContent = '■ pause'; playBtn.classList.add('stop');
+      p.lastTs = null;
+      p.animId = requestAnimationFrame(loop);
+    } else {
+      playBtn.textContent = '▶ play'; playBtn.classList.remove('stop');
+      if (p.animId) cancelAnimationFrame(p.animId);
+    }
+  });
+
+  resetBtn.addEventListener('click', () => {
+    if (p.running) {
+      p.running = false;
+      if (p.animId) cancelAnimationFrame(p.animId);
+      playBtn.textContent = '▶ play'; playBtn.classList.remove('stop');
+    }
+    p.t = 0; p.lastTs = null;
+    renderPanel(p);
+  });
+});
+
+// ---- global controls ----
+const freqSlider  = document.getElementById('freq-slider');
+const ampSlider   = document.getElementById('amp-slider');
+const phaseSlider = document.getElementById('phase-slider');
+const freqVal     = document.getElementById('freq-val');
+const ampVal      = document.getElementById('amp-val');
+const phaseVal    = document.getElementById('phase-val');
+
+function redrawStopped() {
+  panels.forEach(p => { if (!p.running) renderPanel(p); });
+}
+
+freqSlider.addEventListener('input', () => {
+  freq = parseFloat(freqSlider.value);
+  freqVal.textContent = freq.toFixed(2) + ' Hz';
+  redrawStopped();
+});
+ampSlider.addEventListener('input', () => {
+  amp = parseFloat(ampSlider.value);
+  ampVal.textContent = amp.toFixed(2);
+  redrawStopped();
+});
+phaseSlider.addEventListener('input', () => {
+  const d = parseFloat(phaseSlider.value);
+  phase = d * Math.PI / 180;
+  phaseVal.textContent = d + '°';
+  redrawStopped();
+});
+
+// ---- init ----
+window.addEventListener('load', () => {
+  requestAnimationFrame(() => {
+    initCanvases();
+    panels.forEach(renderPanel);
+  });
+});
+window.addEventListener('resize', () => {
+  initCanvases();
+  panels.forEach(p => { if (!p.running) renderPanel(p); });
+});
+</script>
+</body>
+</html>

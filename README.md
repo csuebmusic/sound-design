@@ -16,7 +16,7 @@ The collection is organized around three large areas of the course:
 2. **Sound Synthesis**
 3. **Mixing and Signal Processing**
 
-The repository is **under active development** and will grow as the course progresses. Current contents are in the *Mixing and Signal Processing* area, specifically the module on digital filters.
+The repository is **under active development** and will grow as the course progresses. Current contents span foundational concepts (phasors, sinusoidal motion) and the module on digital filters within the *Mixing and Signal Processing* area.
 
 ---
 
@@ -34,6 +34,12 @@ The repository is **under active development** and will grow as the course progr
 ---
 
 ## Current contents
+
+### Sinusoidal motion
+
+#### [`phasor.html`](./phasor.html)
+
+A rotating point on a circle tracing sine and cosine waves through its vertical and horizontal projections. Four independent animated panels, each with its own play/pause/reset, sharing a common set of sliders (frequency, amplitude, phase): the sine projection unrolling to the right; the cosine projection showing why it starts at its peak; the complex exponential `A·e^(jθ) = A·(cos(θ) + j·sin(θ))` with both projections simultaneously on one circle; and a time-domain view showing `sin(θ)` (teal), `cos(θ)` (crimson), and their sum (terra-cotta) — a sinusoid at the same frequency with amplitude A√2 and a 45° phase shift. Each panel includes a note connecting the geometry to signal processing: why sine and cosine always travel in pairs, what the imaginary unit means spatially, and how the sum of same-frequency sinusoids is always another sinusoid. This tool establishes the geometric foundation for the z-plane, complex poles, and Fourier analysis that the filter tools build on.
 
 ### Digital filters
 
