@@ -447,13 +447,16 @@
         <line x1="271" y1="185" x2="210" y2="185" stroke="#c73862" stroke-width="1.5"/>
         <line x1="210" y1="185" x2="210" y2="86" stroke="#c73862" stroke-width="1.5" marker-end="url(#arr-p)"/>
 
-        <!-- tap₂ → b₂ → ⊕₁ -->
+        <!-- tap₂ → b₂ → merges into b₁ vertical at (210,185) → shared path to ⊕₁ -->
         <line x1="410" y1="285" x2="310" y2="285" stroke="#c73862" stroke-width="1.5"/>
         <path d="M 308 272 L 308 298 L 273 285 z" fill="white" stroke="#c73862" stroke-width="1.5" stroke-linejoin="round"/>
         <text x="290" y="315" text-anchor="middle" font-size="13" fill="#c73862" font-weight="500">b₂</text>
-        <!-- b₂ output → left to col x=155 → up to ⊕₁ bottom -->
+        <!-- b₂ output → left to col x=155 → up to y=185 → right to join b₁ vertical at x=210 -->
         <line x1="271" y1="285" x2="155" y2="285" stroke="#c73862" stroke-width="1.5"/>
-        <line x1="155" y1="285" x2="155" y2="86" stroke="#c73862" stroke-width="1.5" marker-end="url(#arr-p)"/>
+        <line x1="155" y1="285" x2="155" y2="185" stroke="#c73862" stroke-width="1.5"/>
+        <line x1="155" y1="185" x2="210" y2="185" stroke="#c73862" stroke-width="1.5"/>
+        <!-- junction dot where b₂ meets b₁ vertical -->
+        <circle cx="210" cy="185" r="3.5" fill="#c73862"/>
 
         <!-- ===== RIGHT BRANCHES (feedforward → ⊕₂) ===== -->
 
@@ -465,13 +468,16 @@
         <line x1="549" y1="185" x2="608" y2="185" stroke="#2c7d6f" stroke-width="1.5"/>
         <line x1="608" y1="185" x2="608" y2="86" stroke="#2c7d6f" stroke-width="1.5" marker-end="url(#arr-z)"/>
 
-        <!-- tap₂ → a₂ → ⊕₂ -->
+        <!-- tap₂ → a₂ → merges into a₁ vertical at (608,185) → shared path to ⊕₂ -->
         <line x1="410" y1="285" x2="510" y2="285" stroke="#2c7d6f" stroke-width="1.5"/>
         <path d="M 512 272 L 512 298 L 547 285 z" fill="white" stroke="#2c7d6f" stroke-width="1.5" stroke-linejoin="round"/>
         <text x="529" y="315" text-anchor="middle" font-size="13" fill="#2c7d6f" font-weight="500">a₂</text>
-        <!-- a₂ output → right to col x=665 → up to ⊕₂ bottom -->
+        <!-- a₂ output → right to col x=665 → up to y=185 → left to join a₁ vertical at x=608 -->
         <line x1="549" y1="285" x2="665" y2="285" stroke="#2c7d6f" stroke-width="1.5"/>
-        <line x1="665" y1="285" x2="665" y2="86" stroke="#2c7d6f" stroke-width="1.5" marker-end="url(#arr-z)"/>
+        <line x1="665" y1="285" x2="665" y2="185" stroke="#2c7d6f" stroke-width="1.5"/>
+        <line x1="665" y1="185" x2="608" y2="185" stroke="#2c7d6f" stroke-width="1.5"/>
+        <!-- junction dot where a₂ meets a₁ vertical -->
+        <circle cx="608" cy="185" r="3.5" fill="#2c7d6f"/>
 
       </svg>
       <div class="block-diagram-legend">
