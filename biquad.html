@@ -345,7 +345,7 @@
 
   <header>
     <h1>BiQuad filter</h1>
-    <p class="subtitle">Two poles and two zeros: the second-order pole/zero filter (Cook Eq. 3.11/3.14). The two-pole IIR and the 2-zero FIR combined into a single structure — and the most common building block in audio DSP.</p>
+    <p class="subtitle">Two poles and two zeros: the second-order pole/zero filter (Cook Eq. 3.11/3.14). The two-pole IIR and the 2-zero FIR combined into a single structure, and the most common building block in audio DSP.</p>
     <div class="equation">
       <span class="var">y</span>(n) <span class="op">=</span> <span class="var">g</span>·(<span class="var">x</span>(n)
       <span class="op">+</span> <span class="zero-coeff">a₁</span>·<span class="var">x</span>(n<span class="op">−</span>1)
@@ -481,11 +481,11 @@
 
       </svg>
       <div class="block-diagram-legend">
-        <span style="color:#c73862">■ crimson = feedback (b₁ added, b₂ subtracted) → ⊕₁</span>
+        <span style="color:#c73862">■ feedback: b₁, b₂ → ⊕₁</span>
         &nbsp;·&nbsp;
-        <span style="color:#2c7d6f">■ teal = feedforward (a₁, a₂) → ⊕₂</span>
+        <span style="color:#2c7d6f">■ feedforward: a₁, a₂ → ⊕₂</span>
         &nbsp;·&nbsp;
-        single shared delay chain · ▷ multiplier · ⊕ summer · z⁻¹ one-sample delay
+        ▷ multiplier · ⊕ summer · z⁻¹ one-sample delay
       </div>
     </div>
   </header>
@@ -494,7 +494,7 @@
   <section>
     <h2>terminology</h2>
     <div class="terminology">
-      <p class="lead">The BiQuad is Cook's general second-order filter (Eq. 3.11). It combines the 2-zero FIR feedforward section (teal) with the two-pole IIR feedback section (crimson) into a single structure. The key insight from LTI theory: any LTI system can be built from these components in any combination. The BiQuad is simply the most useful second-order combination — two poles for resonance, two zeros for anti-resonance, independently tunable.</p>
+      <p class="lead">The BiQuad combines the 2-zero FIR feedforward section (teal) with the two-pole IIR feedback section (crimson) into a single structure. The key insight from LTI theory: any LTI system can be built from these components in any combination. The BiQuad is the most useful second-order combination: two poles for resonance, two zeros for anti-resonance, independently tunable.</p>
 
       <div class="term">
         <div class="term-name">the two sections</div>
@@ -503,7 +503,7 @@
             <div class="term-group-label zero">feedforward · zeros</div>
             <div class="term-sub zero">
               <div class="term-sub-name"><span class="symbol zero">freq_z</span> zero frequency</div>
-              <p class="term-sub-def">The angle of the zero pair on the z-plane — the frequency the filter attenuates. Derived as <code>ω_z = 2π·freq_z / SR</code>.</p>
+              <p class="term-sub-def">The angle of the zero pair on the z-plane, the frequency the filter attenuates. Derived as <code>ω_z = 2π·freq_z / SR</code>.</p>
             </div>
             <div class="term-sub zero">
               <div class="term-sub-name"><span class="symbol zero">rz</span> zero radius</div>
@@ -514,7 +514,7 @@
             <div class="term-group-label pole">feedback · poles</div>
             <div class="term-sub pole">
               <div class="term-sub-name"><span class="symbol pole">freq_p</span> pole frequency</div>
-              <p class="term-sub-def">The angle of the pole pair on the z-plane — the frequency the filter amplifies. Derived as <code>ω_p = 2π·freq_p / SR</code>.</p>
+              <p class="term-sub-def">The angle of the pole pair on the z-plane, the frequency the filter amplifies. Derived as <code>ω_p = 2π·freq_p / SR</code>.</p>
             </div>
             <div class="term-sub pole">
               <div class="term-sub-name"><span class="symbol pole">rp</span> pole radius</div>
@@ -526,17 +526,17 @@
 
       <div class="term">
         <div class="term-name"><span class="symbol">g</span> overall gain</div>
-        <p class="term-def">Scales the entire feedforward sum before it enters the summer (Cook Eq. 3.11: g sits before the tap, factored over all three feedforward terms). It does not affect zero or pole locations — only the overall output level.</p>
+        <p class="term-def">Scales the entire feedforward sum before it enters the summer (Cook Eq. 3.11: g sits before the tap, factored over all three feedforward terms). It does not affect zero or pole locations, only the overall output level.</p>
       </div>
 
       <div class="term">
         <div class="term-name">transfer function</div>
-        <p class="term-def">In the z-domain: <code>H(z) = g·(1 + a₁·z⁻¹ + a₂·z⁻²) / (1 − b₁·z⁻¹ + b₂·z⁻²)</code>. The numerator is the 2-zero FIR; the denominator is the two-pole IIR. Zeros are roots of the numerator; poles are roots of the denominator. Their interaction shapes the full frequency response — the zero can cancel or sculpt the pole's resonance, and vice versa.</p>
+        <p class="term-def">In the z-domain: <code>H(z) = g·(1 + a₁·z⁻¹ + a₂·z⁻²) / (1 − b₁·z⁻¹ + b₂·z⁻²)</code>. The numerator is the 2-zero FIR; the denominator is the two-pole IIR. Zeros are roots of the numerator, poles are roots of the denominator. Their interaction shapes the full frequency response: the zero can cancel or sculpt the pole's resonance, and vice versa.</p>
       </div>
 
       <div class="term">
         <div class="term-name">when freq_z = freq_p</div>
-        <p class="term-def">Setting both frequencies to the same value is instructive. If rz &lt; rp the pole dominates: a resonance peak. If rz &gt; rp the zero dominates: a notch. If rz = rp they cancel exactly: flat response. This is the core of parametric EQ — a peak and a notch at the same frequency, controlled by the radius ratio.</p>
+        <p class="term-def">Setting both frequencies to the same value is instructive. If rz &lt; rp the pole dominates: a resonance peak. If rz &gt; rp the zero dominates: a notch. If rz = rp they cancel exactly: flat response. This is the core of parametric EQ, a peak and a notch at the same frequency, controlled by the radius ratio.</p>
       </div>
     </div>
   </section>
@@ -623,7 +623,7 @@
       </div>
     </div>
     <div class="viz-caption">
-      White noise through the BiQuad. With default settings (zero at 2 kHz, pole at 500 Hz) you hear the resonance peak at 500 Hz and the notch at 2 kHz simultaneously — the two sections shaping the same spectrum independently.
+      White noise through the BiQuad. With default settings (zero at 2 kHz, pole at 500 Hz) you hear the resonance peak at 500 Hz and the notch at 2 kHz simultaneously, the two sections shaping the same spectrum independently.
     </div>
     <div class="viz-caption" id="audio-rate">audio · not yet started · visualizations use SR = 48000 Hz</div>
   </section>
@@ -642,7 +642,7 @@
     <h2>group delay</h2>
     <div class="viz-card">
       <div class="viz-explainer">
-        <p><strong>Group delay for the BiQuad</strong> combines the negative spike from the zeros (as seen in the 2-zero FIR tool) with the positive peak from the poles (as seen in the two-pole IIR tool). Near the pole frequency, group delay rises sharply; near the zero frequency, it dips sharply. When the two frequencies overlap, the effects interact — canceling, reinforcing, or producing complex shapes depending on the radius settings.</p>
+        <p><strong>Group delay for the BiQuad</strong> combines the negative spike from the zeros (as seen in the 2-zero FIR tool) with the positive peak from the poles (as seen in the two-pole IIR tool). Near the pole frequency, group delay rises sharply; near the zero frequency, it dips sharply. When the two frequencies overlap, the effects interact: canceling, reinforcing, or producing complex shapes depending on the radius settings.</p>
         <p><strong>The formula</strong> is the same Re[N/D] form as the other tools, but now D = H(e^jω) for the full BiQuad transfer function, and N includes contributions from both feedforward and feedback coefficients.</p>
       </div>
       <canvas id="gdelay" width="1000" height="300"></canvas>
@@ -679,31 +679,27 @@
       </div>
       <div class="calc-block">
         <div class="calc-label">coefficient computation (Cook Eq. 3.14)</div>
-        <div class="calc-cols">
-          <div>
-            <div class="calc-symbolic">
-              <span class="eq-line" style="color:#2c7d6f">a₁ = −2·rz·cos(ω_z)</span>
-              <span class="eq-line" style="color:#2c7d6f">a₂ = rz²</span>
-            </div>
-            <div class="calc-sub zero" id="calc-zero">…</div>
-          </div>
-          <div>
-            <div class="calc-symbolic">
-              <span class="eq-line" style="color:#c73862">b₁ = 2·rp·cos(ω_p)</span>
-              <span class="eq-line" style="color:#c73862">b₂ = rp²</span>
-            </div>
-            <div class="calc-sub pole" id="calc-pole">…</div>
-          </div>
+        <div class="calc-symbolic">
+          <span class="eq-line" style="color:#2c7d6f">a₁ = −2·rz·cos(ω_z)    a₂ = rz²</span>
+          <span class="eq-line" style="color:#c73862">b₁ =  2·rp·cos(ω_p)    b₂ = rp²</span>
         </div>
         <div class="calc-legend">
-          <div class="legend-row"><span class="legend-sym zero">ω_z</span><span class="legend-def">zero angle = 2π · freq_z / SR</span></div>
-          <div class="legend-row"><span class="legend-sym zero">a₁</span><span class="legend-def">zero feedforward coefficient, scales <em>x(n−1)</em></span></div>
-          <div class="legend-row"><span class="legend-sym zero">a₂</span><span class="legend-def">zero feedforward coefficient, scales <em>x(n−2)</em>; always positive</span></div>
-          <div class="legend-row"><span class="legend-sym pole">ω_p</span><span class="legend-def">pole angle = 2π · freq_p / SR</span></div>
-          <div class="legend-row"><span class="legend-sym pole">b₁</span><span class="legend-def">pole feedback coefficient, scales <em>y(n−1)</em>; added</span></div>
-          <div class="legend-row"><span class="legend-sym pole">b₂</span><span class="legend-def">pole feedback coefficient = rp²; subtracted</span></div>
-          <div class="legend-row"><span class="legend-sym gain">g</span><span class="legend-def">overall gain, factored outside feedforward sum</span></div>
+          <div class="legend-row"><span class="legend-sym zero">freq_z</span><span class="legend-def">zero frequency in Hz (slider)</span></div>
+          <div class="legend-row"><span class="legend-sym zero">rz</span><span class="legend-def">zero radius (slider); 1 = zeros on unit circle (true notch)</span></div>
+          <div class="legend-row"><span class="legend-sym zero">ω_z</span><span class="legend-def">zero angle = 2π · freq_z / SR, in radians per sample</span></div>
+          <div class="legend-row"><span class="legend-sym zero">a₁</span><span class="legend-def">zero feedforward coefficient, scales x(n−1)</span></div>
+          <div class="legend-row"><span class="legend-sym zero">a₂</span><span class="legend-def">zero feedforward coefficient = rz², scales x(n−2); always positive</span></div>
+          <div class="legend-row"><span class="legend-sym pole">freq_p</span><span class="legend-def">pole frequency in Hz (slider)</span></div>
+          <div class="legend-row"><span class="legend-sym pole">rp</span><span class="legend-def">pole radius (slider); must stay below 1 for stability</span></div>
+          <div class="legend-row"><span class="legend-sym pole">ω_p</span><span class="legend-def">pole angle = 2π · freq_p / SR, in radians per sample</span></div>
+          <div class="legend-row"><span class="legend-sym pole">b₁</span><span class="legend-def">pole feedback coefficient, scales y(n−1); added in the recurrence</span></div>
+          <div class="legend-row"><span class="legend-sym pole">b₂</span><span class="legend-def">pole feedback coefficient = rp², scales y(n−2); subtracted in the recurrence</span></div>
+          <div class="legend-row"><span class="legend-sym gain">g</span><span class="legend-def">overall gain, factored outside the feedforward sum (Cook Eq. 3.11)</span></div>
           <div class="legend-row"><span class="legend-sym gain">SR</span><span class="legend-def">sample rate (48000 Hz)</span></div>
+        </div>
+        <div class="calc-cols">
+          <div class="calc-sub zero" id="calc-zero">…</div>
+          <div class="calc-sub pole" id="calc-pole">…</div>
         </div>
       </div>
     </div>
@@ -716,7 +712,7 @@
       <div class="viz-card">
         <h3>z-plane · poles and zeros</h3>
         <div class="viz-explainer">
-          <p><strong>For the BiQuad:</strong> both poles (crimson ×) and zeros (teal ○) appear simultaneously. Zeros sit at radius rz, angle ±ω_z; poles at radius rp, angle ±ω_p. The frequency response traces the unit circle — at each angle, the response magnitude is the product of distances to the zeros divided by the product of distances to the poles. Move a zero onto the unit circle and the response touches zero there. Move a pole close to the circle and the response peaks sharply.</p>
+          <p><strong>For the BiQuad:</strong> both poles (crimson ×) and zeros (teal ○) appear simultaneously. Zeros sit at radius rz, angle ±ω_z; poles at radius rp, angle ±ω_p. The frequency response traces the unit circle; at each angle the response magnitude is the product of distances to the zeros divided by the product of distances to the poles. Move a zero onto the unit circle and the response touches zero there. Move a pole close to the circle and the response peaks sharply.</p>
         </div>
         <canvas id="zplane" width="500" height="500"></canvas>
         <div class="viz-legend">
@@ -726,7 +722,7 @@
       <div class="viz-card">
         <h3>impulse response</h3>
         <div class="viz-explainer">
-          <p><strong>For the BiQuad:</strong> the impulse response is an exponentially decaying sinusoid shaped by both the poles and zeros. The poles govern the decay rate and ringing frequency; the zeros sculpt the amplitude envelope — they can cancel specific frequency components or add a brief initial transient. Unlike the pure two-pole IIR (which rings smoothly), and unlike the pure 2-zero FIR (which terminates in 3 samples), the BiQuad rings but terminates at a rate controlled by rp.</p>
+          <p><strong>For the BiQuad:</strong> the impulse response is an exponentially decaying sinusoid shaped by both the poles and zeros. The poles govern the decay rate and ringing frequency; the zeros sculpt the amplitude envelope, canceling specific frequency components or adding a brief initial transient. Unlike the pure two-pole IIR (which rings smoothly) or the pure 2-zero FIR (which terminates in 3 samples), the BiQuad rings and terminates at a rate controlled by rp.</p>
         </div>
         <canvas id="impulse" width="500" height="500"></canvas>
         <div class="viz-legend">
@@ -742,22 +738,22 @@
       <h2>in more depth</h2>
       <ul>
         <li>The transfer function is <code>H(z) = g·(1 + a₁·z⁻¹ + a₂·z⁻²) / (1 − b₁·z⁻¹ + b₂·z⁻²)</code> (Cook Eq. 3.12). The numerator is the 2-zero FIR; the denominator is the two-pole IIR. Together they let zeros and poles be placed anywhere in the z-plane (subject to conjugate-pair constraints for real coefficients). The BiQuad is the most compact second-order filter that can realize both resonance and anti-resonance simultaneously.</li>
-        <li>The frequency response magnitude is <code>|H(e^jω)| = g · |numerator(ω)| / |denominator(ω)|</code>. Geometrically, this is the product of distances from e^jω to each zero, divided by the product of distances to each pole, scaled by g. This geometric picture — poles push the response up, zeros pull it down — is the foundation for understanding any LTI filter.</li>
-        <li><strong>When freq_z = freq_p:</strong> the zero and pole are at the same angle. If rz = rp, the numerator and denominator are identical and H(z) = g — perfectly flat response. If rz &gt; rp, the zero wins (notch at that frequency). If rz &lt; rp, the pole wins (peak). This is parametric EQ in its mathematical essence: a bump or dip at a chosen frequency, controlled by the radius ratio.</li>
+        <li>The frequency response magnitude is <code>|H(e^jω)| = g · |numerator(ω)| / |denominator(ω)|</code>. Geometrically, this is the product of distances from e^jω to each zero, divided by the product of distances to each pole, scaled by g. This geometric picture (poles push the response up, zeros pull it down) is the foundation for understanding any LTI filter.</li>
+        <li><strong>When freq_z = freq_p:</strong> the zero and pole are at the same angle. If rz = rp, the numerator and denominator are identical and H(z) = g, perfectly flat response. If rz &gt; rp, the zero wins (notch at that frequency). If rz &lt; rp, the pole wins (peak). This is parametric EQ in its mathematical essence: a bump or dip at a chosen frequency, controlled by the radius ratio.</li>
         <li><strong>Setting rz = 0 and rp = 0</strong> collapses the BiQuad to a simple gain stage (a₁ = a₂ = b₁ = b₂ = 0, output = g·x(n)). Setting rz = 0 gives a pure two-pole IIR. Setting rp = 0 gives a pure 2-zero FIR. The BiQuad is the most general second-order case that contains all of these as special cases.</li>
-        <li><strong>Stability:</strong> only rp governs stability — the poles must stay inside the unit circle (rp &lt; 1). Zeros can sit anywhere, including on or outside the unit circle, without affecting stability. This is why the zero radius slider goes to 1.0 while the pole radius caps at 0.999.</li>
+        <li><strong>Stability:</strong> only rp governs stability: the poles must stay inside the unit circle (rp &lt; 1). Zeros can sit anywhere, including on or outside the unit circle, without affecting stability. This is why the zero radius slider goes to 1.0 while the pole radius caps at 0.999.</li>
         <li><strong>Group delay</strong> is the sum of the group delay contributions from the numerator and denominator. Near freq_p it peaks positively (same spike as the two-pole IIR); near freq_z it dips negatively (same spike as the 2-zero FIR). When the two frequencies are the same, the spikes partially cancel, which is one reason notch EQ using poles + zeros (BiQuad) has better phase behavior than pure FIR notches.</li>
-        <li><strong>Building toward larger systems:</strong> any higher-order filter can be implemented as a cascade of BiQuad sections (Cook §3.11). The four-pole filter of Figure 3.15 is just two BiQuads in series. This cascade factorization is why the BiQuad is so central — it is the universal second-order building block from which arbitrary LTI systems are assembled.</li>
+        <li><strong>Building toward larger systems:</strong> any higher-order filter can be implemented as a cascade of BiQuad sections (Cook §3.11). The four-pole filter of Figure 3.15 is just two BiQuads in series. This cascade factorization is why the BiQuad is so central: it is the universal second-order building block from which arbitrary LTI systems are assembled.</li>
       </ul>
 
       <h2>try this</h2>
       <ol>
-        <li>Start with rz = 1, rp = 0.9, and set freq_z = freq_p to the same frequency. Watch the frequency response: the pole creates a peak, the zero creates a notch at the exact same spot. Slowly pull freq_z away from freq_p — the notch separates from the peak and the combined shape becomes a shelving or bandpass curve.</li>
-        <li>Set rz = 0 (zeros collapse to origin): the tool becomes a pure two-pole IIR. Set rp = 0 (poles collapse): it becomes a pure 2-zero FIR. Compare to the sibling tools — the frequency response, z-plane, and impulse response should all match exactly.</li>
-        <li>Set freq_p = 1 kHz, rp = 0.99 (sharp resonance). Then sweep rz from 0 to 1 at freq_z = 1 kHz. Watch the peak shrink as the zero radius grows — at rz = rp = 0.99 the notch exactly cancels the peak. Past rz = 0.99 the notch wins. This is the zero-pole cancellation principle.</li>
-        <li>Try freq_z = 60 Hz, rz = 1.0, freq_p = 200 Hz, rp = 0.8. This approximates a notch (hum removal at 60 Hz) combined with a low-frequency boost — a common broadcast EQ curve. Sweep freq_p and listen to how the low-end character changes while the 60 Hz null stays fixed.</li>
-        <li>Watch the z-plane while sweeping freq_z and freq_p independently. The zero pair (teal rings) rotates around the circle at its own radius; the pole pair (crimson ×) rotates at its own. When they cross each other's angles, the frequency response changes abruptly — the geometry of cancelation and reinforcement made visible.</li>
-        <li>Set rp = 0.999 (near-infinite Q resonance). Set g very low (0.01) to keep the output from clipping. Sweep freq_p slowly from 100 Hz to 5 kHz with audio playing — you're sweeping a nearly-sinusoidal resonator through the noise spectrum. This is the sound of a high-Q filter driving toward self-oscillation.</li>
+        <li>Start with rz = 1, rp = 0.9, and set freq_z = freq_p to the same frequency. Watch the frequency response: the pole creates a peak, the zero creates a notch at the exact same spot. Slowly pull freq_z away from freq_p; the notch separates from the peak and the combined shape becomes a shelving or bandpass curve.</li>
+        <li>Set rz = 0 (zeros collapse to origin): the tool becomes a pure two-pole IIR. Set rp = 0 (poles collapse): it becomes a pure 2-zero FIR. Compare to the sibling tools; the frequency response, z-plane, and impulse response should all match exactly.</li>
+        <li>Set freq_p = 1 kHz, rp = 0.99 (sharp resonance). Then sweep rz from 0 to 1 at freq_z = 1 kHz. Watch the peak shrink as the zero radius grows; at rz = rp = 0.99 the notch exactly cancels the peak. Past rz = 0.99 the notch wins. This is the zero-pole cancellation principle.</li>
+        <li>Try freq_z = 60 Hz, rz = 1.0, freq_p = 200 Hz, rp = 0.8. This approximates a notch (hum removal at 60 Hz) combined with a low-frequency boost, a common broadcast EQ curve. Sweep freq_p and listen to how the low-end character changes while the 60 Hz null stays fixed.</li>
+        <li>Watch the z-plane while sweeping freq_z and freq_p independently. The zero pair (teal rings) rotates around the circle at its own radius; the pole pair (crimson ×) rotates at its own. When they cross each other's angles, the frequency response changes abruptly, the geometry of cancelation and reinforcement made visible.</li>
+        <li>Set rp = 0.999 (near-infinite Q resonance). Set g very low (0.01) to keep the output from clipping. Sweep freq_p slowly from 100 Hz to 5 kHz with audio playing; you're sweeping a nearly-sinusoidal resonator through the noise spectrum. This is the sound of a high-Q filter driving toward self-oscillation.</li>
       </ol>
     </div>
   </section>
@@ -1191,7 +1187,7 @@ function drawFrequency() {
   ctx.fillStyle=C.pole; ctx.font="10px 'DM Mono', monospace"; ctx.textAlign='center';
   ctx.fillText('pole', fxp, h-4);
 
-  // response curve — dense sampling near both freq_z and freq_p
+  // response curve -- dense sampling near both freq_z and freq_p
   const NPTS=500;
   const logFreqs=[];
   for (let i=0; i<=NPTS; i++) logFreqs.push(fMin+(i/NPTS)*(fMax-fMin));
@@ -1340,7 +1336,7 @@ function updateStatus() {
   let text;
   if (sameFreq) {
     if (Math.abs(rz - rp) < 0.01) {
-      text = `Zero and pole at the same frequency (${formatFreq(freqHz_z)}) with equal radii — they cancel exactly. Response is flat at g.`;
+      text = `Zero and pole at the same frequency (${formatFreq(freqHz_z)}) with equal radii; they cancel exactly. Response is flat at g.`;
     } else if (rz > rp) {
       text = `Zero and pole at the same frequency (${formatFreq(freqHz_z)}). Zero radius ${rz.toFixed(3)} > pole radius ${rp.toFixed(3)}: the zero wins, producing a notch.`;
     } else {
