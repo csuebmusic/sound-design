@@ -1,0 +1,1522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BiQuad Filter</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #fafaf7;
+    --panel: #ffffff;
+    --panel-2: #f4f2ec;
+    --border: #e2dfd6;
+    --border-strong: #c9c5b8;
+    --text: #1a1a17;
+    --muted: #6a6862;
+    --dim: #a8a59f;
+    --accent: #b8693a;
+    --pole: #c73862;
+    --pole-soft: #c7386218;
+    --poleSS: rgba(199,56,98,0.45);
+    --zero: #2c7d6f;
+    --zero-soft: #2c7d6f18;
+    --zeroSS: rgba(44,125,111,0.45);
+    --curve: #2c7d6f;
+    --warn: #c92e1f;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', system-ui, sans-serif;
+    font-size: 15px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 40px 28px 80px; }
+  header { border-bottom: 1px solid var(--border); padding-bottom: 28px; margin-bottom: 32px; }
+  h1 {
+    font-family: 'DM Mono', monospace; font-weight: 500; font-size: 26px;
+    margin: 0 0 6px; letter-spacing: -0.01em; color: var(--text);
+  }
+  .subtitle { color: var(--muted); font-size: 14px; margin: 0 0 22px; }
+  .equation {
+    font-family: 'DM Mono', monospace; font-size: 20px; color: var(--accent);
+    background: var(--panel); padding: 16px 22px; border-radius: 4px;
+    border: 1px solid var(--border); display: inline-block; margin-top: 4px;
+    line-height: 1.7;
+  }
+  .equation .var { color: var(--text); }
+  .equation .op { color: var(--muted); }
+  .equation .zero-coeff { color: var(--zero); }
+  .equation .pole-coeff { color: var(--pole); }
+
+  /* BLOCK DIAGRAM */
+  .block-diagram {
+    margin-top: 18px; background: var(--panel); border: 1px solid var(--border);
+    border-radius: 4px; padding: 18px 22px 14px; max-width: 860px;
+  }
+  .block-diagram svg { width: 100%; height: auto; display: block; }
+  .block-diagram-legend {
+    font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted);
+    margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border);
+    text-align: center; letter-spacing: 0.02em;
+  }
+
+  h2 {
+    font-family: 'DM Mono', monospace; font-weight: 500; font-size: 13px;
+    text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted);
+    margin: 0 0 14px;
+  }
+  h3 {
+    font-family: 'DM Mono', monospace; font-weight: 500; font-size: 12px;
+    text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted);
+    margin: 0 0 10px;
+  }
+  section { margin-bottom: 32px; }
+
+  /* TERMINOLOGY */
+  .terminology {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 6px; padding: 22px 26px;
+  }
+  .terminology .lead {
+    font-size: 14px; color: var(--muted); margin: 0 0 18px;
+    padding-bottom: 16px; border-bottom: 1px solid var(--border);
+  }
+  .term { margin-bottom: 18px; }
+  .term:last-child { margin-bottom: 0; }
+  .term-name {
+    font-family: 'DM Mono', monospace; font-size: 14px; font-weight: 500;
+    color: var(--accent); margin-bottom: 4px;
+  }
+  .term-name .symbol {
+    color: var(--text); background: var(--panel-2); padding: 1px 7px;
+    border-radius: 3px; margin-right: 6px; font-size: 13px;
+  }
+  .term-name .symbol.zero { color: var(--zero); background: var(--zero-soft); }
+  .term-name .symbol.pole { color: var(--pole); background: var(--pole-soft); }
+  .term-def { font-size: 14px; color: var(--text); margin: 0; }
+  .term-group {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 0 24px;
+    margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border);
+  }
+  .term-group-label {
+    font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 500;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    margin-bottom: 10px; padding-bottom: 6px;
+    border-bottom: 2px solid;
+  }
+  .term-group-label.zero { color: var(--zero); border-color: var(--zero); }
+  .term-group-label.pole { color: var(--pole); border-color: var(--pole); }
+  .term-sub {
+    margin-top: 10px; margin-left: 0; padding-left: 14px; border-left: 2px solid var(--border);
+  }
+  .term-sub.zero { border-left-color: var(--zero); }
+  .term-sub.pole { border-left-color: var(--pole); }
+  .term-sub + .term-sub { margin-top: 8px; }
+  .term-sub-name {
+    font-family: 'DM Mono', monospace; font-size: 13px; font-weight: 500;
+    color: var(--accent); margin-bottom: 2px;
+  }
+  .term-sub-name .symbol {
+    color: var(--text); background: var(--panel-2); padding: 1px 6px;
+    border-radius: 3px; margin-right: 5px; font-size: 12px;
+  }
+  .term-sub-name .symbol.zero { color: var(--zero); background: var(--zero-soft); }
+  .term-sub-name .symbol.pole { color: var(--pole); background: var(--pole-soft); }
+  .term-sub-def { font-size: 13.5px; color: var(--text); margin: 0; line-height: 1.5; }
+
+  /* CONTROLS */
+  .controls {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 6px; padding: 22px 24px;
+  }
+  .controls-group {
+    padding: 14px 0; border-top: 1px solid var(--border);
+  }
+  .controls-group:first-child { padding-top: 0; border-top: none; }
+  .controls-group-label {
+    font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 500;
+    text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px;
+    padding-bottom: 6px; border-bottom: 2px solid;
+  }
+  .controls-group-label.zero { color: var(--zero); border-color: var(--zero); }
+  .controls-group-label.pole { color: var(--pole); border-color: var(--pole); }
+  .controls-group-label.gain { color: var(--accent); border-color: var(--accent); }
+  .slider-row {
+    display: grid; grid-template-columns: 110px 1fr 90px;
+    gap: 16px; align-items: center; margin-bottom: 12px;
+  }
+  .slider-row:last-child { margin-bottom: 0; }
+  .slider-row label { font-family: 'DM Mono', monospace; font-size: 14px; color: var(--text); }
+  .slider-row .desc { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  input[type="range"] {
+    -webkit-appearance: none; width: 100%; height: 4px;
+    background: var(--border-strong); border-radius: 2px; outline: none;
+  }
+  input[type="range"].zero-slider::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%;
+    background: var(--zero); cursor: pointer; transition: transform 0.1s; border: none;
+  }
+  input[type="range"].zero-slider::-moz-range-thumb {
+    width: 16px; height: 16px; border-radius: 50%;
+    background: var(--zero); cursor: pointer; border: none;
+  }
+  input[type="range"].pole-slider::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%;
+    background: var(--pole); cursor: pointer; transition: transform 0.1s; border: none;
+  }
+  input[type="range"].pole-slider::-moz-range-thumb {
+    width: 16px; height: 16px; border-radius: 50%;
+    background: var(--pole); cursor: pointer; border: none;
+  }
+  input[type="range"].gain-slider::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%;
+    background: var(--accent); cursor: pointer; transition: transform 0.1s; border: none;
+  }
+  input[type="range"].gain-slider::-moz-range-thumb {
+    width: 16px; height: 16px; border-radius: 50%;
+    background: var(--accent); cursor: pointer; border: none;
+  }
+  input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
+  .value { font-family: 'DM Mono', monospace; font-size: 14px; color: var(--accent); text-align: right; font-weight: 500; }
+  .value.zero { color: var(--zero); }
+  .value.pole { color: var(--pole); }
+
+  /* LIVE EQUATION */
+  .live-equation { margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--border); }
+  .live-equation-label {
+    font-family: 'DM Mono', monospace; font-size: 11px; text-transform: uppercase;
+    letter-spacing: 0.08em; color: var(--muted); margin-bottom: 10px;
+  }
+  .live-equation-body {
+    font-family: 'DM Mono', monospace; font-size: 15px; color: var(--text);
+    padding: 14px 18px; background: var(--panel-2); border-radius: 4px;
+    border-left: 2px solid var(--accent); letter-spacing: 0.01em; line-height: 1.8;
+  }
+  .live-equation-body .var { color: var(--text); }
+  .live-equation-body .op { color: var(--muted); margin: 0 2px; }
+  .live-equation-body .num-zero { color: var(--zero); font-weight: 500; }
+  .live-equation-body .num-pole { color: var(--pole); font-weight: 500; }
+  .live-equation-body .num-g { color: var(--accent); font-weight: 500; }
+
+  /* STATUS */
+  .status {
+    background: var(--panel); border: 1px solid var(--border);
+    border-left: 3px solid var(--accent); border-radius: 4px; padding: 16px 20px;
+  }
+  .status-text { font-size: 14px; color: var(--text); margin: 0 0 12px; }
+  .metrics {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border);
+  }
+  .metric { font-family: 'DM Mono', monospace; }
+  .metric-label {
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--muted); margin-bottom: 4px;
+  }
+  .metric-value { font-size: 14px; color: var(--text); font-weight: 500; }
+
+  /* CALC BLOCK */
+  .calc-block {
+    margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border);
+    font-family: 'DM Mono', monospace;
+  }
+  .calc-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 10px; }
+  .calc-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .calc-symbolic, .calc-sub { font-size: 12.5px; line-height: 1.8; }
+  .calc-symbolic {
+    color: var(--text); padding: 8px 12px; background: var(--panel-2);
+    border-radius: 3px; margin-bottom: 10px;
+  }
+  .calc-sub { color: var(--text); padding: 8px 12px; border-left: 2px solid; background: #fff; }
+  .calc-sub.zero { border-left-color: var(--zero); }
+  .calc-sub.pole { border-left-color: var(--pole); }
+  .calc-sub .op { color: var(--muted); }
+  .calc-sub .num-zero { color: var(--zero); }
+  .calc-sub .num-pole { color: var(--pole); }
+  .calc-sub .num-g { color: var(--accent); }
+  .eq-line { display: block; white-space: pre; }
+
+  /* LEGEND */
+  .calc-legend {
+    margin: 10px 0 12px; padding: 10px 12px; background: #fff;
+    border: 1px solid var(--border); border-radius: 3px;
+  }
+  .legend-row {
+    display: grid; grid-template-columns: 58px 1fr; gap: 12px;
+    align-items: baseline; padding: 3px 0; font-size: 12.5px; line-height: 1.5;
+  }
+  .legend-row + .legend-row { border-top: 1px dashed var(--border); }
+  .legend-sym { font-family: 'DM Mono', monospace; font-weight: 500; text-align: center; }
+  .legend-sym.zero { color: var(--zero); }
+  .legend-sym.pole { color: var(--pole); }
+  .legend-sym.gain { color: var(--accent); }
+  .legend-def { color: var(--text); font-family: 'DM Sans', system-ui, sans-serif; }
+  .legend-def em { color: var(--muted); font-style: italic; }
+
+  /* VIZ */
+  .viz-card {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 6px; padding: 18px 22px;
+  }
+  .viz-twoCol { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .viz-explainer {
+    font-size: 13px; color: var(--muted); line-height: 1.55;
+    background: var(--panel-2); padding: 12px 14px; border-radius: 4px;
+    margin-bottom: 14px; border-left: 2px solid var(--border-strong);
+  }
+  .viz-explainer strong { color: var(--text); font-weight: 500; }
+  .viz-explainer p { margin: 0; }
+  .viz-explainer p + p { margin-top: 12px; }
+  .viz-caption { font-size: 11px; color: var(--muted); margin-top: 8px; line-height: 1.4; }
+  .viz-legend {
+    font-family: 'DM Mono', monospace; font-size: 10.5px; color: var(--muted);
+    margin-top: 10px; padding: 6px 10px; background: var(--panel-2);
+    border-radius: 3px; letter-spacing: 0.01em; line-height: 1.55;
+  }
+  canvas {
+    width: 100%; height: auto; display: block;
+    background: #fff; border-radius: 3px;
+  }
+
+  /* AUDIO */
+  .audio {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 6px; padding: 18px 22px;
+    display: flex; flex-wrap: wrap; gap: 18px; align-items: center;
+  }
+  .play-btn {
+    background: var(--accent); color: #fff; border: none;
+    padding: 10px 22px; font-family: 'DM Mono', monospace; font-size: 14px;
+    font-weight: 500; border-radius: 4px; cursor: pointer; transition: opacity 0.15s;
+  }
+  .play-btn:hover { opacity: 0.85; }
+  .play-btn.playing { background: var(--warn); }
+  .source-label {
+    font-family: 'DM Mono', monospace; font-size: 12px; color: var(--muted);
+    background: var(--panel-2); padding: 6px 12px; border-radius: 4px;
+    border: 1px solid var(--border); letter-spacing: 0.02em;
+  }
+  .vol-control { display: flex; align-items: center; gap: 10px; margin-left: auto; min-width: 200px; }
+  .vol-control label { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--muted); }
+
+  /* NOTES */
+  .notes {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 6px; padding: 22px 26px;
+  }
+  .notes h2 { margin-bottom: 12px; }
+  .notes h2:not(:first-child) { margin-top: 24px; }
+  .notes ul, .notes ol { margin: 0; padding-left: 20px; }
+  .notes li { margin-bottom: 8px; font-size: 14px; color: var(--text); }
+  .notes li code, .notes p code {
+    font-family: 'DM Mono', monospace; font-size: 13px; color: var(--accent);
+    background: var(--panel-2); padding: 1px 6px; border-radius: 3px;
+  }
+
+  footer {
+    margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--border);
+    color: var(--muted); font-size: 12px; font-family: 'DM Mono', monospace;
+  }
+  .footer-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--dim); margin-bottom: 8px; }
+  .footer-item { margin-bottom: 4px; line-height: 1.5; }
+  .footer-affiliation { margin-top: 18px; color: var(--text); }
+  .footer-version { margin-top: 4px; color: var(--dim); font-size: 11px; }
+
+  @media (max-width: 720px) {
+    .viz-twoCol { grid-template-columns: 1fr; }
+    .slider-row { grid-template-columns: 90px 1fr 70px; }
+    .term-group { grid-template-columns: 1fr; }
+    .calc-cols { grid-template-columns: 1fr; }
+    h1 { font-size: 22px; }
+    .equation { font-size: 14px; }
+    .live-equation-body { font-size: 13px; padding: 12px 14px; overflow-x: auto; white-space: nowrap; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>BiQuad filter</h1>
+    <p class="subtitle">Two poles and two zeros: the second-order pole/zero filter (Cook Eq. 3.11/3.14). The two-pole IIR and the 2-zero FIR combined into a single structure — and the most common building block in audio DSP.</p>
+    <div class="equation">
+      <span class="var">y</span>(n) <span class="op">=</span> <span class="var">g</span>·(<span class="var">x</span>(n)
+      <span class="op">+</span> <span class="zero-coeff">a₁</span>·<span class="var">x</span>(n<span class="op">−</span>1)
+      <span class="op">+</span> <span class="zero-coeff">a₂</span>·<span class="var">x</span>(n<span class="op">−</span>2))
+      <span class="op">+</span> <span class="pole-coeff">b₁</span>·<span class="var">y</span>(n<span class="op">−</span>1)
+      <span class="op">−</span> <span class="pole-coeff">b₂</span>·<span class="var">y</span>(n<span class="op">−</span>2)
+    </div>
+
+    <!-- BLOCK DIAGRAM -->
+    <div class="block-diagram">
+      <svg viewBox="0 0 820 360" xmlns="http://www.w3.org/2000/svg" font-family="DM Mono, monospace">
+        <defs>
+          <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#6a6862"/>
+          </marker>
+          <marker id="arr-zero" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#2c7d6f"/>
+          </marker>
+          <marker id="arr-pole" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#c73862"/>
+          </marker>
+        </defs>
+
+        <!-- x[n] → [g] → tap → summer → y[n]  (top bus) -->
+        <text x="28" y="76" text-anchor="middle" font-size="13" fill="#1a1a17">x(n)</text>
+        <line x1="50" y1="70" x2="88" y2="70" stroke="#6a6862" stroke-width="1.5"/>
+        <!-- g multiplier -->
+        <path d="M 90 55 L 90 85 L 125 70 z" fill="white" stroke="#1a1a17" stroke-width="1.5" stroke-linejoin="round"/>
+        <text x="107" y="103" text-anchor="middle" font-size="13" fill="#b8693a" font-weight="500">g</text>
+        <!-- g → tap -->
+        <line x1="127" y1="70" x2="175" y2="70" stroke="#6a6862" stroke-width="1.5"/>
+        <!-- tap dot -->
+        <circle cx="177" cy="70" r="3.5" fill="#6a6862"/>
+        <!-- tap → summer (h₀ path) -->
+        <line x1="177" y1="70" x2="382" y2="70" stroke="#2c7d6f" stroke-width="1.5" marker-end="url(#arr-zero)"/>
+        <!-- summer -->
+        <circle cx="400" cy="70" r="18" fill="white" stroke="#1a1a17" stroke-width="1.5"/>
+        <text x="400" y="77" text-anchor="middle" font-size="22" fill="#1a1a17" font-weight="400">+</text>
+        <!-- summer → y[n] -->
+        <line x1="418" y1="70" x2="490" y2="70" stroke="#6a6862" stroke-width="1.5"/>
+        <!-- y[n] tap -->
+        <circle cx="492" cy="70" r="3.5" fill="#6a6862"/>
+        <line x1="492" y1="70" x2="570" y2="70" stroke="#6a6862" stroke-width="1.5" marker-end="url(#arr)"/>
+        <text x="598" y="76" text-anchor="middle" font-size="13" fill="#1a1a17">y(n)</text>
+
+        <!-- FEEDFORWARD delay chain (left column x=177, teal) -->
+        <line x1="177" y1="70" x2="177" y2="135" stroke="#2c7d6f" stroke-width="1.5"/>
+        <!-- z⁻¹ box 1 -->
+        <rect x="147" y="135" width="60" height="28" fill="white" stroke="#2c7d6f" stroke-width="1.5"/>
+        <text x="177" y="154" text-anchor="middle" font-size="13" fill="#2c7d6f">z⁻¹</text>
+        <line x1="177" y1="163" x2="177" y2="193" stroke="#2c7d6f" stroke-width="1.5"/>
+        <!-- x(n-1) tap -->
+        <text x="162" y="190" text-anchor="end" font-size="11" fill="#2c7d6f">x(n−1)</text>
+        <circle cx="177" cy="195" r="3.5" fill="#2c7d6f"/>
+        <!-- a₁ branch -->
+        <line x1="177" y1="195" x2="205" y2="195" stroke="#2c7d6f" stroke-width="1.5"/>
+        <path d="M 207 180 L 207 210 L 242 195 z" fill="white" stroke="#2c7d6f" stroke-width="1.5" stroke-linejoin="round"/>
+        <text x="224" y="225" text-anchor="middle" font-size="13" fill="#2c7d6f" font-weight="500">a₁</text>
+        <line x1="244" y1="195" x2="400" y2="195" stroke="#2c7d6f" stroke-width="1.5"/>
+        <line x1="400" y1="195" x2="400" y2="91" stroke="#2c7d6f" stroke-width="1.5" marker-end="url(#arr-zero)"/>
+        <!-- delay chain continues -->
+        <line x1="177" y1="195" x2="177" y2="238" stroke="#2c7d6f" stroke-width="1.5"/>
+        <!-- z⁻¹ box 2 -->
+        <rect x="147" y="238" width="60" height="28" fill="white" stroke="#2c7d6f" stroke-width="1.5"/>
+        <text x="177" y="257" text-anchor="middle" font-size="13" fill="#2c7d6f">z⁻¹</text>
+        <line x1="177" y1="266" x2="177" y2="296" stroke="#2c7d6f" stroke-width="1.5"/>
+        <!-- x(n-2) tap -->
+        <text x="162" y="292" text-anchor="end" font-size="11" fill="#2c7d6f">x(n−2)</text>
+        <circle cx="177" cy="298" r="3.5" fill="#2c7d6f"/>
+        <!-- a₂ branch -->
+        <line x1="177" y1="298" x2="205" y2="298" stroke="#2c7d6f" stroke-width="1.5"/>
+        <path d="M 207 283 L 207 313 L 242 298 z" fill="white" stroke="#2c7d6f" stroke-width="1.5" stroke-linejoin="round"/>
+        <text x="224" y="328" text-anchor="middle" font-size="13" fill="#2c7d6f" font-weight="500">a₂</text>
+        <line x1="244" y1="298" x2="290" y2="298" stroke="#2c7d6f" stroke-width="1.5"/>
+        <line x1="290" y1="298" x2="290" y2="83" stroke="#2c7d6f" stroke-width="1.5"/>
+        <line x1="290" y1="83" x2="382" y2="83" stroke="#2c7d6f" stroke-width="1.5" marker-end="url(#arr-zero)"/>
+
+        <!-- FEEDBACK delay chain (right column x=492, crimson) -->
+        <line x1="492" y1="70" x2="492" y2="135" stroke="#c73862" stroke-width="1.5"/>
+        <!-- z⁻¹ box 3 -->
+        <rect x="462" y="135" width="60" height="28" fill="white" stroke="#c73862" stroke-width="1.5"/>
+        <text x="492" y="154" text-anchor="middle" font-size="13" fill="#c73862">z⁻¹</text>
+        <line x1="492" y1="163" x2="492" y2="193" stroke="#c73862" stroke-width="1.5"/>
+        <!-- y(n-1) tap -->
+        <text x="508" y="190" text-anchor="start" font-size="11" fill="#c73862">y(n−1)</text>
+        <circle cx="492" cy="195" r="3.5" fill="#c73862"/>
+        <!-- b₁ branch: goes left to summer -->
+        <line x1="492" y1="195" x2="466" y2="195" stroke="#c73862" stroke-width="1.5"/>
+        <path d="M 464 180 L 464 210 L 429 195 z" fill="white" stroke="#c73862" stroke-width="1.5" stroke-linejoin="round"/>
+        <text x="447" y="225" text-anchor="middle" font-size="13" fill="#c73862" font-weight="500">b₁</text>
+        <!-- b₁ output → summer (added) -->
+        <line x1="427" y1="195" x2="400" y2="195" stroke="#c73862" stroke-width="1.5"/>
+        <!-- wait — b₁ goes to the same node as a₁ — need separate entry -->
+        <!-- actually they meet at the summer from south and south-east -->
+        <!-- Let's route b1 directly up: from x=427,y=195 up to y=91 into summer -->
+        <!-- that conflicts with a1 path. Use different x column. -->
+
+        <!-- delay chain continues -->
+        <line x1="492" y1="195" x2="492" y2="238" stroke="#c73862" stroke-width="1.5"/>
+        <!-- z⁻¹ box 4 -->
+        <rect x="462" y="238" width="60" height="28" fill="white" stroke="#c73862" stroke-width="1.5"/>
+        <text x="492" y="257" text-anchor="middle" font-size="13" fill="#c73862">z⁻¹</text>
+        <line x1="492" y1="266" x2="492" y2="296" stroke="#c73862" stroke-width="1.5"/>
+        <!-- y(n-2) tap -->
+        <text x="508" y="292" text-anchor="start" font-size="11" fill="#c73862">y(n−2)</text>
+        <circle cx="492" cy="298" r="3.5" fill="#c73862"/>
+        <!-- b₂ branch -->
+        <line x1="492" y1="298" x2="466" y2="298" stroke="#c73862" stroke-width="1.5"/>
+        <path d="M 464 283 L 464 313 L 429 298 z" fill="white" stroke="#c73862" stroke-width="1.5" stroke-linejoin="round"/>
+        <text x="447" y="328" text-anchor="middle" font-size="13" fill="#c73862" font-weight="500">b₂</text>
+        <!-- b₂ output: subtracted — route to summer with minus sign -->
+        <line x1="427" y1="298" x2="560" y2="298" stroke="#c73862" stroke-width="1.5"/>
+        <line x1="560" y1="298" x2="560" y2="83" stroke="#c73862" stroke-width="1.5"/>
+        <line x1="560" y1="83" x2="418" y2="83" stroke="#c73862" stroke-width="1.5" marker-end="url(#arr-pole)"/>
+        <!-- minus label on b₂ path entering summer -->
+        <text x="415" y="80" text-anchor="end" font-size="11" fill="#c73862">−</text>
+
+        <!-- b₁ route to summer: from multiplier output at x=427,y=195 → up via x=610 → left to summer -->
+        <!-- Actually let's re-route: b₁ exits left from multiplier at x~427, goes up via column x=620 -->
+        <!-- Re-do b₁: output from left side of triangle at x=429,y=195 -->
+        <!-- route: left to x=370, up to y=57, right to summer top at x=400,y=52 -->
+        <!-- But summer top is at y=52. Let's enter from south-west -->
+
+        <!-- Simpler: b₁ path goes left from multiplier, crosses over to column x=370, up to y=57, into summer -->
+        <line x1="427" y1="195" x2="370" y2="195" stroke="#c73862" stroke-width="1.5"/>
+        <line x1="370" y1="195" x2="370" y2="57" stroke="#c73862" stroke-width="1.5"/>
+        <line x1="370" y1="57" x2="382" y2="57" stroke="#c73862" stroke-width="1.5" marker-end="url(#arr-pole)"/>
+        <!-- plus label for b₁ entering summer -->
+        <text x="379" y="54" text-anchor="end" font-size="11" fill="#c73862">+</text>
+
+      </svg>
+      <div class="block-diagram-legend">
+        <span style="color:#2c7d6f">■ teal = feedforward (zero pair: g, a₁, a₂)</span>
+        &nbsp;·&nbsp;
+        <span style="color:#c73862">■ crimson = feedback (pole pair: b₁, b₂)</span>
+        &nbsp;·&nbsp;
+        ▷ multiplier · ⊕ summer · z⁻¹ one-sample delay
+      </div>
+    </div>
+  </header>
+
+  <!-- TERMINOLOGY -->
+  <section>
+    <h2>terminology</h2>
+    <div class="terminology">
+      <p class="lead">The BiQuad is Cook's general second-order filter (Eq. 3.11). It combines the 2-zero FIR feedforward section (teal) with the two-pole IIR feedback section (crimson) into a single structure. The key insight from LTI theory: any LTI system can be built from these components in any combination. The BiQuad is simply the most useful second-order combination — two poles for resonance, two zeros for anti-resonance, independently tunable.</p>
+
+      <div class="term">
+        <div class="term-name">the two sections</div>
+        <div class="term-group">
+          <div>
+            <div class="term-group-label zero">feedforward · zeros</div>
+            <div class="term-sub zero">
+              <div class="term-sub-name"><span class="symbol zero">freq_z</span> zero frequency</div>
+              <p class="term-sub-def">The angle of the zero pair on the z-plane — the frequency the filter attenuates. Derived as <code>ω_z = 2π·freq_z / SR</code>.</p>
+            </div>
+            <div class="term-sub zero">
+              <div class="term-sub-name"><span class="symbol zero">rz</span> zero radius</div>
+              <p class="term-sub-def">How far the zeros sit from the origin. At rz = 1 the zeros land on the unit circle: a true notch (−∞ dB) at freq_z. At rz &lt; 1 a shallower dip. Coefficients: <code>a₁ = −2rz·cos(ω_z)</code>, <code>a₂ = rz²</code>.</p>
+            </div>
+          </div>
+          <div>
+            <div class="term-group-label pole">feedback · poles</div>
+            <div class="term-sub pole">
+              <div class="term-sub-name"><span class="symbol pole">freq_p</span> pole frequency</div>
+              <p class="term-sub-def">The angle of the pole pair on the z-plane — the frequency the filter amplifies. Derived as <code>ω_p = 2π·freq_p / SR</code>.</p>
+            </div>
+            <div class="term-sub pole">
+              <div class="term-sub-name"><span class="symbol pole">rp</span> pole radius</div>
+              <p class="term-sub-def">How far the poles sit from the origin. Must stay strictly less than 1 for stability. As rp → 1 the resonance peak sharpens toward infinity. Coefficients: <code>b₁ = 2rp·cos(ω_p)</code>, <code>b₂ = rp²</code>.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="term">
+        <div class="term-name"><span class="symbol">g</span> overall gain</div>
+        <p class="term-def">Scales the entire feedforward sum before it enters the summer (Cook Eq. 3.11: g sits before the tap, factored over all three feedforward terms). It does not affect zero or pole locations — only the overall output level.</p>
+      </div>
+
+      <div class="term">
+        <div class="term-name">transfer function</div>
+        <p class="term-def">In the z-domain: <code>H(z) = g·(1 + a₁·z⁻¹ + a₂·z⁻²) / (1 − b₁·z⁻¹ + b₂·z⁻²)</code>. The numerator is the 2-zero FIR; the denominator is the two-pole IIR. Zeros are roots of the numerator; poles are roots of the denominator. Their interaction shapes the full frequency response — the zero can cancel or sculpt the pole's resonance, and vice versa.</p>
+      </div>
+
+      <div class="term">
+        <div class="term-name">when freq_z = freq_p</div>
+        <p class="term-def">Setting both frequencies to the same value is instructive. If rz &lt; rp the pole dominates: a resonance peak. If rz &gt; rp the zero dominates: a notch. If rz = rp they cancel exactly: flat response. This is the core of parametric EQ — a peak and a notch at the same frequency, controlled by the radius ratio.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- CONTROLS -->
+  <section>
+    <h2>parameters</h2>
+    <div class="controls">
+      <div class="controls-group">
+        <div class="controls-group-label zero">feedforward · zero pair</div>
+        <div class="slider-row">
+          <label>freq_z</label>
+          <div>
+            <input type="range" class="zero-slider" id="freqz-slider" min="0" max="1" step="0.001" value="0.6">
+            <div class="desc">zero frequency · log scale 10 Hz – 24 kHz · angle of the zero pair</div>
+          </div>
+          <div class="value zero" id="freqz-value">2000 Hz</div>
+        </div>
+        <div class="slider-row">
+          <label>rz</label>
+          <div>
+            <input type="range" class="zero-slider" id="rz-slider" min="0" max="1" step="0.001" value="1.0">
+            <div class="desc">zero radius · 1.0 = true notch on unit circle · lower = partial dip</div>
+          </div>
+          <div class="value zero" id="rz-value">1.000</div>
+        </div>
+      </div>
+      <div class="controls-group">
+        <div class="controls-group-label pole">feedback · pole pair</div>
+        <div class="slider-row">
+          <label>freq_p</label>
+          <div>
+            <input type="range" class="pole-slider" id="freqp-slider" min="0" max="1" step="0.001" value="0.4">
+            <div class="desc">pole frequency · log scale 10 Hz – 24 kHz · angle of the pole pair</div>
+          </div>
+          <div class="value pole" id="freqp-value">500 Hz</div>
+        </div>
+        <div class="slider-row">
+          <label>rp</label>
+          <div>
+            <input type="range" class="pole-slider" id="rp-slider" min="0" max="0.999" step="0.001" value="0.9">
+            <div class="desc">pole radius · must stay below 1 for stability · higher = sharper resonance</div>
+          </div>
+          <div class="value pole" id="rp-value">0.900</div>
+        </div>
+      </div>
+      <div class="controls-group">
+        <div class="controls-group-label gain">gain</div>
+        <div class="slider-row">
+          <label>g</label>
+          <div>
+            <input type="range" class="gain-slider" id="g-slider" min="0" max="2" step="0.01" value="0.1">
+            <div class="desc">overall gain · factored outside feedforward sum (Cook Eq. 3.11)</div>
+          </div>
+          <div class="value" id="g-value">0.10</div>
+        </div>
+      </div>
+
+      <!-- LIVE EQUATION -->
+      <div class="live-equation">
+        <div class="live-equation-label">live equation · current coefficients</div>
+        <div class="live-equation-body" id="live-eq">
+          <span class="var">y</span>(n) <span class="op">=</span>
+          <span class="num-g" id="live-g">0.10</span><span class="op">·(</span><span class="var">x</span>(n)
+          <span class="op" id="live-a1-sign">−</span> <span class="num-zero" id="live-a1">1.6180</span><span class="op">·</span><span class="var">x</span>(n<span class="op">−</span>1)
+          <span class="op">+</span> <span class="num-zero" id="live-a2">1.0000</span><span class="op">·</span><span class="var">x</span>(n<span class="op">−</span>2)<span class="op">)</span>
+          <br>
+          <span class="op" style="padding-left:4.2em" id="live-b1-sign">+</span> <span class="num-pole" id="live-b1">1.6043</span><span class="op">·</span><span class="var">y</span>(n<span class="op">−</span>1)
+          <span class="op">−</span> <span class="num-pole" id="live-b2">0.8100</span><span class="op">·</span><span class="var">y</span>(n<span class="op">−</span>2)
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- LISTEN -->
+  <section>
+    <h2>listen</h2>
+    <div class="audio">
+      <button class="play-btn" id="play-btn">▶ play</button>
+      <div class="source-label">source · white noise</div>
+      <div class="vol-control">
+        <label>vol</label>
+        <input type="range" class="gain-slider" id="vol-slider" min="0" max="1" step="0.01" value="0.3">
+      </div>
+    </div>
+    <div class="viz-caption">
+      White noise through the BiQuad. With default settings (zero at 2 kHz, pole at 500 Hz) you hear the resonance peak at 500 Hz and the notch at 2 kHz simultaneously — the two sections shaping the same spectrum independently.
+    </div>
+    <div class="viz-caption" id="audio-rate">audio · not yet started · visualizations use SR = 48000 Hz</div>
+  </section>
+
+  <!-- FREQUENCY RESPONSE -->
+  <section>
+    <h2>frequency response</h2>
+    <div class="viz-card">
+      <canvas id="freq" width="1000" height="400"></canvas>
+      <div class="viz-caption">sample rate · 48 kHz · Nyquist = 24 kHz · <span style="color:#c73862">pink dashed = pole frequency</span> · <span style="color:#2c7d6f">teal dashed = zero frequency</span></div>
+    </div>
+  </section>
+
+  <!-- GROUP DELAY -->
+  <section>
+    <h2>group delay</h2>
+    <div class="viz-card">
+      <div class="viz-explainer">
+        <p><strong>Group delay for the BiQuad</strong> combines the negative spike from the zeros (as seen in the 2-zero FIR tool) with the positive peak from the poles (as seen in the two-pole IIR tool). Near the pole frequency, group delay rises sharply; near the zero frequency, it dips sharply. When the two frequencies overlap, the effects interact — canceling, reinforcing, or producing complex shapes depending on the radius settings.</p>
+        <p><strong>The formula</strong> is the same Re[N/D] form as the other tools, but now D = H(e^jω) for the full BiQuad transfer function, and N includes contributions from both feedforward and feedback coefficients.</p>
+      </div>
+      <canvas id="gdelay" width="1000" height="300"></canvas>
+      <div class="viz-caption">y axis · group delay in samples (auto-scaled) · x axis · log frequency · <span style="color:#c73862">pink dashed = pole frequency</span> · <span style="color:#2c7d6f">teal dashed = zero frequency</span></div>
+    </div>
+  </section>
+
+  <!-- STATUS -->
+  <section>
+    <h2>what's happening</h2>
+    <div class="status" id="status-box">
+      <p class="status-text" id="status-text">…</p>
+      <div class="metrics">
+        <div class="metric">
+          <div class="metric-label">zero freq</div>
+          <div class="metric-value" id="m-freqz">…</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">dip at f_zero</div>
+          <div class="metric-value" id="m-dip">…</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">pole freq</div>
+          <div class="metric-value" id="m-freqp">…</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">peak at f_pole</div>
+          <div class="metric-value" id="m-peak">…</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">group delay at f_pole</div>
+          <div class="metric-value" id="m-gd">…</div>
+        </div>
+      </div>
+      <div class="calc-block">
+        <div class="calc-label">coefficient computation (Cook Eq. 3.14)</div>
+        <div class="calc-cols">
+          <div>
+            <div class="calc-symbolic">
+              <span class="eq-line" style="color:#2c7d6f">a₁ = −2·rz·cos(ω_z)</span>
+              <span class="eq-line" style="color:#2c7d6f">a₂ = rz²</span>
+            </div>
+            <div class="calc-sub zero" id="calc-zero">…</div>
+          </div>
+          <div>
+            <div class="calc-symbolic">
+              <span class="eq-line" style="color:#c73862">b₁ = 2·rp·cos(ω_p)</span>
+              <span class="eq-line" style="color:#c73862">b₂ = rp²</span>
+            </div>
+            <div class="calc-sub pole" id="calc-pole">…</div>
+          </div>
+        </div>
+        <div class="calc-legend">
+          <div class="legend-row"><span class="legend-sym zero">ω_z</span><span class="legend-def">zero angle = 2π · freq_z / SR</span></div>
+          <div class="legend-row"><span class="legend-sym zero">a₁</span><span class="legend-def">zero feedforward coefficient, scales <em>x(n−1)</em></span></div>
+          <div class="legend-row"><span class="legend-sym zero">a₂</span><span class="legend-def">zero feedforward coefficient, scales <em>x(n−2)</em>; always positive</span></div>
+          <div class="legend-row"><span class="legend-sym pole">ω_p</span><span class="legend-def">pole angle = 2π · freq_p / SR</span></div>
+          <div class="legend-row"><span class="legend-sym pole">b₁</span><span class="legend-def">pole feedback coefficient, scales <em>y(n−1)</em>; added</span></div>
+          <div class="legend-row"><span class="legend-sym pole">b₂</span><span class="legend-def">pole feedback coefficient = rp²; subtracted</span></div>
+          <div class="legend-row"><span class="legend-sym gain">g</span><span class="legend-def">overall gain, factored outside feedforward sum</span></div>
+          <div class="legend-row"><span class="legend-sym gain">SR</span><span class="legend-def">sample rate (48000 Hz)</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Z-PLANE + IMPULSE -->
+  <section>
+    <h2>under the hood</h2>
+    <div class="viz-twoCol">
+      <div class="viz-card">
+        <h3>z-plane · poles and zeros</h3>
+        <div class="viz-explainer">
+          <p><strong>For the BiQuad:</strong> both poles (crimson ×) and zeros (teal ○) appear simultaneously. Zeros sit at radius rz, angle ±ω_z; poles at radius rp, angle ±ω_p. The frequency response traces the unit circle — at each angle, the response magnitude is the product of distances to the zeros divided by the product of distances to the poles. Move a zero onto the unit circle and the response touches zero there. Move a pole close to the circle and the response peaks sharply.</p>
+        </div>
+        <canvas id="zplane" width="500" height="500"></canvas>
+        <div class="viz-legend">
+          <span style="color:#2c7d6f">○ ring = zero pair (teal)</span> · <span style="color:#c73862">× cross = pole pair (crimson)</span> · dashed circle = unit circle
+        </div>
+      </div>
+      <div class="viz-card">
+        <h3>impulse response</h3>
+        <div class="viz-explainer">
+          <p><strong>For the BiQuad:</strong> the impulse response is an exponentially decaying sinusoid shaped by both the poles and zeros. The poles govern the decay rate and ringing frequency; the zeros sculpt the amplitude envelope — they can cancel specific frequency components or add a brief initial transient. Unlike the pure two-pole IIR (which rings smoothly), and unlike the pure 2-zero FIR (which terminates in 3 samples), the BiQuad rings but terminates at a rate controlled by rp.</p>
+        </div>
+        <canvas id="impulse" width="500" height="500"></canvas>
+        <div class="viz-legend">
+          n = sample number · teal stems = impulse response · dashed line = zero crossing guide
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- IN MORE DEPTH + TRY THIS -->
+  <section>
+    <div class="notes">
+      <h2>in more depth</h2>
+      <ul>
+        <li>The transfer function is <code>H(z) = g·(1 + a₁·z⁻¹ + a₂·z⁻²) / (1 − b₁·z⁻¹ + b₂·z⁻²)</code> (Cook Eq. 3.12). The numerator is the 2-zero FIR; the denominator is the two-pole IIR. Together they let zeros and poles be placed anywhere in the z-plane (subject to conjugate-pair constraints for real coefficients). The BiQuad is the most compact second-order filter that can realize both resonance and anti-resonance simultaneously.</li>
+        <li>The frequency response magnitude is <code>|H(e^jω)| = g · |numerator(ω)| / |denominator(ω)|</code>. Geometrically, this is the product of distances from e^jω to each zero, divided by the product of distances to each pole, scaled by g. This geometric picture — poles push the response up, zeros pull it down — is the foundation for understanding any LTI filter.</li>
+        <li><strong>When freq_z = freq_p:</strong> the zero and pole are at the same angle. If rz = rp, the numerator and denominator are identical and H(z) = g — perfectly flat response. If rz &gt; rp, the zero wins (notch at that frequency). If rz &lt; rp, the pole wins (peak). This is parametric EQ in its mathematical essence: a bump or dip at a chosen frequency, controlled by the radius ratio.</li>
+        <li><strong>Setting rz = 0 and rp = 0</strong> collapses the BiQuad to a simple gain stage (a₁ = a₂ = b₁ = b₂ = 0, output = g·x(n)). Setting rz = 0 gives a pure two-pole IIR. Setting rp = 0 gives a pure 2-zero FIR. The BiQuad is the most general second-order case that contains all of these as special cases.</li>
+        <li><strong>Stability:</strong> only rp governs stability — the poles must stay inside the unit circle (rp &lt; 1). Zeros can sit anywhere, including on or outside the unit circle, without affecting stability. This is why the zero radius slider goes to 1.0 while the pole radius caps at 0.999.</li>
+        <li><strong>Group delay</strong> is the sum of the group delay contributions from the numerator and denominator. Near freq_p it peaks positively (same spike as the two-pole IIR); near freq_z it dips negatively (same spike as the 2-zero FIR). When the two frequencies are the same, the spikes partially cancel, which is one reason notch EQ using poles + zeros (BiQuad) has better phase behavior than pure FIR notches.</li>
+        <li><strong>Building toward larger systems:</strong> any higher-order filter can be implemented as a cascade of BiQuad sections (Cook §3.11). The four-pole filter of Figure 3.15 is just two BiQuads in series. This cascade factorization is why the BiQuad is so central — it is the universal second-order building block from which arbitrary LTI systems are assembled.</li>
+      </ul>
+
+      <h2>try this</h2>
+      <ol>
+        <li>Start with rz = 1, rp = 0.9, and set freq_z = freq_p to the same frequency. Watch the frequency response: the pole creates a peak, the zero creates a notch at the exact same spot. Slowly pull freq_z away from freq_p — the notch separates from the peak and the combined shape becomes a shelving or bandpass curve.</li>
+        <li>Set rz = 0 (zeros collapse to origin): the tool becomes a pure two-pole IIR. Set rp = 0 (poles collapse): it becomes a pure 2-zero FIR. Compare to the sibling tools — the frequency response, z-plane, and impulse response should all match exactly.</li>
+        <li>Set freq_p = 1 kHz, rp = 0.99 (sharp resonance). Then sweep rz from 0 to 1 at freq_z = 1 kHz. Watch the peak shrink as the zero radius grows — at rz = rp = 0.99 the notch exactly cancels the peak. Past rz = 0.99 the notch wins. This is the zero-pole cancellation principle.</li>
+        <li>Try freq_z = 60 Hz, rz = 1.0, freq_p = 200 Hz, rp = 0.8. This approximates a notch (hum removal at 60 Hz) combined with a low-frequency boost — a common broadcast EQ curve. Sweep freq_p and listen to how the low-end character changes while the 60 Hz null stays fixed.</li>
+        <li>Watch the z-plane while sweeping freq_z and freq_p independently. The zero pair (teal rings) rotates around the circle at its own radius; the pole pair (crimson ×) rotates at its own. When they cross each other's angles, the frequency response changes abruptly — the geometry of cancelation and reinforcement made visible.</li>
+        <li>Set rp = 0.999 (near-infinite Q resonance). Set g very low (0.01) to keep the output from clipping. Sweep freq_p slowly from 100 Hz to 5 kHz with audio playing — you're sweeping a nearly-sinusoidal resonator through the noise spectrum. This is the sound of a high-Q filter driving toward self-oscillation.</li>
+      </ol>
+    </div>
+  </section>
+
+  <footer>
+    <div class="footer-label">sources</div>
+    <div class="footer-item">Cook, P. (2002). <em>Real Sound Synthesis for Interactive Applications.</em> Ch. 3 (Eq. 3.11–3.14)</div>
+    <div class="footer-item">Roads, C. (2023). <em>The Computer Music Tutorial</em> (2nd ed.). Ch. 28</div>
+    <div class="footer-affiliation">CSU East Bay Music Composition Department</div>
+    <div class="footer-version">version 1 · Spring 2026 · Inés Thiebaut</div>
+  </footer>
+
+</div>
+<script>
+// ============================================================
+// BIQUAD FILTER · pedagogical tool  (Cook Eq. 3.11/3.14)
+// y(n) = g·(x(n) + a1·x(n-1) + a2·x(n-2)) + b1·y(n-1) - b2·y(n-2)
+// where:
+//   a1 = -2·rz·cos(wz),  a2 = rz²          (zero pair)
+//   b1 =  2·rp·cos(wp),  b2 = rp²           (pole pair)
+// ============================================================
+
+const SR = 48000;
+const NYQUIST = SR / 2;
+
+const C = {
+  text:    '#1a1a17',
+  muted:   '#6a6862',
+  dim:     '#a8a59f',
+  border:  '#e2dfd6',
+  borderS: '#c9c5b8',
+  panel2:  '#f4f2ec',
+  accent:  '#b8693a',
+  zero:    '#2c7d6f',
+  zeroS:   'rgba(44,125,111,0.15)',
+  zeroSS:  'rgba(44,125,111,0.45)',
+  pole:    '#c73862',
+  poleS:   'rgba(199,56,98,0.15)',
+  poleSS:  'rgba(199,56,98,0.45)',
+  curve:   '#2c7d6f',
+  warn:    '#c92e1f',
+};
+
+// ---- state ----
+let freqHz_z = 2000;
+let rz = 1.0;
+let freqHz_p = 500;
+let rp = 0.9;
+let g = 0.1;
+
+// derived coefficients
+let a1, a2, b1, b2, omega_z, omega_p;
+
+function recomputeCoeffs() {
+  omega_z = 2 * Math.PI * freqHz_z / SR;
+  omega_p = 2 * Math.PI * freqHz_p / SR;
+  a1 = -2 * rz * Math.cos(omega_z);
+  a2 = rz * rz;
+  b1 = 2 * rp * Math.cos(omega_p);
+  b2 = rp * rp;
+}
+recomputeCoeffs();
+
+// ---- audio ----
+let isPlaying = false;
+let audioCtx = null;
+let filterNode = null;
+let sourceNode = null;
+let gainNode = null;
+let volume = 0.3;
+
+// ---- DOM ----
+const freqzSlider = document.getElementById('freqz-slider');
+const rzSlider    = document.getElementById('rz-slider');
+const freqpSlider = document.getElementById('freqp-slider');
+const rpSlider    = document.getElementById('rp-slider');
+const gSlider     = document.getElementById('g-slider');
+const freqzVal    = document.getElementById('freqz-value');
+const rzVal       = document.getElementById('rz-value');
+const freqpVal    = document.getElementById('freqp-value');
+const rpVal       = document.getElementById('rp-value');
+const gVal        = document.getElementById('g-value');
+const playBtn     = document.getElementById('play-btn');
+const volSlider   = document.getElementById('vol-slider');
+const mFreqz      = document.getElementById('m-freqz');
+const mDip        = document.getElementById('m-dip');
+const mFreqp      = document.getElementById('m-freqp');
+const mPeak       = document.getElementById('m-peak');
+const mGD         = document.getElementById('m-gd');
+const calcZero    = document.getElementById('calc-zero');
+const calcPole    = document.getElementById('calc-pole');
+const statusText  = document.getElementById('status-text');
+const liveG       = document.getElementById('live-g');
+const liveA1      = document.getElementById('live-a1');
+const liveA1Sign  = document.getElementById('live-a1-sign');
+const liveA2      = document.getElementById('live-a2');
+const liveB1      = document.getElementById('live-b1');
+const liveB1Sign  = document.getElementById('live-b1-sign');
+const liveB2      = document.getElementById('live-b2');
+
+// ---- canvas setup ----
+function setupCanvas(id) {
+  const canvas = document.getElementById(id);
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  ctx.scale(dpr, dpr);
+  return { ctx, w: rect.width, h: rect.height };
+}
+
+let zp, ip, fr, gd;
+function initCanvases() {
+  zp = setupCanvas('zplane');
+  ip = setupCanvas('impulse');
+  fr = setupCanvas('freq');
+  gd = setupCanvas('gdelay');
+}
+
+// ---- log slider conversion ----
+const FREQ_MIN = 10;
+const FREQ_MAX = NYQUIST;
+function sliderToFreq(s) { return FREQ_MIN * Math.pow(FREQ_MAX / FREQ_MIN, s); }
+function freqToSlider(f) { return Math.log(f / FREQ_MIN) / Math.log(FREQ_MAX / FREQ_MIN); }
+
+// ---- format helpers ----
+function formatFreq(f) {
+  if (f < 1000) return f.toFixed(0) + ' Hz';
+  return (f / 1000).toFixed(2) + ' kHz';
+}
+
+// ============================================================
+// MAGNITUDE at frequency omega
+// H(e^jw) = g·(1 + a1·e^(-jw) + a2·e^(-j2w)) / (1 - b1·e^(-jw) + b2·e^(-j2w))
+// ============================================================
+function magAt(omega) {
+  const cosw = Math.cos(omega), sinw = Math.sin(omega);
+  const cos2w = Math.cos(2*omega), sin2w = Math.sin(2*omega);
+  const num_re = 1 + a1*cosw + a2*cos2w;
+  const num_im = -(a1*sinw + a2*sin2w);
+  const den_re = 1 - b1*cosw + b2*cos2w;
+  const den_im = b1*sinw - b2*sin2w;
+  const num_mag = Math.sqrt(num_re*num_re + num_im*num_im);
+  const den_mag = Math.sqrt(den_re*den_re + den_im*den_im);
+  return g * num_mag / Math.max(1e-10, den_mag);
+}
+
+// ============================================================
+// GROUP DELAY
+// τ(ω) = Re[N(ω)/D(ω)] where N and D are derivative/value of H
+// For BiQuad, by chain rule this is the sum of contributions
+// from numerator and denominator polynomials.
+// τ = Re[(d/dω)ln|H|] = Re[N_num/D_num] - Re[N_den/D_den]
+// where N_num = a1·e^(-jw) + 2·a2·e^(-j2w)  (deriv of numerator inner polynomial)
+//       D_num = 1 + a1·e^(-jw) + a2·e^(-j2w)
+//       N_den = -b1·e^(-jw) + 2·b2·e^(-j2w)  (deriv of denominator, note sign: denom = 1 - b1z^-1 + b2z^-2)
+//       D_den = 1 - b1·e^(-jw) + b2·e^(-j2w)
+// Group delay = Re[N_num/D_num] - Re[N_den/D_den]  (minus because denominator contributes negatively)
+// Actually: τ = -d/dω arg(H) = Re[N_num/D_num] + Re[N_denDeriv/D_den]
+// Let's derive correctly:
+// τ(ω) = τ_num(ω) + τ_den_contribution
+// For a polynomial P(e^jω) = Σ h_k e^(-jkω):
+//   -d/dω arg(P) = Re[ (Σ k·h_k·e^(-jkω)) / (Σ h_k·e^(-jkω)) ]
+// For the numerator (inner poly 1 + a1·z^-1 + a2·z^-2):
+//   contribution = Re[(0 + a1·e^-jw + 2a2·e^-j2w)/(1 + a1·e^-jw + a2·e^-j2w)]
+// For the denominator (1 - b1·z^-1 + b2·z^-2):
+//   contribution = -Re[(0 - b1·e^-jw + 2b2·e^-j2w)/(1 - b1·e^-jw + b2·e^-j2w)]
+//   (negative because it's in the denominator of H, so it subtracts from total group delay)
+// ============================================================
+function groupDelaySamples(omega) {
+  const cosw = Math.cos(omega), sinw = Math.sin(omega);
+  const cos2w = Math.cos(2*omega), sin2w = Math.sin(2*omega);
+
+  // Numerator polynomial: P_num = 1 + a1·e^(-jw) + a2·e^(-j2w)
+  const Dn_re = 1 + a1*cosw + a2*cos2w;
+  const Dn_im = -(a1*sinw + a2*sin2w);
+  // Derivative of numerator: N_num = a1·e^(-jw) + 2·a2·e^(-j2w)
+  const Nn_re = a1*cosw + 2*a2*cos2w;
+  const Nn_im = -(a1*sinw + 2*a2*sin2w);
+  const denom_n = Dn_re*Dn_re + Dn_im*Dn_im;
+  const tau_num = denom_n < 1e-20 ? 0 : (Nn_re*Dn_re + Nn_im*Dn_im) / denom_n;
+
+  // Denominator polynomial: P_den = 1 - b1·e^(-jw) + b2·e^(-j2w)
+  const Dd_re = 1 - b1*cosw + b2*cos2w;
+  const Dd_im = b1*sinw - b2*sin2w;
+  // Derivative of denominator: N_den = -b1·e^(-jw) + 2·b2·e^(-j2w)
+  const Nd_re = -b1*cosw + 2*b2*cos2w;
+  const Nd_im = b1*sinw - 2*b2*sin2w;
+  const denom_d = Dd_re*Dd_re + Dd_im*Dd_im;
+  // Denominator contribution is subtracted (it's in the denom of H)
+  const tau_den = denom_d < 1e-20 ? 0 : (Nd_re*Dd_re + Nd_im*Dd_im) / denom_d;
+
+  return tau_num - tau_den;
+}
+
+// ============================================================
+// VIZ 1 · Z-PLANE
+// ============================================================
+function drawZPlane() {
+  const { ctx, w, h } = zp;
+  ctx.clearRect(0, 0, w, h);
+  const cx = w/2, cy = h/2;
+  const radPx = Math.min(w,h) * 0.38;
+
+  // axes
+  ctx.strokeStyle = C.border; ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(0, cy); ctx.lineTo(w, cy);
+  ctx.moveTo(cx, 0); ctx.lineTo(cx, h);
+  ctx.stroke();
+
+  // unit circle
+  ctx.strokeStyle = C.borderS; ctx.setLineDash([4,4]); ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.arc(cx, cy, radPx, 0, Math.PI*2); ctx.stroke();
+  ctx.setLineDash([]); ctx.lineWidth = 1;
+
+  // labels
+  ctx.fillStyle = C.muted; ctx.font = "11px 'DM Mono', monospace";
+  ctx.textAlign = 'center'; ctx.fillText('Re', w-14, cy-6);
+  ctx.fillText('Im', cx+14, 12);
+  ctx.textAlign = 'left';  ctx.fillText('+1 (DC)', cx+radPx+8, cy+18);
+  ctx.textAlign = 'right'; ctx.fillText('−1 (Nyq)', cx-radPx-8, cy+18);
+  ctx.textAlign = 'left';
+  ctx.fillStyle = C.dim; ctx.font = "10px 'DM Mono', monospace";
+  ctx.fillText('+0.5', cx+radPx*0.5+4, cy+14);
+  ctx.textAlign = 'right'; ctx.fillText('−0.5', cx-radPx*0.5-4, cy+14);
+  if (rz > 0.07 && rp > 0.07) { ctx.textAlign = 'left'; ctx.fillText('0', cx+4, cy+14); }
+
+  // zero positions
+  const zx = cx + rz*Math.cos(omega_z)*radPx;
+  const zy_top = cy - rz*Math.sin(omega_z)*radPx;
+  const zy_bot = cy + rz*Math.sin(omega_z)*radPx;
+
+  // pole positions
+  const px_ = cx + rp*Math.cos(omega_p)*radPx;
+  const py_top = cy - rp*Math.sin(omega_p)*radPx;
+  const py_bot = cy + rp*Math.sin(omega_p)*radPx;
+
+  // radial lines to zeros
+  ctx.strokeStyle = C.zeroSS; ctx.lineWidth = 1; ctx.setLineDash([2,3]);
+  ctx.beginPath();
+  ctx.moveTo(cx,cy); ctx.lineTo(zx, zy_top);
+  ctx.moveTo(cx,cy); ctx.lineTo(zx, zy_bot);
+  ctx.stroke(); ctx.setLineDash([]);
+
+  // radial lines to poles
+  ctx.strokeStyle = C.poleSS; ctx.setLineDash([2,3]);
+  ctx.beginPath();
+  ctx.moveTo(cx,cy); ctx.lineTo(px_, py_top);
+  ctx.moveTo(cx,cy); ctx.lineTo(px_, py_bot);
+  ctx.stroke(); ctx.setLineDash([]);
+
+  // info labels
+  ctx.fillStyle = C.zero; ctx.font = "12px 'DM Mono', monospace"; ctx.textAlign = 'left';
+  ctx.fillText(`zero pair · rz=${rz.toFixed(3)}`, 16, 22);
+  ctx.fillText(`angle ±${(omega_z*180/Math.PI).toFixed(1)}°`, 16, 38);
+  ctx.fillStyle = C.pole;
+  ctx.fillText(`pole pair · rp=${rp.toFixed(3)}`, 16, 58);
+  ctx.fillText(`angle ±${(omega_p*180/Math.PI).toFixed(1)}°`, 16, 74);
+
+  // draw zeros (open rings, teal)
+  function drawZero(x, y) {
+    ctx.fillStyle = C.zeroS;
+    ctx.beginPath(); ctx.arc(x, y, 14, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath(); ctx.arc(x, y, 7, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = C.zero; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(x, y, 7, 0, Math.PI*2); ctx.stroke();
+  }
+  drawZero(zx, zy_top);
+  drawZero(zx, zy_bot);
+
+  // draw poles (× marks, crimson)
+  function drawPole(x, y) {
+    ctx.fillStyle = C.poleS;
+    ctx.beginPath(); ctx.arc(x, y, 14, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = C.pole; ctx.lineWidth = 2.5;
+    const d = 8;
+    ctx.beginPath();
+    ctx.moveTo(x-d, y-d); ctx.lineTo(x+d, y+d);
+    ctx.moveTo(x+d, y-d); ctx.lineTo(x-d, y+d);
+    ctx.stroke();
+  }
+  drawPole(px_, py_top);
+  drawPole(px_, py_bot);
+}
+
+// ============================================================
+// VIZ 2 · IMPULSE RESPONSE
+// Run the filter on δ[n] for N_IR samples
+// ============================================================
+function drawImpulse() {
+  const { ctx, w, h } = ip;
+  ctx.clearRect(0, 0, w, h);
+
+  const N = 80;
+  const x = [1.0, ...Array(N-1).fill(0.0)];
+  const y = Array(N).fill(0.0);
+  for (let n = 0; n < N; n++) {
+    const x0 = x[n];
+    const x1 = n>=1 ? x[n-1] : 0;
+    const x2 = n>=2 ? x[n-2] : 0;
+    const y1 = n>=1 ? y[n-1] : 0;
+    const y2 = n>=2 ? y[n-2] : 0;
+    y[n] = g*(x0 + a1*x1 + a2*x2) + b1*y1 - b2*y2;
+  }
+
+  // find display range
+  let maxAbs = 0.01;
+  for (const v of y) if (Math.abs(v) > maxAbs) maxAbs = Math.abs(v);
+  const displayMax = maxAbs * 1.2;
+
+  const padL=36, padR=16, padT=16, padB=28;
+  const plotW = w-padL-padR;
+  const plotH = h-padT-padB;
+  const cy = padT + plotH/2;
+  const yScale = (plotH/2) / displayMax;
+  const nStep = 4;
+
+  // grid
+  ctx.strokeStyle = C.border; ctx.lineWidth = 1;
+  for (let n=0; n<=N; n+=nStep) {
+    const x_ = padL + (n/(N-1))*plotW;
+    ctx.beginPath(); ctx.moveTo(x_,padT); ctx.lineTo(x_,padT+plotH); ctx.stroke();
+  }
+  for (const frac of [1,0.5,-0.5,-1]) {
+    const y_ = cy - frac*displayMax*yScale;
+    if (y_ < padT || y_ > padT+plotH) continue;
+    ctx.beginPath(); ctx.moveTo(padL,y_); ctx.lineTo(w-padR,y_); ctx.stroke();
+  }
+
+  // axes
+  ctx.strokeStyle = C.borderS; ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.moveTo(padL,cy); ctx.lineTo(w-padR,cy);
+  ctx.moveTo(padL,padT); ctx.lineTo(padL,padT+plotH);
+  ctx.stroke();
+
+  // y labels
+  ctx.fillStyle = C.muted; ctx.font = "10px 'DM Mono', monospace"; ctx.textAlign = 'right';
+  ctx.fillText('+', padL-4, padT+8);
+  ctx.fillText('0', padL-4, cy+4);
+  ctx.fillText('−', padL-4, padT+plotH);
+
+  // n labels
+  ctx.textAlign = 'center'; ctx.fillStyle = C.muted;
+  for (let n=0; n<=N; n+=nStep) {
+    const x_ = padL + (n/(N-1))*plotW;
+    ctx.fillText(n.toString(), x_, h-10);
+  }
+  ctx.textAlign = 'left'; ctx.fillStyle = C.dim;
+  ctx.fillText('n', w-padR+2, h-10);
+
+  // zero axis guide
+  ctx.strokeStyle = C.dim; ctx.setLineDash([2,3]); ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(padL, cy); ctx.lineTo(w-padR, cy); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // stems
+  ctx.lineWidth = 1.8;
+  for (let n=0; n<N; n++) {
+    const x_ = padL + (n/(N-1))*plotW;
+    const val = y[n];
+    const y_ = cy - val*yScale;
+    const clampedY = Math.max(padT, Math.min(padT+plotH, y_));
+    ctx.strokeStyle = C.curve;
+    ctx.beginPath(); ctx.moveTo(x_,cy); ctx.lineTo(x_,clampedY); ctx.stroke();
+    ctx.fillStyle = C.curve;
+    ctx.beginPath(); ctx.arc(x_, clampedY, 2, 0, Math.PI*2); ctx.fill();
+  }
+}
+
+// ============================================================
+// VIZ 3 · FREQUENCY RESPONSE
+// ============================================================
+function drawFrequency() {
+  const { ctx, w, h } = fr;
+  ctx.clearRect(0, 0, w, h);
+
+  const padL=50, padR=20, padT=18, padB=32;
+  const plotW=w-padL-padR, plotH=h-padT-padB;
+
+  const dbMax=80, dbMin=-80, dbRange=dbMax-dbMin;
+  const fMin=Math.log10(10), fMax=Math.log10(NYQUIST);
+
+  // dB grid
+  ctx.lineWidth=1; ctx.font="10px 'DM Mono', monospace";
+  for (let db=dbMax; db>=dbMin; db-=10) {
+    const y_=padT+((dbMax-db)/dbRange)*plotH;
+    ctx.strokeStyle = db===0 ? C.borderS : C.border;
+    ctx.lineWidth = db===0 ? 1.2 : 1;
+    ctx.beginPath(); ctx.moveTo(padL,y_); ctx.lineTo(w-padR,y_); ctx.stroke();
+    ctx.fillStyle = C.muted; ctx.textAlign='right';
+    const lbl = db===0 ? '0 dB' : (db>0 ? '+'+db+' dB' : db+' dB');
+    ctx.fillText(lbl, padL-6, y_+3);
+  }
+
+  // minor freq grid
+  const minorFreqs=[20,30,40,50,60,70,80,90,200,300,400,500,600,700,800,900,2000,3000,4000,5000,6000,7000,8000,9000,20000];
+  ctx.strokeStyle='#f0ede4';
+  for (const f of minorFreqs) {
+    const x_=padL+((Math.log10(f)-fMin)/(fMax-fMin))*plotW;
+    ctx.beginPath(); ctx.moveTo(x_,padT); ctx.lineTo(x_,padT+plotH); ctx.stroke();
+  }
+
+  // major freq grid
+  const majorFreqs=[{f:10,label:'10'},{f:100,label:'100'},{f:1000,label:'1k'},{f:10000,label:'10k'},{f:NYQUIST,label:'Nyq'}];
+  ctx.strokeStyle=C.border;
+  for (const {f,label} of majorFreqs) {
+    const x_=padL+((Math.log10(f)-fMin)/(fMax-fMin))*plotW;
+    ctx.beginPath(); ctx.moveTo(x_,padT); ctx.lineTo(x_,padT+plotH); ctx.stroke();
+    ctx.fillStyle=C.muted; ctx.textAlign='center';
+    ctx.fillText(label, x_, h-14);
+  }
+  ctx.textAlign='right'; ctx.fillStyle=C.dim; ctx.fillText('Hz', w-padR-4, h-4);
+
+  // zero freq marker (teal dashed)
+  const fxz=padL+((Math.log10(freqHz_z)-fMin)/(fMax-fMin))*plotW;
+  ctx.strokeStyle=C.zero; ctx.globalAlpha=0.55; ctx.setLineDash([4,4]);
+  ctx.beginPath(); ctx.moveTo(fxz,padT); ctx.lineTo(fxz,padT+plotH); ctx.stroke();
+  ctx.setLineDash([]); ctx.globalAlpha=1;
+  ctx.fillStyle=C.zero; ctx.font="10px 'DM Mono', monospace"; ctx.textAlign='center';
+  ctx.fillText('zero', fxz, padT-4);
+
+  // pole freq marker (crimson dashed)
+  const fxp=padL+((Math.log10(freqHz_p)-fMin)/(fMax-fMin))*plotW;
+  ctx.strokeStyle=C.pole; ctx.globalAlpha=0.55; ctx.setLineDash([4,4]);
+  ctx.beginPath(); ctx.moveTo(fxp,padT); ctx.lineTo(fxp,padT+plotH); ctx.stroke();
+  ctx.setLineDash([]); ctx.globalAlpha=1;
+  ctx.fillStyle=C.pole; ctx.font="10px 'DM Mono', monospace"; ctx.textAlign='center';
+  ctx.fillText('pole', fxp, h-4);
+
+  // response curve — dense sampling near both freq_z and freq_p
+  const NPTS=500;
+  const logFreqs=[];
+  for (let i=0; i<=NPTS; i++) logFreqs.push(fMin+(i/NPTS)*(fMax-fMin));
+  const denseWindow=0.03, denseN=100;
+  for (const fcenter of [freqHz_z, freqHz_p]) {
+    const fc=Math.log10(Math.max(10,fcenter));
+    const dMin=Math.max(fMin,fc-denseWindow), dMax=Math.min(fMax,fc+denseWindow);
+    for (let i=0; i<=denseN; i++) logFreqs.push(dMin+(i/denseN)*(dMax-dMin));
+  }
+  logFreqs.sort((a,b)=>a-b);
+
+  ctx.strokeStyle=C.curve; ctx.lineWidth=2.2; ctx.beginPath();
+  for (let idx=0; idx<logFreqs.length; idx++) {
+    const flogN=logFreqs[idx];
+    const f=Math.pow(10,flogN);
+    const omega=2*Math.PI*f/SR;
+    const mag=magAt(omega);
+    const db=20*Math.log10(Math.max(1e-10,mag));
+    const dbClipped=Math.max(dbMin,Math.min(dbMax,db));
+    const x_=padL+((flogN-fMin)/(fMax-fMin))*plotW;
+    const y_=padT+((dbMax-dbClipped)/dbRange)*plotH;
+    if (idx===0) ctx.moveTo(x_,y_); else ctx.lineTo(x_,y_);
+  }
+  ctx.stroke();
+}
+
+// ============================================================
+// VIZ 4 · GROUP DELAY
+// ============================================================
+function drawGroupDelay() {
+  const { ctx, w, h } = gd;
+  ctx.clearRect(0, 0, w, h);
+
+  const padL=50, padR=20, padT=18, padB=32;
+  const plotW=w-padL-padR, plotH=h-padT-padB;
+  const fMin=Math.log10(10), fMax=Math.log10(NYQUIST);
+
+  // compute samples
+  const NPTS=500;
+  const samples=[], logFreqs=[];
+  for (let i=0; i<=NPTS; i++) logFreqs.push(fMin+(i/NPTS)*(fMax-fMin));
+  const denseWindow=0.03, denseN=100;
+  for (const fcenter of [freqHz_z, freqHz_p]) {
+    const fc=Math.log10(Math.max(10,fcenter));
+    const dMin=Math.max(fMin,fc-denseWindow), dMax=Math.min(fMax,fc+denseWindow);
+    for (let i=0; i<=denseN; i++) logFreqs.push(dMin+(i/denseN)*(dMax-dMin));
+  }
+  logFreqs.sort((a,b)=>a-b);
+  for (const flogN of logFreqs) {
+    const f=Math.pow(10,flogN);
+    const omega=2*Math.PI*f/SR;
+    const tau=groupDelaySamples(omega);
+    samples.push({flogN, tau});
+  }
+
+  // y range
+  let tauMax=0, tauMin=0;
+  for (const s of samples) { if(s.tau>tauMax) tauMax=s.tau; if(s.tau<tauMin) tauMin=s.tau; }
+  if (tauMax<0.01 && tauMin>-0.01) { tauMax=2; tauMin=-2; }
+
+  function niceCeiling(v) {
+    if(v<=0) return 1;
+    const decade=Math.pow(10,Math.floor(Math.log10(v)));
+    const norm=v/decade;
+    let m;
+    if(norm<1) m=1; else if(norm<2) m=2; else if(norm<3) m=3;
+    else if(norm<5) m=5; else if(norm<7) m=7; else m=10;
+    return m*decade;
+  }
+  const yTop=niceCeiling(Math.max(Math.abs(tauMax),Math.abs(tauMin)));
+  const yBot=-yTop;
+  const yRange=yTop-yBot;
+
+  function pickYStep(yt) {
+    const decade=Math.pow(10,Math.floor(Math.log10(yt)));
+    const norm=yt/decade;
+    if(norm<=1) return 0.2*decade; if(norm<=2) return 0.5*decade;
+    if(norm<=3) return 0.5*decade; if(norm<=5) return 1*decade;
+    if(norm<=7) return 1*decade; return 2*decade;
+  }
+  const yStep=pickYStep(yTop);
+
+  // y-axis grid
+  ctx.lineWidth=1; ctx.font="10px 'DM Mono', monospace";
+  for (let v=Math.ceil(yBot/yStep)*yStep; v<=yTop+1e-9; v+=yStep) {
+    const y_=padT+((yTop-v)/yRange)*plotH;
+    ctx.strokeStyle=Math.abs(v)<1e-9 ? C.borderS : C.border;
+    ctx.lineWidth=Math.abs(v)<1e-9 ? 1.2 : 1;
+    ctx.beginPath(); ctx.moveTo(padL,y_); ctx.lineTo(w-padR,y_); ctx.stroke();
+    ctx.fillStyle=Math.abs(v)<1e-9 ? C.text : C.muted; ctx.textAlign='right';
+    const vf=Math.abs(v)<1e-9?0:v;
+    ctx.fillText(Math.abs(vf-Math.round(vf))<1e-9?vf.toFixed(0):vf.toFixed(1), padL-6, y_+3);
+  }
+  ctx.fillStyle=C.dim; ctx.textAlign='left';
+  ctx.fillText('samples', padL+4, padT+10);
+
+  // x-axis grid (same as freq response)
+  const minorFreqs=[20,30,40,50,60,70,80,90,200,300,400,500,600,700,800,900,2000,3000,4000,5000,6000,7000,8000,9000,20000];
+  ctx.strokeStyle='#f0ede4';
+  for (const f of minorFreqs) {
+    const x_=padL+((Math.log10(f)-fMin)/(fMax-fMin))*plotW;
+    ctx.beginPath(); ctx.moveTo(x_,padT); ctx.lineTo(x_,padT+plotH); ctx.stroke();
+  }
+  ctx.strokeStyle=C.border;
+  for (const {f,label} of [{f:10,label:'10'},{f:100,label:'100'},{f:1000,label:'1k'},{f:10000,label:'10k'},{f:NYQUIST,label:'Nyq'}]) {
+    const x_=padL+((Math.log10(f)-fMin)/(fMax-fMin))*plotW;
+    ctx.beginPath(); ctx.moveTo(x_,padT); ctx.lineTo(x_,padT+plotH); ctx.stroke();
+    ctx.fillStyle=C.muted; ctx.textAlign='center'; ctx.fillText(label, x_, h-14);
+  }
+  ctx.textAlign='right'; ctx.fillStyle=C.dim; ctx.fillText('Hz', w-padR-4, h-4);
+
+  // zero freq marker (teal)
+  const fxz=padL+((Math.log10(freqHz_z)-fMin)/(fMax-fMin))*plotW;
+  ctx.strokeStyle=C.zero; ctx.globalAlpha=0.55; ctx.setLineDash([4,4]);
+  ctx.beginPath(); ctx.moveTo(fxz,padT); ctx.lineTo(fxz,padT+plotH); ctx.stroke();
+  ctx.setLineDash([]); ctx.globalAlpha=1;
+  ctx.fillStyle=C.zero; ctx.font="10px 'DM Mono', monospace"; ctx.textAlign='center';
+  ctx.fillText('zero', fxz, padT-4);
+
+  // pole freq marker (crimson)
+  const fxp=padL+((Math.log10(freqHz_p)-fMin)/(fMax-fMin))*plotW;
+  ctx.strokeStyle=C.pole; ctx.globalAlpha=0.55; ctx.setLineDash([4,4]);
+  ctx.beginPath(); ctx.moveTo(fxp,padT); ctx.lineTo(fxp,padT+plotH); ctx.stroke();
+  ctx.setLineDash([]); ctx.globalAlpha=1;
+  ctx.fillStyle=C.pole; ctx.textAlign='center';
+  ctx.fillText('pole', fxp, h-4);
+
+  // curve
+  ctx.strokeStyle=C.curve; ctx.lineWidth=2.2; ctx.beginPath();
+  for (let idx=0; idx<samples.length; idx++) {
+    const {flogN,tau}=samples[idx];
+    const x_=padL+(flogN-fMin)/(fMax-fMin)*plotW;
+    const tauClipped=Math.max(yBot,Math.min(yTop,tau));
+    const y_=padT+((yTop-tauClipped)/yRange)*plotH;
+    if(idx===0) ctx.moveTo(x_,y_); else ctx.lineTo(x_,y_);
+  }
+  ctx.stroke();
+}
+
+// ============================================================
+// STATUS + METRICS
+// ============================================================
+function updateStatus() {
+  // Status text
+  const sameFreq = Math.abs(freqHz_z - freqHz_p) < 20;
+  let text;
+  if (sameFreq) {
+    if (Math.abs(rz - rp) < 0.01) {
+      text = `Zero and pole at the same frequency (${formatFreq(freqHz_z)}) with equal radii — they cancel exactly. Response is flat at g.`;
+    } else if (rz > rp) {
+      text = `Zero and pole at the same frequency (${formatFreq(freqHz_z)}). Zero radius ${rz.toFixed(3)} > pole radius ${rp.toFixed(3)}: the zero wins, producing a notch.`;
+    } else {
+      text = `Zero and pole at the same frequency (${formatFreq(freqHz_z)}). Pole radius ${rp.toFixed(3)} > zero radius ${rz.toFixed(3)}: the pole wins, producing a peak.`;
+    }
+  } else {
+    text = `Zero pair at ${formatFreq(freqHz_z)} (rz=${rz.toFixed(3)}) · Pole pair at ${formatFreq(freqHz_p)} (rp=${rp.toFixed(3)}). Independent attenuation and resonance on the same spectrum.`;
+  }
+  statusText.textContent = text;
+
+  // Metric: dip at f_zero
+  const dipMag = magAt(omega_z);
+  const dipDb = 20*Math.log10(Math.max(1e-10, dipMag));
+  mFreqz.textContent = formatFreq(freqHz_z);
+  mDip.textContent = dipDb < -200 ? '< −200 dB' : dipDb.toFixed(1) + ' dB';
+
+  // Metric: peak at f_pole
+  const peakMag = magAt(omega_p);
+  const peakDb = 20*Math.log10(Math.max(1e-10, peakMag));
+  mFreqp.textContent = formatFreq(freqHz_p);
+  mPeak.textContent = peakDb > 80 ? '> +80 dB' : peakDb.toFixed(1) + ' dB';
+
+  // Metric: group delay at f_pole
+  const tau = groupDelaySamples(omega_p);
+  const ms = (tau/SR)*1000;
+  const sampleStr = Math.abs(tau)>=10 ? tau.toFixed(1) : tau.toFixed(2);
+  const msStr = Math.abs(ms)<0.001 ? ms.toExponential(1)+' ms'
+              : Math.abs(ms)<1 ? ms.toFixed(3)+' ms'
+              : ms.toFixed(2)+' ms';
+  mGD.innerHTML = sampleStr+' samples<br><span style="color:var(--muted);font-size:12px;">('+msStr+')</span>';
+
+  // Calc blocks
+  const cosw_z = Math.cos(omega_z), cosw_p = Math.cos(omega_p);
+  calcZero.innerHTML =
+    `<span class="eq-line">ω_z <span class="op">=</span> 2π·${freqHz_z.toFixed(0)}/${SR} <span class="op">=</span> <span class="num-zero">${omega_z.toFixed(5)}</span> rad</span>` +
+    `<span class="eq-line"> </span>` +
+    `<span class="eq-line">a₁ <span class="op">=</span> −2·${rz.toFixed(3)}·cos(${omega_z.toFixed(4)})</span>` +
+    `<span class="eq-line">   <span class="op">=</span> <span class="num-zero">${a1.toFixed(4)}</span></span>` +
+    `<span class="eq-line"> </span>` +
+    `<span class="eq-line">a₂ <span class="op">=</span> (${rz.toFixed(3)})² <span class="op">=</span> <span class="num-zero">${a2.toFixed(4)}</span></span>`;
+
+  calcPole.innerHTML =
+    `<span class="eq-line">ω_p <span class="op">=</span> 2π·${freqHz_p.toFixed(0)}/${SR} <span class="op">=</span> <span class="num-pole">${omega_p.toFixed(5)}</span> rad</span>` +
+    `<span class="eq-line"> </span>` +
+    `<span class="eq-line">b₁ <span class="op">=</span> 2·${rp.toFixed(3)}·cos(${omega_p.toFixed(4)})</span>` +
+    `<span class="eq-line">   <span class="op">=</span> <span class="num-pole">${b1.toFixed(4)}</span></span>` +
+    `<span class="eq-line"> </span>` +
+    `<span class="eq-line">b₂ <span class="op">=</span> (${rp.toFixed(3)})² <span class="op">=</span> <span class="num-pole">${b2.toFixed(4)}</span></span>`;
+}
+
+// ============================================================
+// LIVE EQUATION
+// ============================================================
+function updateLiveEquation() {
+  liveG.textContent = g.toFixed(2);
+  liveA1.textContent = Math.abs(a1).toFixed(4);
+  liveA1Sign.textContent = a1 < 0 ? '−' : '+';
+  liveA2.textContent = a2.toFixed(4);
+  liveB1.textContent = Math.abs(b1).toFixed(4);
+  liveB1Sign.textContent = b1 >= 0 ? '+' : '−';
+  liveB2.textContent = b2.toFixed(4);
+}
+
+// ============================================================
+// AUDIO
+// ============================================================
+async function setupAudio() {
+  if (audioCtx) return;
+  audioCtx = new (window.AudioContext||window.webkitAudioContext)({sampleRate:48000});
+  updateAudioRateDisplay();
+}
+
+function updateAudioRateDisplay() {
+  const el = document.getElementById('audio-rate');
+  if (!el) return;
+  if (!audioCtx) { el.textContent='audio · not yet started · visualizations use SR = '+SR+' Hz'; return; }
+  const actualSR = audioCtx.sampleRate;
+  el.textContent = actualSR===SR
+    ? 'audio sample rate · '+actualSR+' Hz · matches visualization'
+    : 'audio sample rate · '+actualSR+' Hz · visualization assumes '+SR+' Hz · zero/pole frequencies will differ slightly';
+}
+
+function makeSourceNode() {
+  if (sourceNode) { try{sourceNode.stop();}catch(e){} sourceNode.disconnect(); sourceNode=null; }
+  const bufSize=audioCtx.sampleRate*2;
+  const buffer=audioCtx.createBuffer(1,bufSize,audioCtx.sampleRate);
+  const data=buffer.getChannelData(0);
+  for (let i=0; i<bufSize; i++) data[i]=Math.random()*2-1;
+  const node=audioCtx.createBufferSource();
+  node.buffer=buffer; node.loop=true;
+  return node;
+}
+
+function makeFilterNode() {
+  // y(n) = g·(x + a1·x[n-1] + a2·x[n-2]) + b1·y[n-1] - b2·y[n-2]
+  // Web Audio IIRFilter: feedforward=[b0,b1,b2], feedback=[a0,a1,a2]
+  // where output = (b0·x[n] + b1·x[n-1] + b2·x[n-2] - a1·y[n-1] - a2·y[n-2]) / a0
+  // Our feedforward: [g, g*a1, g*a2]
+  // Our feedback:    [1, -b1, b2]  (so -(-b1)=b1 is added, -b2 is subtracted)
+  const safe_rp = Math.min(rp, 0.9999);
+  const safe_b1 = 2*safe_rp*Math.cos(omega_p);
+  const safe_b2 = safe_rp*safe_rp;
+  return audioCtx.createIIRFilter([g, g*a1, g*a2], [1, -safe_b1, safe_b2]);
+}
+
+async function startAudio() {
+  await setupAudio();
+  if (audioCtx.state==='suspended') await audioCtx.resume();
+  if (filterNode) { filterNode.disconnect(); filterNode=null; }
+  if (gainNode) { gainNode.disconnect(); gainNode=null; }
+  filterNode = makeFilterNode();
+  gainNode = audioCtx.createGain();
+  gainNode.gain.value = volume;
+  sourceNode = makeSourceNode();
+  sourceNode.connect(filterNode);
+  filterNode.connect(gainNode);
+  gainNode.connect(audioCtx.destination);
+  sourceNode.start();
+}
+
+function stopAudio() {
+  if (sourceNode) { try{sourceNode.stop();}catch(e){} sourceNode.disconnect(); sourceNode=null; }
+  if (filterNode) { filterNode.disconnect(); filterNode=null; }
+  if (gainNode) { gainNode.disconnect(); gainNode=null; }
+}
+
+async function rebuildAudio() {
+  if (!isPlaying) return;
+  stopAudio();
+  await startAudio();
+}
+
+// ============================================================
+// UI WIRING
+// ============================================================
+function update() {
+  recomputeCoeffs();
+  drawZPlane();
+  drawImpulse();
+  drawFrequency();
+  drawGroupDelay();
+  updateStatus();
+  updateLiveEquation();
+  freqzVal.textContent = formatFreq(freqHz_z);
+  rzVal.textContent    = rz.toFixed(3);
+  freqpVal.textContent = formatFreq(freqHz_p);
+  rpVal.textContent    = rp.toFixed(3);
+  gVal.textContent     = g.toFixed(2);
+}
+
+freqzSlider.addEventListener('input', () => { freqHz_z=sliderToFreq(parseFloat(freqzSlider.value)); update(); rebuildAudio(); });
+rzSlider.addEventListener('input',    () => { rz=parseFloat(rzSlider.value); update(); rebuildAudio(); });
+freqpSlider.addEventListener('input', () => { freqHz_p=sliderToFreq(parseFloat(freqpSlider.value)); update(); rebuildAudio(); });
+rpSlider.addEventListener('input',    () => { rp=parseFloat(rpSlider.value); update(); rebuildAudio(); });
+gSlider.addEventListener('input',     () => { g=parseFloat(gSlider.value); update(); rebuildAudio(); });
+
+playBtn.addEventListener('click', async () => {
+  if (isPlaying) {
+    stopAudio(); isPlaying=false;
+    playBtn.textContent='▶ play'; playBtn.classList.remove('playing');
+  } else {
+    isPlaying=true;
+    playBtn.textContent='■ stop'; playBtn.classList.add('playing');
+    await startAudio();
+  }
+});
+
+volSlider.addEventListener('input', () => {
+  volume=parseFloat(volSlider.value);
+  if (gainNode) gainNode.gain.value=volume;
+});
+
+window.addEventListener('load', () => {
+  initCanvases();
+  freqzSlider.value = freqToSlider(freqHz_z);
+  freqpSlider.value = freqToSlider(freqHz_p);
+  update();
+});
+window.addEventListener('resize', () => { initCanvases(); update(); });
+</script>
+</body>
+</html>
