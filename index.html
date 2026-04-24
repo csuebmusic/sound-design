@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>sound-design · interactive teaching tools · CSUEB</title>
+<meta name="description" content="Interactive teaching tools for courses in music synthesis, sound design, and digital audio at California State University East Bay. Maintained by Inés Thiebaut.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:       #fafaf7;
+    --panel:    #ffffff;
+    --panel-2:  #f4f2ec;
+    --border:   #e2dfd6;
+    --border-s: #c9c5b8;
+    --text:     #1a1a17;
+    --muted:    #6a6862;
+    --dim:      #a8a59f;
+    --accent:   #b8693a;  /* terra-cotta */
+    --teal:     #2c7d6f;
+    --crimson:  #c73862;
+    --warn:     #c92e1f;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: var(--bg); color: var(--text);
+    font-family: 'DM Sans', system-ui, sans-serif;
+    font-weight: 400;
+    font-size: 15px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; }
+
+  .wrap {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 40px 28px 80px;
+  }
+
+  /* ---------- HEADER ---------- */
+  header {
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 28px;
+    margin-bottom: 40px;
+  }
+  .eyebrow {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    margin-bottom: 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .eyebrow::before {
+    content: '';
+    width: 22px;
+    height: 1px;
+    background: var(--accent);
+  }
+  h1 {
+    font-family: 'DM Mono', monospace;
+    font-weight: 500;
+    font-size: 28px;
+    letter-spacing: -0.01em;
+    margin-bottom: 10px;
+  }
+  .lede {
+    font-size: 15px;
+    color: var(--muted);
+    max-width: 680px;
+    margin-bottom: 16px;
+  }
+  .byline {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--dim);
+    display: flex;
+    gap: 18px;
+    flex-wrap: wrap;
+  }
+  .byline a {
+    color: var(--muted);
+    text-decoration: none;
+    border-bottom: 1px dotted var(--border-s);
+    padding-bottom: 1px;
+    transition: color .15s, border-color .15s;
+  }
+  .byline a:hover { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* ---------- ABOUT + HOW TO USE ---------- */
+  .intro-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 40px;
+  }
+  .intro-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 20px 24px;
+  }
+  .intro-card h2 {
+    font-family: 'DM Mono', monospace;
+    font-weight: 500;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--accent);
+    display: inline-block;
+  }
+  .intro-card p {
+    font-size: 14px;
+    color: var(--text);
+    margin-bottom: 10px;
+    line-height: 1.6;
+  }
+  .intro-card p:last-child { margin-bottom: 0; }
+  .intro-card p strong { font-weight: 500; }
+  .intro-card .audience {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--accent);
+    margin-top: 14px;
+    margin-bottom: 6px;
+  }
+
+  .areas {
+    list-style: none;
+    counter-reset: area;
+    margin-top: 4px;
+  }
+  .areas li {
+    counter-increment: area;
+    font-size: 14px;
+    color: var(--text);
+    padding: 7px 0 7px 34px;
+    position: relative;
+    border-top: 1px solid var(--border);
+  }
+  .areas li:first-child { border-top: none; padding-top: 3px; }
+  .areas li::before {
+    content: counter(area, decimal-leading-zero);
+    position: absolute;
+    left: 0;
+    top: 8px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--dim);
+    letter-spacing: 0.05em;
+  }
+  .areas li:first-child::before { top: 4px; }
+  .areas .area-status {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-left: 10px;
+    padding: 1px 7px;
+    border-radius: 3px;
+  }
+  .areas .area-status.active {
+    background: rgba(184,105,58,0.12);
+    color: var(--accent);
+  }
+  .areas .area-status.planned {
+    background: var(--panel-2);
+    color: var(--dim);
+  }
+
+  /* ---------- SECTION ---------- */
+  section { margin-bottom: 48px; }
+
+  .section-head {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    margin-bottom: 8px;
+  }
+  .section-head h2 {
+    font-family: 'DM Mono', monospace;
+    font-weight: 500;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text);
+  }
+  .section-head .count {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--dim);
+    letter-spacing: 0.06em;
+  }
+  .section-head .rule {
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+  .section-intro {
+    font-size: 14px;
+    color: var(--muted);
+    max-width: 780px;
+    margin-bottom: 22px;
+  }
+
+  .subgroup {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--accent);
+    margin: 24px 0 10px;
+    padding-bottom: 6px;
+    border-bottom: 2px solid var(--accent);
+    display: inline-block;
+  }
+
+  /* ---------- TOOL GRID ---------- */
+  .tools {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .tool {
+    display: grid;
+    grid-template-columns: 220px 1fr auto;
+    gap: 22px;
+    align-items: start;
+    background: var(--panel);
+    padding: 18px 22px;
+    text-decoration: none;
+    color: inherit;
+    transition: background .15s;
+  }
+  .tool:hover { background: #fdfcf9; }
+  .tool:hover .tool-name { color: var(--accent); }
+  .tool:hover .tool-arrow { transform: translateX(5px); color: var(--accent); }
+  .tool:hover .tool-formula { border-color: var(--accent); color: var(--accent); }
+
+  .tool-head {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .tool-name {
+    font-family: 'DM Mono', monospace;
+    font-weight: 500;
+    font-size: 13px;
+    color: var(--text);
+    transition: color .15s;
+    word-break: break-word;
+    line-height: 1.35;
+  }
+  .tool-tag {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--dim);
+  }
+  .tool-desc {
+    font-size: 13.5px;
+    color: var(--muted);
+    line-height: 1.55;
+  }
+  .tool-desc strong {
+    color: var(--text);
+    font-weight: 500;
+  }
+  .tool-formula {
+    display: inline-block;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    background: var(--panel-2);
+    padding: 3px 8px;
+    border-radius: 3px;
+    border: 1px solid var(--border);
+    margin-top: 8px;
+    transition: color .15s, border-color .15s;
+    line-height: 1.4;
+    max-width: 100%;
+    overflow-wrap: break-word;
+  }
+  .tool-arrow {
+    font-family: 'DM Mono', monospace;
+    color: var(--dim);
+    font-size: 16px;
+    transition: transform .15s, color .15s;
+    align-self: center;
+    padding-left: 8px;
+  }
+
+  /* ---------- ROADMAP ---------- */
+  .roadmap {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-top: 4px;
+  }
+  .roadmap-item {
+    background: var(--panel);
+    padding: 18px 20px;
+  }
+  .roadmap-item h3 {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+  .roadmap-item p {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.55;
+  }
+
+  /* ---------- TEXTS ---------- */
+  .texts {
+    columns: 2;
+    column-gap: 40px;
+    font-size: 13.5px;
+    color: var(--muted);
+    line-height: 1.75;
+  }
+  .texts p {
+    break-inside: avoid;
+    padding-left: 14px;
+    position: relative;
+    margin-bottom: 4px;
+  }
+  .texts p::before {
+    content: '—';
+    position: absolute;
+    left: 0;
+    color: var(--dim);
+  }
+  .texts em {
+    font-style: italic;
+    color: var(--text);
+  }
+
+  /* ---------- FOOTER ---------- */
+  footer {
+    margin-top: 48px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--dim);
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  footer a {
+    color: var(--muted);
+    text-decoration: none;
+    border-bottom: 1px dotted var(--border-s);
+    padding-bottom: 1px;
+  }
+  footer a:hover { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* ---------- RESPONSIVE ---------- */
+  @media (max-width: 760px) {
+    .intro-grid { grid-template-columns: 1fr; }
+    .tool { grid-template-columns: 1fr; gap: 10px; }
+    .tool-arrow { display: none; }
+    .texts { columns: 1; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- ============ HEADER ============ -->
+<header>
+  <div class="eyebrow">CSU East Bay · music</div>
+  <h1>sound-design</h1>
+  <p class="lede">Interactive teaching tools for courses in music synthesis, sound design, and digital audio. Each tool is a single self-contained HTML file that runs locally in the browser — drag sliders, toggle playback, and watch every visualization update in real time.</p>
+  <div class="byline">
+    <span>maintained by <a href="https://github.com/csuebmusic">Inés Thiebaut</a></span>
+    <span>·</span>
+    <a href="https://github.com/csuebmusic/sound-design">view on github</a>
+  </div>
+</header>
+
+<!-- ============ INTRO GRID ============ -->
+<div class="intro-grid">
+  <div class="intro-card">
+    <h2>about</h2>
+    <p>These tools are designed to make abstract audio-DSP concepts audible, visible, and interactive. Every file runs locally via the Web Audio API and Canvas, with no external dependencies.</p>
+    <p>The collection is organized around three large areas of the course:</p>
+    <ol class="areas">
+      <li>Digital Audio <span class="area-status active">active</span></li>
+      <li>Sound Synthesis <span class="area-status planned">planned</span></li>
+      <li>Mixing and Signal Processing <span class="area-status active">active</span></li>
+    </ol>
+  </div>
+
+  <div class="intro-card">
+    <h2>how to use</h2>
+    <div class="audience">for students</div>
+    <p>Click any tool below to launch it. Each is meant to accompany a specific topic from the reading — use it while working through the chapter, not as a replacement for it.</p>
+    <div class="audience">for instructors / remixers</div>
+    <p>All files are MIT-licensed and self-contained — fork, adapt, or rehost freely. The visual language (warm palette, DM Mono + DM Sans, consistent metric cards) is shared across every tool so students can move between them without re-orienting.</p>
+  </div>
+</div>
+
+<!-- ============ SECTION: SINUSOIDAL MOTION ============ -->
+<section>
+  <div class="section-head">
+    <h2>Sinusoidal motion</h2>
+    <span class="count">02 tools</span>
+    <span class="rule"></span>
+  </div>
+  <p class="section-intro">Foundational tools for the geometry of sinusoids — the vocabulary every later tool speaks.</p>
+
+  <div class="tools">
+
+    <a class="tool" href="./phasor.html">
+      <div class="tool-head">
+        <div class="tool-name">phasor.html</div>
+        <div class="tool-tag">rotating point → sine, cosine, sum</div>
+      </div>
+      <div class="tool-desc">
+        A rotating point on a circle traces sine and cosine as projections. Four animated panels — sine unrolling, cosine starting at its peak, the complex exponential on a single circle, and a time-domain sum of <strong>sin(θ) + cos(θ)</strong> that reveals itself as another sinusoid at 45°. Establishes the geometric foundation for z-plane, complex poles, and Fourier that the filter tools build on.
+        <div class="tool-formula">A·e^(jθ) = A·(cos θ + j·sin θ)</div>
+      </div>
+      <div class="tool-arrow">→</div>
+    </a>
+
+    <a class="tool" href="./interference.html">
+      <div class="tool-head">
+        <div class="tool-name">interference.html</div>
+        <div class="tool-tag">two waves, independent amplitudes</div>
+      </div>
+      <div class="tool-desc">
+        Two sine waves at the same frequency with independent amplitudes A₁ and A₂, combined under a variable phase offset φ. A phasor addition diagram, a wave canvas showing both signals and their sum, and a live classification as <strong>constructive</strong>, <strong>partial</strong>, or <strong>destructive</strong>. Framed by a real-world scenario — two mics on one source — with schematic doodles of the 3:1 placement rule.
+        <div class="tool-formula">R = √(A₁² + A₂² + 2·A₁·A₂·cos φ)</div>
+      </div>
+      <div class="tool-arrow">→</div>
+    </a>
+
+  </div>
+</section>
+
+<!-- ============ SECTION: DIGITAL FILTERS ============ -->
+<section>
+  <div class="section-head">
+    <h2>Digital filters</h2>
+    <span class="count">05 tools</span>
+    <span class="rule"></span>
+  </div>
+  <p class="section-intro">Interactive tools covering the foundations of recursive (IIR) and non-recursive (FIR) digital filtering, designed to accompany Puckette (Ch. 8) and Roads (Ch. 28), among other standard texts.</p>
+
+  <!-- IIR -->
+  <div class="subgroup">IIR · recursive</div>
+  <div class="tools">
+
+    <a class="tool" href="./one_pole_iir.html">
+      <div class="tool-head">
+        <div class="tool-name">one_pole_iir.html</div>
+        <div class="tool-tag">single pole on the real axis</div>
+      </div>
+      <div class="tool-desc">
+        The simplest recursive digital filter. A single pole slides along the real axis of the z-plane — from lowpass (r &gt; 0) through neutral to highpass (r &lt; 0), all the way to r = ±1 where the pole lands on the unit circle and gain becomes infinite. Hear the filter on white noise while impulse response, frequency response, and group delay update together.
+        <div class="tool-formula">y[n] = g·x[n] + r·y[n−1]</div>
+      </div>
+      <div class="tool-arrow">→</div>
+    </a>
+
+    <a class="tool" href="./two_pole_iir.html">
+      <div class="tool-head">
+        <div class="tool-name">two_pole_iir.html</div>
+        <div class="tool-tag">complex conjugate pole pair · resonance</div>
+      </div>
+      <div class="tool-desc">
+        The building block of resonant filtering — a complex conjugate pole pair, the geometric object responsible for resonance. Impulse response rings exponentially, the frequency-response curve uses adaptive dense sampling to capture peaks up to Q &gt; 1000, and group delay makes the frequency-dependent timing visible. Foundation for formant filters, plucked strings, and analog synth emulations.
+        <div class="tool-formula">b₁ = 2r·cos(ω₀), b₂ = r²</div>
+      </div>
+      <div class="tool-arrow">→</div>
+    </a>
+
+  </div>
+
+  <!-- FIR -->
+  <div class="subgroup">FIR · non-recursive</div>
+  <div class="tools">
+
+    <a class="tool" href="./fir_avg_diff.html">
+      <div class="tool-head">
+        <div class="tool-name">fir_avg_diff.html</div>
+        <div class="tool-tag">N-tap moving average ↔ differentiator</div>
+      </div>
+      <div class="tool-desc">
+        Two sides of the same structure. Toggle between <strong>+1/N</strong> (all positive → lowpass) and <strong>(−1)ᵏ/N</strong> (alternating signs → highpass comb) to see how one sign flip rewrites the filter entirely. The impulse response equals the coefficient list exactly — the defining property of FIR. Group delay is a single number (N−1)/2 that applies uniformly to every frequency, the critical contrast with the IIR tools.
+        <div class="tool-formula">H(ω) = (1/N)·|sin(Nω/2)/sin(ω/2)|</div>
+      </div>
+      <div class="tool-arrow">→</div>
+    </a>
+
+    <a class="tool" href="./fir_2_zero.html">
+      <div class="tool-head">
+        <div class="tool-name">fir_2_zero.html</div>
+        <div class="tool-tag">complex conjugate zero pair · FIR notch</div>
+      </div>
+      <div class="tool-desc">
+        A 3-tap FIR with a complex conjugate zero pair — the FIR counterpart to <strong>two_pole_iir</strong>. Same z-plane vocabulary, but with zeros instead of poles. True notch behavior only when r = 1 (zeros on the unit circle); at r &lt; 1 the zeros pull inside, creating a partial dip and a broader spectral tilt. Group delay goes to −∞ at the notch as r → 1, the FIR sign-mirror of the IIR's resonance spike.
+        <div class="tool-formula">a₁ = −2r·cos(ω₀), a₂ = r²</div>
+      </div>
+      <div class="tool-arrow">→</div>
+    </a>
+
+  </div>
+
+  <!-- IIR + FIR -->
+  <div class="subgroup">IIR + FIR · the biquad</div>
+  <div class="tools">
+
+    <a class="tool" href="./biquad.html">
+      <div class="tool-head">
+        <div class="tool-name">biquad.html</div>
+        <div class="tool-tag">two poles + two zeros · parametric EQ</div>
+      </div>
+      <div class="tool-desc">
+        The second-order pole/zero filter — the direct combination of <strong>two_pole_iir</strong> and <strong>fir_2_zero</strong>. Block diagram shows direct-form II with a shared delay chain firing left to feedback and right to feedforward. Poles (crimson ×) and zeros (teal ○) on the z-plane simultaneously for the first time. When freq_z = freq_p: equal radii cancel, pole-wins gives a peak, zero-wins gives a notch. The core of parametric EQ, visible directly.
+        <div class="tool-formula">y = g·(x + a₁·x₋₁ + a₂·x₋₂) + b₁·y₋₁ − b₂·y₋₂</div>
+      </div>
+      <div class="tool-arrow">→</div>
+    </a>
+
+  </div>
+</section>
+
+<!-- ============ SECTION: ROADMAP ============ -->
+<section>
+  <div class="section-head">
+    <h2>On the horizon</h2>
+    <span class="count">in progress</span>
+    <span class="rule"></span>
+  </div>
+  <p class="section-intro">Planned additions as the course progresses. Topics listed here are intentions rather than promises — the exact shape of each section will depend on what's most useful pedagogically.</p>
+  <div class="roadmap">
+    <div class="roadmap-item">
+      <h3>Synthesis</h3>
+      <p>Subtractive, additive, FM, AM / ring modulation, wavetable, granular.</p>
+    </div>
+    <div class="roadmap-item">
+      <h3>Sound design</h3>
+      <p>Envelopes, modulation, signal flow patterns, effects chains.</p>
+    </div>
+    <div class="roadmap-item">
+      <h3>Physical modeling</h3>
+      <p>Karplus-Strong, waveguides, modal synthesis.</p>
+    </div>
+    <div class="roadmap-item">
+      <h3>Further DSP</h3>
+      <p>Delay lines, reverb structures, time-frequency analysis, spectral processing.</p>
+    </div>
+    <div class="roadmap-item">
+      <h3>ChucK library</h3>
+      <p>Commented <code style="font-family:'DM Mono',monospace;font-size:12px;color:var(--accent)">.ck</code> patches paralleling each interactive tool.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SECTION: SOURCE TEXTS ============ -->
+<section>
+  <div class="section-head">
+    <h2>Source texts</h2>
+    <span class="count">05 core</span>
+    <span class="rule"></span>
+  </div>
+  <p class="section-intro">The tools are developed in dialogue with the following core texts.</p>
+  <div class="texts">
+    <p>Cook, <em>Real Sound Synthesis for Interactive Applications</em> (CRC Press, 2015)</p>
+    <p>Puckette, <em>The Theory and Technique of Electronic Music</em> (2006)</p>
+    <p>Roads, <em>The Computer Music Tutorial</em> (2nd ed., MIT Press, 2023)</p>
+    <p>Kapur et al., <em>Programming for Musicians and Digital Artists: Creating Music with ChucK</em> (Manning, 2015)</p>
+    <p>Wang &amp; Cook, <em>ChucK Manual</em></p>
+  </div>
+</section>
+
+<!-- ============ FOOTER ============ -->
+<footer>
+  <span>CSU East Bay Music · sound-design teaching tools · MIT license</span>
+  <span><a href="https://github.com/csuebmusic/sound-design">github.com/csuebmusic/sound-design</a></span>
+</footer>
+
+</div>
+</body>
+</html>
